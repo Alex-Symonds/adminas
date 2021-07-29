@@ -1,0 +1,34 @@
+{% extends "adminas/layout.html" %}
+
+{% block title %}
+    - Register
+{% endblock %}
+
+{% block body %}
+    <h2>Register</h2>
+
+    {% if message %}
+        <div>{{ message|safe }}</div>
+    {% endif %}
+
+    <form action="{% url 'register' %}" method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <input class="form-control" autofocus type="text" name="username" placeholder="username">
+        </div>
+        <div class="form-group">
+            <input class="form-control" type="email" name="email" placeholder="email">
+        </div>
+        <div class="form-group">
+            <input class="form-control" type="password" name="password" placeholder="password">
+        </div>
+        <div class="form-group">
+            <input class="form-control" type="password" name="confirmation" placeholder="confirm password">
+        </div>
+        <input class="lcars-btn post-btn" type="submit" value="Register">
+    </form>
+
+    <div class="helpful-suggestion">
+        Already have an account? <a href="{% url 'login' %}">Log in here.</a>
+    </div>
+{% endblock %}

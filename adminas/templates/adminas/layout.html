@@ -1,0 +1,47 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Adminas{% block title %}{% endblock %}</title>
+
+        <link href="{% static 'auctions/styles.css' %}" rel="stylesheet">
+    </head>
+    <body>
+        <div class='page_container'>
+            <nav>
+                <ul>
+{% if user.is_authenticated %}
+                    <li>
+                        <a href="{% url 'logout' %}">Log out</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'active' %}">Active</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'records' %}">Records</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'data' %}">Data</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'memos' %}">Memos</a>
+                    </li>
+{% else %}
+                    <li>
+                        <a href="{% url 'login' %}">Log in</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'register' %}">Register</a>
+                    </li>
+{% endif %}
+
+                </ul>
+            </nav>
+            <div class='page_contents'>
+                {% block body %}
+                {% endblock %}
+            </div>
+        </div>
+    </body>
+</html>

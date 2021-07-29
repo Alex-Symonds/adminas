@@ -1,3 +1,4 @@
+
 # Supported currencies
 GBP = 'GBP'
 EUR = 'EUR'
@@ -17,6 +18,17 @@ SUPPORTED_LANGUAGES = [
     (DE, 'Deutsch')
 ] 
 
+# Serial/Batch numbers
+UID_CODE_LENGTH = 4
+ANON_CODE = 'NONE'
+SERIAL_CODE = 'ONE'
+BATCH_CODE = 'MANY'
+UID_OPTIONS = [
+    (ANON_CODE, 'None'),
+    (SERIAL_CODE, 'Per item'),
+    (BATCH_CODE, 'Per batch')
+]
+
 # Shipping
 INCOTERMS = [
     ('EXW', 'EXW'),
@@ -27,3 +39,7 @@ INCOTERMS = [
     ('DAP', 'DAP'),
     ('DDP', 'DDP')
 ]
+
+
+THOUSANDS_SEPARATOR = ','
+
