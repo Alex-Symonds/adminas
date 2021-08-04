@@ -2,6 +2,7 @@ from django.core.exceptions import NON_FIELD_ERRORS
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models.deletion import SET_NULL
+from django.db.models.fields import CharField
 
 from django_countries.fields import CountryField
 
@@ -15,7 +16,7 @@ PART_NUM_LENGTH = 10
 DOCS_ONE_LINER = 300 # <- placeholder value until I check how many 'M's and how many 'i's fit on a single line, then pick something sorta in the middle
 SYSTEM_NAME_LENGTH = 50
 LENGTH_SERIAL_NUMBER = 6
-MAX_DIGITS_PRICE = 9
+MAX_DIGITS_PRICE = 15
 F_PRICE_LENGTH = MAX_DIGITS_PRICE + 1 + (MAX_DIGITS_PRICE / 3) # <- + 1 for the decimal symbol; MAX/3 as a rough approximation for the thousands separator
 
 COMPANY_NAME_LENGTH = 100
@@ -34,6 +35,8 @@ class AdminAuditTrail(models.Model):
     class Meta:
         abstract = True
 
+# "System data" tables. That is, stuff that should already be in place when you begin processing a PO
+
 # Customers and partners
 class Company(AdminAuditTrail):
     full_name = models.CharField(max_length=COMPANY_NAME_LENGTH)
@@ -47,6 +50,12 @@ class Company(AdminAuditTrail):
     # 'agent.third_parties' will be a lot less complicated than a filter.
     #third_parties = models.ManyToManyField('self', null=True)
 
+    def invoice_address(self):
+        inv_site = self.sites.filter(default_invoice=True)
+        return inv_site.addresses
+
+
+
     def __str__(self):
         if self.name == '':
             return self.full_name
@@ -59,6 +68,12 @@ class Site(AdminAuditTrail):
 
     default_invoice = models.BooleanField(default=False)
     default_delivery = models.BooleanField(default=False)
+
+    def current_address(self):
+        try:
+            return Address.objects.filter(site=self).get(valid_until='')
+        except:
+            return Address.objects.filter(site=self).order_by('-valid_until')[0]
 
     def __str__(self):
         if self.company.name == '':
@@ -95,13 +110,30 @@ class Product(AdminAuditTrail):
     origin_country = CountryField(blank=True)
 
     # Support for package deals and standard accessories
-    includes = models.ManyToManyField('self', related_name='included_in', symmetrical=False, blank=True)
+    includes = models.ManyToManyField('self', through='StandardAccessory', related_name='supplied_with')
+
+    # Resale support
+    #   resale_category is for "standard" resale discounts (each Product should only be in one category).
+    #   special_resale is for when an agent negotiates something different.
+    # System will interpret resale_category = Null as 0% resale discount.
+    resale_category = models.ForeignKey('ResaleCategory', on_delete=models.SET_NULL, related_name='members', null=True)
+    special_resale = models.ManyToManyField('AgentResaleGroup', related_name='special_deal_products', blank=True)
 
     def get_description(self, lang):
         return self.descriptions.filter(language=lang).order_by('-last_updated')[0].description
 
     def __str__(self):
         return self.part_number + ': ' + self.name
+
+
+class StandardAccessory(AdminAuditTrail):
+    parent = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='my_stdaccs')
+    accessory = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stdacc_for')
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return f'{self.parent.name} includes {self.quantity} x {self.accessory.name}'
+
 
 class Description(AdminAuditTrail):
     last_updated = models.DateTimeField(auto_now=True)
@@ -110,11 +142,19 @@ class Description(AdminAuditTrail):
     description = models.CharField(max_length=DOCS_ONE_LINER)
 
     def __str__(self):
-        return f'[{self.language}, {self.product.part_number}] {self.product.name}'
+        return f'[{self.language}, {self.product.part_number}] {self.product.name}, {self.last_updated - datetime.timedelta(microseconds=self.last_updated.microsecond)}'
 
 class PriceList(AdminAuditTrail):
     valid_from = models.DateField()
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
+
+    def __str__(self):
+        return self.name
+
+class ResaleCategory(AdminAuditTrail):
+    """ Standard resale discount rates by category """
+    name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
+    resale_perc = models.FloatField()
 
     def __str__(self):
         return self.name
@@ -127,6 +167,16 @@ class Price(models.Model):
 
     def __str__(self):
         return f'{self.price_list.name} {self.product.name} @ {self.currency} {self.value}'
+
+class AgentResaleGroup(AdminAuditTrail):
+    """ Agent-specific resale discount group """
+    agent = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='resale_prices')
+    name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
+    percentage = models.FloatField()
+
+    def __str__(self):
+        return f'{self.agent}, {self.name}'
+
 
 # Support for modular ordering
 class SlotChoiceList(models.Model):
@@ -152,7 +202,8 @@ class Slot(models.Model):
         return self.name + ' slot ' + req_str + ' for ' + self.parent.name
 
 
-# PO stuff
+# PO-specific stuff
+# PO
 class PurchaseOrder(AdminAuditTrail):
     job = models.ForeignKey('Job', on_delete=models.CASCADE, related_name='po')
     reference = models.CharField(max_length=PO_NAME_LENGTH)
@@ -164,46 +215,22 @@ class PurchaseOrder(AdminAuditTrail):
     def __str__(self):
         return f'{self.reference} from {self.job.invoice_to.site.company.name}'
 
-class PriceAdjustment(AdminAuditTrail):
-    """ Abstract class for discounts (or positive adjustments, I guess, rarities that they are :| ) """
-    percentage = models.FloatField()
-    value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
-    authorised_by = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='%(class)s_discounts', null=True)
-
-    class Meta:
-        abstract = True
-
-
-class PriceAdjustmentItem(PriceAdjustment):
-    """ Store price adjustments relating to a specific item """
-    item = models.ForeignKey('JobItem', on_delete=models.CASCADE, related_name='price_adjustments')
-    base_price = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
-
-    def __str__(self):
-        return f'{self.percentage}% / {self.value} adjustment to {self.item}'
-
-class PriceAdjustmentJob(PriceAdjustment):
-    """ Store Job-level adjustments """
-    job = models.ForeignKey('Job', on_delete=models.CASCADE, related_name='price_adjustments')
-    inv_description = models.CharField(max_length=DOCS_ONE_LINER) # so we don't have a mysterious figure just sort of floating on the invoice
-    # maybe a dropdown to set some defaults? Like... "Less X% sales commission on Y", "Adjustment to reach agreed price of Y", "Contribution to customer discount"
-
-    def __str__(self):
-        return f'{self.job.name}: {self.inv_description}'
-
 #Job stuff
 class Job(AdminAuditTrail):
     name = models.CharField(max_length=JOB_NAME_LENGTH)
-    customer = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_ordered', null=True)
     agent = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_linked', null=True)
-
-    invoice_to = models.ForeignKey(Address, on_delete=models.PROTECT, related_name='jobs_invoiced')
-    delivery_to = models.ForeignKey(Address, on_delete=models.PROTECT, related_name='jobs_delivered')
+    customer = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_ordered', null=True)
 
     country = CountryField()
     language = models.CharField(max_length=2, choices=SUPPORTED_LANGUAGES, default=DEFAULT_LANG)
 
+    invoice_to = models.ForeignKey(Address, on_delete=models.PROTECT, related_name='jobs_invoiced')
+    delivery_to = models.ForeignKey(Address, on_delete=models.PROTECT, related_name='jobs_delivered')
+    
+    currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
+    quote_ref = models.CharField(max_length=SYSTEM_NAME_LENGTH)
     payment_terms = models.TextField()
+    
     incoterm_code = models.CharField(max_length=3, choices=INCOTERMS)
     incoterm_location = models.CharField(max_length=30)
 
@@ -219,13 +246,16 @@ class JobComment(AdminAuditTrail):
         return f'{self.created_by} on Job {self.job.name}'
 
 class JobItem(AdminAuditTrail):
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='items') 
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, blank=True)
-    price_list = models.ForeignKey(PriceList, on_delete=models.PROTECT, blank=True)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='items')
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, null=True)
+    price_list = models.ForeignKey(PriceList, on_delete=models.PROTECT, null=True)
 
     quantity = models.IntegerField(blank=True)
-    description = models.CharField(max_length=DOCS_ONE_LINER)
     selling_price = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
+
+    description = models.CharField(max_length=DOCS_ONE_LINER)
+    dummy_part_num = models.CharField(max_length=PART_NUM_LENGTH)
 
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
@@ -249,7 +279,29 @@ class JobItem(AdminAuditTrail):
             return self.product.part_number
         else:
             return '-'
-        
+    
+    def list_price(self):
+        return Price.objects.filter(currency=self.job.currency).filter(price_list=self.price_list).get(product=self.product).value
+
+    def resale_percentage(self):
+        # Resale discount will apply. Check if the agent has negotiated a special deal on this item.
+        if not self.job.invoice_to.site.company.is_agent:
+            return 0
+        else:
+            deal = self.product.special_resale.filter(agent=self.job.invoice_to.site.company)
+            if len(deal) != 0:
+                # There's a special deal, so use the special deal percentage
+                return deal.percentage
+            else:
+                # No special arrangements, so use the standard percentage
+                return self.product.resale_category.resale_perc
+
+    def expected_price(self):
+        """ Get current list price, in the Job currency, less resale discount """
+        # Apply percentage to list price
+        resale_multiplier = 1 - (self.resale_percentage() / 100)
+        return round(self.list_price * resale_multiplier, 2)
+
     def __str__(self):
         return f'({self.job.name}) {self.quantity} x {self.product.name}'
 
@@ -262,7 +314,7 @@ class JobModule(models.Model):
         return f'{self.slot.name} slot for {self.parent.product.name}'
 
 class ProdGroup(AdminAuditTrail):
-    date_requested = models.DateTimeField()
+    date_wanted = models.DateTimeField()
     date_scheduled = models.DateTimeField(blank=True)
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='batches')
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
@@ -281,7 +333,12 @@ class ItemPrAssignment(models.Model):
 
 
 class ProdDetails(AdminAuditTrail):
-    """ Details which become available during/following production """
+    """ 
+        Details which arise during/after production and apply to MULTIPLE instances of the same product.
+        (e.g. "250 widgets from $JOB finished on $DATE")
+        
+        Note: This record is created for every completed JobItem.
+    """
     item = models.ForeignKey(JobItem, on_delete=models.PROTECT, related_name = 'details')
     quantity = models.IntegerField(blank=True)
     date_finished = models.DateField(blank=True)
@@ -291,7 +348,19 @@ class ProdDetails(AdminAuditTrail):
 
 
 class SpecificDetails(AdminAuditTrail):
-    """ Further production details about one specific item or batch """
+    """ 
+        Details which arise during/after production and apply to a SINGLE instance of a product.
+
+        Note: This record is only created when unique data exists for specific instances of a product.
+
+        Note: Definition of "an instance" is flexible. Suppose the product is sold by tens/hundreds/thousands at a time,
+        but each set of 100 is a specific, traceable batch. You can consider the entire batch to be "an instance". If the program
+        sees ProdDetails quantity = 500, a flag on the product for "MANY" on the serial number and a single SpecificDetails, it'll know what's up.
+
+        Edge-case note: Suppose the JobItem is for 150 widgets, so you supply 100 from Batch A and 50 from Batch B.
+        2 x SpecificDetails connecting "A" and "B" to a JobItem for 150 widgets would result in uncertainty over how many came from each batch.
+        Best procedure = create 2 x ProdDetails, one for 100/A and one for 50/B.
+    """
     prod_details = models.ForeignKey(ProdDetails, on_delete=models.PROTECT, related_name = 'specifics', null=True)
     reference = models.CharField(max_length=LENGTH_SERIAL_NUMBER)
     
@@ -309,11 +378,11 @@ class FinGroup(AdminAuditTrail):
     reference = models.CharField(max_length=10, blank=True)
 
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
-    recipient = models.ForeignKey(Site, on_delete=models.PROTECT, related_name='financials')
+    #recipient = models.ForeignKey(Site, on_delete=models.PROTECT, related_name='financials') # commented out because isn't this what invoice_to is for?
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
     value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
 
-    show_discounts = models.BooleanField(default=True)
+    show_item_discounts = models.BooleanField(default=True)
 
     def __str__(self):
         if self.name == '':

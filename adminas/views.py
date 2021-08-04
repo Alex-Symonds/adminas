@@ -7,7 +7,8 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 
-from .models import User, Job
+from adminas.models import User, Job, PurchaseOrder
+from adminas.forms import JobForm, JobItemFormSet, PoFormSet
 
 # Create your views here.
 def login_view(request):
@@ -44,7 +45,7 @@ def register(request):
         confirmation = request.POST['confirmation']
         if password != confirmation:
             return render(request, 'adminas/register.html', {
-                'message': '<span>ERROR</span><br>Passwords must match.'.upper()
+                'message': '<span>ERROR</span><br>Passwords must match.'
             })
 
         # Attempt to create new user
@@ -53,7 +54,7 @@ def register(request):
             user.save()
         except IntegrityError:
             return render(request, 'adminas/register.html', {
-                'message': '<span>ERROR</span><br>Username already taken.'.upper()
+                'message': '<span>ERROR</span><br>Username already taken.'
             })
         login(request, user)
         return HttpResponseRedirect(reverse('index'))
@@ -65,14 +66,25 @@ def index(request):
 
 def edit_job(request):
     default_get = '-'
-    job_id = request.GET.get('job', default_get)
 
-    if job_id == default_get:
-        pass
-        # load the formy page with blank inputs
+    if request.method == 'GET':
+        job_id = request.GET.get('job', default_get)
+
+        if job_id == default_get:
+            job_form = JobForm()
+            item_form = JobItemFormSet()
+            po_form = PoFormSet()
+            return render(request, 'adminas/edit.html',{
+                'job_form': job_form,
+                'item_row': item_form,
+                'po_row': po_form
+            })
+        else:
+            pass
+            # load the formy page with inputs pre-populated with existing order data
     else:
         pass
-        # load the formy page with inputs pre-populated with existing order data
+        # Save the data in the database
     
     return render(request, 'adminas/edit.html')
 

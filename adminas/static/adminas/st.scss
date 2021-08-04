@@ -1,0 +1,60 @@
+$f_heading: 'Arial', sans-serif;
+$f_contents: 'Calibri', sans-serif;
+
+$bgc-tips: white;
+$bc-tips: #AAAAAA;
+
+body {
+    font-family: $f_contents;
+}
+
+h2, h3{
+    font-family: $f_heading;
+}
+
+form {
+
+}
+
+input {
+    max-width: 100%;
+}
+
+.page_container{
+    width: 98%;
+    max-width: 75rem;
+    margin: 0 auto;
+}
+
+.hover-tips{
+    visibility: hidden;
+
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 5rem;
+
+    width: 15rem;
+    padding: 0.5rem 0.2rem;
+
+    text-align: center;
+
+    background: $bgc-tips;
+    border: 1px solid $bc-tips;
+    border-radius: 1rem;
+}
+
+.label-with-tips{
+    display: inline-block;
+    position: relative;
+
+    &:hover{
+        .hover-tips{
+            visibility: visible;
+            -moz-transition-delay: 0.15s;
+            transition-delay: 0.15s;
+        }
+    }
+}
+
+//.page_contents{ // this wraps around the non-navbar part of the page

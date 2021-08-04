@@ -6,6 +6,83 @@
 
 {% block body %}
     <h2>Job Editing</h2>
+    <h3>General Details</h3>
+    <div class="job_form_container">
+        <form action="{% url 'edit_job' %}" method='POST'>
+            {% csrf_token %}
+            <h4>Identification</h4>
+            <div class="form-row">
+                <label>{{ job_form.name.label }}</label>
+                <div>{{ job_form.name }}</div>
+            </div>
+            <div class="form-row">
+                <label>{{ job_form.quote_ref.label }}</label>
+                <div>{{ job_form.quote_ref }}</div>
+            </div>
+            <div class="form-row">
+                <label>{{ job_form.agent.label }}</label>
+                <div>{{ job_form.agent }}</div>
+            </div>
+            <div class="form-row">
+                <label>{{ job_form.customer.label }}</label>
+                <div>{{ job_form.customer }}</div>
+                <button>add new customer </button>
+            </div>
+            <div class="form-row">
+                <div class="label-with-tips">
+                    <span class="hover-tips">Used for statistical purposes only. Does not affect invoice/delivery addresses.</span>
+                    <label>{{ job_form.country.label }}</label> [?]
+                </div>
+                <div>{{ job_form.country }}</div>
+            </div>
+            <div class="form-row">
+                <label>{{ job_form.language.label }}</label>
+                <div>{{ job_form.language }}</div>
+            </div>
+
+            <h4>Payment</h4>
+            <div class="form-row">
+                <label>{{ job_form.invoice_to.label }}</label>
+                <div>{{ job_form.invoice_to }}</div>
+                <button>add new invoice address</button>
+            </div>
+            <div class="form-row">
+                <label>{{ job_form.currency.label }}</label>
+                <div>{{ job_form.currency }}</div>
+            </div>
+            <div class="form-row">
+                <label>{{ job_form.payment_terms.label }}</label>
+                <div>{{ job_form.payment_terms }}</div>
+            </div>
+
+            <h4>Delivery</h4>
+            <div class="form-row">
+                <label>{{ job_form.delivery_to.label }}</label>
+                <div>{{ job_form.delivery_to }}</div>
+                <button>add new delivery address</button>
+            </div>
+            <div class="form-row">
+                <label>Incoterm</label>
+                <div>{{ job_form.incoterm_code }} {{ job_form.incoterm_location }}</div>
+            </div>
+    
+
+
+            <h3>Purchase Order</h3>
+            <div class="job_po_container">
+                {{ po_row }}
+            </div>
+            <h3>Items</h3>
+            <div class="job_items_container">
+                <div class="item_row">
+                    {{ item_row }}
+                </div>
+            </div>
+
+            <input type='SUBMIT' value='submit'>
+        </form>
+    </div>
+
 {% endblock %}
 
 
