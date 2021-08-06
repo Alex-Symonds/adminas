@@ -38,6 +38,11 @@ class AdminAuditTrail(models.Model):
 # "System data" tables. That is, stuff that should already be in place when you begin processing a PO
 
 # Customers and partners
+from django.db.models import Q
+from django.db.models import F
+from django.db.models import Count
+from itertools import chain
+
 class Company(AdminAuditTrail):
     full_name = models.CharField(max_length=COMPANY_NAME_LENGTH)
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
@@ -45,21 +50,41 @@ class Company(AdminAuditTrail):
 
     is_agent = models.BooleanField(default=False)
 
-    # Support for third-parties. When a user adds a new company solely to populate an address (delivery or invoice)
-    # create an association between the Job's agent, the Job's customer and the new company.
-    # 'agent.third_parties' will be a lot less complicated than a filter.
-    #third_parties = models.ManyToManyField('self', null=True)
-
     def invoice_address(self):
         inv_site = self.sites.filter(default_invoice=True)
         return inv_site.addresses
+ 
+    def third_parties(self):
+        """
+            List of third-party Companies associated with this Company.
 
+        """
+        self_jobs = Job.objects.filter(Q(agent=self) | Q(customer=self))
+        invoice_ids = self_jobs.filter( ~Q(invoice_to__site__company = F('agent')) & ~Q(invoice_to__site__company = F('customer')) ).values_list('invoice_to__site__company__id', flat=True)
+        delivery_ids = self_jobs.filter( ~Q(delivery_to__site__company = F('agent')) & ~Q(delivery_to__site__company = F('customer')) ).values_list('delivery_to__site__company__id', flat=True)
+
+        ids = list(invoice_ids) + list(delivery_ids)
+
+        return Company.objects.filter(id__in=ids).order_by('name')
 
 
     def __str__(self):
         if self.name == '':
             return self.full_name
         return self.name
+
+class Address(AdminAuditTrail):
+    site = models.ForeignKey('Site', on_delete=models.CASCADE, related_name='addresses')
+    country = CountryField()
+    region = models.CharField(max_length=REGION_NAME_LENGTH)
+    postcode = models.CharField(max_length=10, blank=True)
+    address = models.TextField()
+    contact = models.CharField(max_length=PERSON_NAME_LENGTH, blank=True)
+
+    valid_until = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return f'({self.site.company.name}) {self.site.name} @ {self.created_on - datetime.timedelta(microseconds=self.created_on.microsecond)}'
 
 
 class Site(AdminAuditTrail):
@@ -70,10 +95,26 @@ class Site(AdminAuditTrail):
     default_delivery = models.BooleanField(default=False)
 
     def current_address(self):
-        try:
-            return Address.objects.filter(site=self).get(valid_until='')
-        except:
-            return Address.objects.filter(site=self).order_by('-valid_until')[0]
+        # If a site has moved around, the database should contain all their old addresses, with all but one having a "valid_until" date.
+        # Usually the current_address is whichever one has valid_until = None.
+        # Two edge cases:   1) Someone added a future valid_until date when the move was announced: site hasn't moved yet
+        #                   2) The site has closed permanently, so their old address is no longer valid, but there's no new one to replace it
+
+        addr_last_invalidated = Address.objects.filter(site = self).filter(valid_until != None).order_by('-valid_until')[0]
+
+        if addr_last_invalidated.valid_until <= datetime.datetime.today():
+            try:
+                # Case: Usual
+                return Address.objects.filter(site=self).get(valid_until=None)
+            except:
+                # Case: Closed permanently
+                return addr_last_invalidated
+        else:
+            # Case: Window between notification and moving
+            return addr_last_invalidated
+
+
+
 
     def __str__(self):
         if self.company.name == '':
@@ -81,20 +122,6 @@ class Site(AdminAuditTrail):
         else:
             company = self.company.name
         return f'({company}) {self.name}'
-
-
-class Address(AdminAuditTrail):
-    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='addresses')
-    country = CountryField()
-    region = models.CharField(max_length=REGION_NAME_LENGTH)
-    postcode = models.CharField(max_length=10, blank=True)
-    address = models.TextField()
-    contact = models.CharField(max_length=PERSON_NAME_LENGTH, blank=True)
-
-    valid_until = models.DateField(null=True, blank=True)
-
-    def __str__(self):
-        return f'({self.site.company.name}) {self.site.name} @ {self.created_on - datetime.timedelta(microseconds=self.created_on.microsecond)}'
 
 # Stuff on offer
 class Product(AdminAuditTrail):
@@ -218,8 +245,8 @@ class PurchaseOrder(AdminAuditTrail):
 #Job stuff
 class Job(AdminAuditTrail):
     name = models.CharField(max_length=JOB_NAME_LENGTH)
-    agent = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_linked', null=True)
-    customer = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_ordered', null=True)
+    agent = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_sold',  blank=True, null=True)
+    customer = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_ordered', blank=True, null=True)
 
     country = CountryField()
     language = models.CharField(max_length=2, choices=SUPPORTED_LANGUAGES, default=DEFAULT_LANG)
@@ -460,3 +487,12 @@ class AccEventTO(AccountingEvent):
     def __str__(self):
         return self.value + ' ' + self.currency + ' ' + self.fin_group + ' @ ' + self.created_on
 
+
+
+
+class DocumentData(AdminAuditTrail):
+    invoice_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='financial_documents')
+    delivery_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_documents')
+    # Store these independently in case the addresses change partway through the order.
+    # The general idea is that Job.invoice_to and Job.delivery_to will contain the most recent, default addresses.
+    pass

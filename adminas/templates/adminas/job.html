@@ -5,7 +5,70 @@
 {% endblock %}
 
 {% block body %}
-    <h2>Job ID #TODO</h2>
+    <h2>Job {{ job.name }}</h2>
+    <h3>General Details</h3>
+    <div id="job_general_section">
+        <h4>Identification</h4>
+        <div class="read_row">
+            Agent: {{ job.agent.name }}
+        </div>
+        <div class="read_row">
+            Customer: {{ job.customer.name }}
+        </div>
+        <div class="read_row">
+            Quote ref: {{ job.quote_ref }}
+        </div>
+        <div class="read_row">
+            Country: {{ job.country.name }}
+        </div>
+        <div class="read_row">
+            Language: {{ job.language }}
+        </div>
+    </div>
+
+    <div class="payment_and_delivery_container">
+        <div id="job_payment_section">
+            <h4>Payment</h4>
+            <div class="read_row panel">
+                Invoice address:<br />
+                {{ job.invoice_to.address }}, {{ job.invoice_to.region }}, {{ job.invoice_to.postcode }}, {{ job.invoice_to.country.name }}
+            </div>
+            <div class="read_row">
+                Currency: {{ job.currency }}
+            </div>
+            <div class="read_row panel">
+                Payment terms:<br />
+                {{ job.payment_terms }}
+            </div>
+        </div>
+        <div id="job_delivery_section">
+            <h4>Delivery</h4>
+            <div class="read_row panel">
+                Delivery address:<br />
+                {{ job.delivery_to.address }}, {{ job.delivery_to.region }}, {{ job.delivery_to.postcode }}, {{ job.delivery_to.country.name }}
+            </div>
+            <div class="read_row">
+                Incoterm: {{ job.incoterm_code }} {{ job.incoterm_location }}
+            </div>
+        </div>
+    </div>
+
+    <div id="job_po_section">
+        <h3>Purchase Order</h3>
+        <div class="job_po_container">
+            {{ po_row }}
+        </div>
+    </div>
+
+    <div id="job_items_section">
+        <h3>Items</h3>
+        <div class="job_items_container">
+            <div class="item_row">
+                {{ item_row }}
+            </div>
+        </div>
+    </div>
+
 {% endblock %}
 
 

@@ -16,16 +16,13 @@
                         <a href="{% url 'logout' %}">Log out</a>
                     </li>
                     <li>
-                        <a href="{% url 'active' %}">Active</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'records' %}">Records</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'data' %}">Data</a>
+                        <a href="{% url 'status' %}">Status</a>
                     </li>
                     <li>
                         <a href="{% url 'memos' %}">Memos</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'records' %}">Records</a>
                     </li>
 {% else %}
                     <li>

@@ -1,3 +1,11 @@
+# Address dropdown
+ADDRESS_DROPDOWN = [
+    'Agent',
+    'Customer',
+    'Other'
+]
+
+
 
 # Supported currencies
 GBP = 'GBP'
