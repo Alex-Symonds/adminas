@@ -1,9 +1,20 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup
+from .models import User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder
 
 # Register your models here.
+
+class POInline(admin.TabularInline):
+    model = PurchaseOrder
+    extra = 0
+
+class JobAdmin(admin.ModelAdmin):
+    model = Job
+    inlines = [
+        POInline,
+    ]
+
 
 class ProductResaleInline(admin.TabularInline):
     model = Product
@@ -92,7 +103,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 admin.site.register(User)
-admin.site.register(Job)
+admin.site.register(Job, JobAdmin)
 admin.site.register(Company, CompanyAdmin)
 admin.site.register(Site, SiteAdmin)
 admin.site.register(Address)

@@ -49,5 +49,3 @@ INCOTERMS = [
 ]
 
 
-THOUSANDS_SEPARATOR = ','
-

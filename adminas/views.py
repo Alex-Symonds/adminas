@@ -7,9 +7,10 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 
-from adminas.models import User, Job, Address, PurchaseOrder
-from adminas.forms import JobForm, JobItemFormSet, PoFormSet, CompanyForm, SiteForm, AddressForm
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem
+from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet
 from adminas.constants import ADDRESS_DROPDOWN
+from adminas.util import anonymous_user, error_page
 
 # Create your views here.
 def login_view(request):
@@ -66,6 +67,9 @@ def index(request):
     return render(request, 'adminas/index.html')
 
 def edit_job(request):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+
     default_get = '-'
 
     if request.method == 'GET':
@@ -73,7 +77,7 @@ def edit_job(request):
 
         if job_id == default_get:
             task_name = 'Create New'
-            job_form = JobForm(auto_id="job_id_%s")
+            job_form = JobForm() #(auto_id="job_id_%s") for when there's more than one with the same fields
 
             # Note to self: you're planning to move the return outside of the if statement once you've setup the "else" block.
             # That's why you bothered with variables instead of directly setting these via the form classes
@@ -109,17 +113,43 @@ def edit_job(request):
     return render(request, 'adminas/edit.html')
 
 def job(request, job_id):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+
     my_job = Job.objects.get(id=job_id)
+    po_list = PurchaseOrder.objects.filter(job=my_job)
+
+    item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
 
     return render(request, 'adminas/job.html', {
-        'job': my_job
+        'job': my_job,
+        'po_form': POForm(initial={'job': my_job.id}),
+        'po_list': po_list,
+        'item_formset': item_formset
     })
+
+def purchase_order(request):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+    
+    if request.method == 'POST':
+        posted_form = POForm(request.POST)
+        if posted_form.is_valid():
+            po = PurchaseOrder(
+                created_by = request.user,
+                job = posted_form.cleaned_data['job'],
+                reference = posted_form.cleaned_data['reference'],
+                date_on_po = posted_form.cleaned_data['date_on_po'],
+                date_received = posted_form.cleaned_data['date_received'],
+                currency = posted_form.cleaned_data['currency'],
+                value = posted_form.cleaned_data['value']
+            )
+            po.save()
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
+
 
 def status(request):
     return render(request, 'adminas/status.html')
 
 def records(request):
     return render(request, 'adminas/records.html')
-
-def memos(request):
-    return render(request, 'adminas/memos.html')

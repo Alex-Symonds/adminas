@@ -6,6 +6,9 @@
         <title>Adminas{% block title %}{% endblock %}</title>
 
         <link href="{% static 'adminas/styles.css' %}" rel="stylesheet">
+
+        {% block javascript %}
+        {% endblock %}
     </head>
     <body>
         <div class='page_container'>
@@ -16,10 +19,10 @@
                         <a href="{% url 'logout' %}">Log out</a>
                     </li>
                     <li>
-                        <a href="{% url 'status' %}">Status</a>
+                        <a href="{% url 'index' %}">Home</a>
                     </li>
                     <li>
-                        <a href="{% url 'memos' %}">Memos</a>
+                        <a href="{% url 'status' %}">Status</a>
                     </li>
                     <li>
                         <a href="{% url 'records' %}">Records</a>

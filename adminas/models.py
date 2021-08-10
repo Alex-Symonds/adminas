@@ -7,7 +7,8 @@ from django.db.models.fields import CharField
 from django_countries.fields import CountryField
 
 from decimal import Decimal
-from .constants import SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS
+from adminas.constants import SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS
+from adminas.util import format_money
 import datetime
 
 # Size fields
@@ -238,6 +239,9 @@ class PurchaseOrder(AdminAuditTrail):
     date_received = models.DateField()
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
     value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
+
+    def value_f(self):
+        return format_money(self.value)
 
     def __str__(self):
         return f'{self.reference} from {self.job.invoice_to.site.company.name}'

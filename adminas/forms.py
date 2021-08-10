@@ -1,5 +1,5 @@
-from django.forms import ModelForm, modelform_factory, ModelChoiceField, Textarea
-from adminas.models import Job, JobItem, PurchaseOrder, Company, Address, Site
+from django.forms import ModelForm, modelformset_factory, modelform_factory, ModelChoiceField, Textarea, HiddenInput
+from adminas.models import Job, JobItem, PurchaseOrder, Company, Address, Site, Product
 
 
 class CompanyForm(ModelForm):
@@ -63,11 +63,40 @@ PoFormSet = modelform_factory(
     }
 )
 
-JobItemFormSet = modelform_factory(
-    JobItem,
-    fields=['product', 'description', 'quantity', 'price_list', 'selling_price'],
-    labels = {
-            'product': 'Part Number'
+
+
+class JobItemForm(ModelForm):
+    class Meta():
+        model = JobItem
+        fields=['job', 'quantity', 'product', 'price_list', 'selling_price']
+        labels = {
+                'product': 'Item'
+            }
+        widgets = {
+            'job': HiddenInput()
         }
+
+    def __init__(self, *args, **kwargs):
+        super(JobItemForm, self).__init__(*args, **kwargs)
+        self.fields['product'].queryset = Product.objects.order_by('part_number')
+
+JobItemFormSet = modelformset_factory(
+    JobItem,
+    form=JobItemForm,
+    extra=1
 )
+
+
+
+class POForm(ModelForm):
+    class Meta():
+        model = PurchaseOrder
+        fields = ['job', 'reference', 'date_on_po', 'date_received', 'currency', 'value']
+        labels = {
+            'reference': 'Customer PO Number',
+            'date_on_po': 'Date on PO'
+        }
+        widgets = {
+            'job': HiddenInput()
+        }
 
