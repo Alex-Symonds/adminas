@@ -120,12 +120,14 @@ def job(request, job_id):
     po_list = PurchaseOrder.objects.filter(job=my_job)
 
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
+    item_list = JobItem.objects.filter(job=my_job)
 
     return render(request, 'adminas/job.html', {
         'job': my_job,
         'po_form': POForm(initial={'job': my_job.id}),
         'po_list': po_list,
-        'item_formset': item_formset
+        'item_formset': item_formset,
+        'item_list': item_list
     })
 
 def purchase_order(request):
@@ -146,6 +148,29 @@ def purchase_order(request):
             )
             po.save()
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
+
+def items(request):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+    
+    if request.method == 'POST':
+        formset = JobItemFormSet(request.POST)
+        if formset.is_valid():
+            for form in formset:
+                ji = JobItem(
+                    created_by = request.user,
+                    job = form.cleaned_data['job'],
+                    product = form.cleaned_data['product'],
+                    price_list = form.cleaned_data['price_list'],
+                    quantity = form.cleaned_data['quantity'],
+                    selling_price = form.cleaned_data['selling_price']
+                )
+                ji.save()
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
+        else:
+            return error_page(request, 'Item form was invalid.', 400)
+    pass
+
 
 
 def status(request):

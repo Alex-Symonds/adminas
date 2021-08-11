@@ -285,8 +285,8 @@ class JobItem(AdminAuditTrail):
     quantity = models.IntegerField(blank=True)
     selling_price = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
 
-    description = models.CharField(max_length=DOCS_ONE_LINER)
-    dummy_part_num = models.CharField(max_length=PART_NUM_LENGTH)
+    description = models.CharField(max_length=DOCS_ONE_LINER, blank=True)
+    dummy_part_num = models.CharField(max_length=PART_NUM_LENGTH, blank=True)
 
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder
+from .models import JobItem, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder
 
 # Register your models here.
 
@@ -9,10 +9,15 @@ class POInline(admin.TabularInline):
     model = PurchaseOrder
     extra = 0
 
+class JobItemInline(admin.TabularInline):
+    model = JobItem
+    extra = 0
+
 class JobAdmin(admin.ModelAdmin):
     model = Job
     inlines = [
         POInline,
+        JobItemInline,
     ]
 
 
