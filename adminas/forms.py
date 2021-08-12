@@ -86,6 +86,10 @@ JobItemFormSet = modelformset_factory(
     extra=1
 )
 
+class JobItemEditForm(ModelForm):
+    class Meta():
+        model = JobItem
+        fields=['id', 'quantity', 'product', 'price_list', 'selling_price']
 
 
 class POForm(ModelForm):

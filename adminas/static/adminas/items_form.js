@@ -41,8 +41,9 @@ function clone_item_form(original, prefix){
     num_forms++;
     document.querySelector(`#id_${prefix}-TOTAL_FORMS`).value = num_forms;
 
-    // Give the new row its own unique ID
+    // Make the new row an individual: give it its own IDs and wipe the copied inputs, if any
     update_form_row_ids(new_item, prefix, (num_forms - 1));
+    wipe_cloned_data(new_item);
     
     // Move the add button to the bottom element. (Moving preserves the event listener)
     let add_btn_selector = '#add_item_btn';
@@ -56,6 +57,21 @@ function clone_item_form(original, prefix){
     // Add new item to the DOM
     original.after(new_item);
 }
+
+// Wipe data from cloned form row
+function wipe_cloned_data(form_row){
+    let targets = form_row.children;
+    for(var i=0; i < targets.length; i++){
+        if(targets[i].tagName === 'INPUT' && (targets[i].type === 'number' || targets[i].type === 'text')){
+            targets[i].value = '';
+        }
+        if(targets[i].tagName === 'SELECT'){
+            targets[i].selectedIndex = 0;
+        }
+    }
+    return false;
+}
+
 
 // Update attributes with a new ID number
 function update_form_row_ids(row_ele, prefix, new_id){

@@ -193,6 +193,9 @@ class Price(models.Model):
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
     value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
 
+    def value_f(self):
+        return format_money(self.value)
+
     def __str__(self):
         return f'{self.price_list.name} {self.product.name} @ {self.currency} {self.value}'
 
@@ -291,6 +294,9 @@ class JobItem(AdminAuditTrail):
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True)
+
+    def selling_price_f(self):
+        return format_money(self.selling_price)
 
     def inv_description(self):
         if self.invoice_wording != None:

@@ -169,7 +169,11 @@ def items(request):
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
         else:
             return error_page(request, 'Item form was invalid.', 400)
-    pass
+            
+    elif request.method == 'PUT':
+        put_data = json.loads(request.body)
+        
+
 
 
 
