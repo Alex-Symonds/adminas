@@ -146,10 +146,6 @@ nav {
     visibility: hidden;
 }
 
-.show{
-    visibility: visible;
-}
-
 .example{
     color: #999999;
     font-style: italic;
@@ -228,9 +224,20 @@ nav {
     }
 }
 
+.job-items-container{
+    display: block;
+}
 
+.job-item-container{
+    margin-top: 5px;
+    padding: 5px;
+    border: 1px solid #E6E6E6;
+    border-radius: 5px;
+}
 
+.form-row{
 
+}
 
 
 
