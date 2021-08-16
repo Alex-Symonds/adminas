@@ -51,8 +51,10 @@ function clone_item_form(original, prefix){
     add_btn = document.querySelector(add_btn_selector);
     new_item.appendChild(add_btn);
 
-    // Add a delete event listener to the new delete button
+    // Add a delete event listener to the new delete button and the product dropdown; clear old auto_desc
     add_delete_event(new_item.querySelector('.remove-item-btn'));
+    auto_item_desc_listener(new_item.querySelector('#id_form-' + (num_forms - 1) + '-product'));
+    new_item.querySelector('.' + AUTO_DESC_CLASS).innerHTML = '';
 
     // Add new item to the DOM
     original.after(new_item);

@@ -7,8 +7,8 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem
-from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product
+from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm
 from adminas.constants import ADDRESS_DROPDOWN
 from adminas.util import anonymous_user, error_page
 
@@ -172,8 +172,32 @@ def items(request):
             
     elif request.method == 'PUT':
         put_data = json.loads(request.body)
+        form = JobItemEditForm(put_data)
+        ji_id = request.GET.get('id')
         
+        if form.is_valid():
+            ji = JobItem.objects.get(id=ji_id)
+            ji.quantity = form.cleaned_data['quantity']
+            ji.product = form.cleaned_data['product']
+            ji.selling_price = form.cleaned_data['selling_price']
+            ji.price_list = form.cleaned_data['price_list']
+            ji.save()
 
+            return JsonResponse({
+                'message': 'Item has been updated.'
+            }, status=200)
+        else:
+            error_page(request, 'Item has not been updated.', 400)
+    elif request.method == 'GET':
+        product_id = request.GET.get('product_id')
+        job_id = request.GET.get('job_id')
+        lang = Job.objects.get(id=job_id).language
+        description = Product.objects.get(id=product_id).get_description(lang)
+
+        #            'info': 'product # ' + product_id + ', job #' + job_id,
+        return JsonResponse({
+            'desc': description
+        }, status=200)        
 
 
 
