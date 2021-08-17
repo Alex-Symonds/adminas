@@ -8,7 +8,7 @@ from django_countries.fields import CountryField
 
 from decimal import Decimal
 from adminas.constants import SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS
-from adminas.util import format_money
+from adminas.util import format_money, get_plusminus_prefix
 import datetime
 
 # Size fields
@@ -101,18 +101,19 @@ class Site(AdminAuditTrail):
         # Two edge cases:   1) Someone added a future valid_until date when the move was announced: site hasn't moved yet
         #                   2) The site has closed permanently, so their old address is no longer valid, but there's no new one to replace it
 
-        addr_last_invalidated = Address.objects.filter(site = self).filter(valid_until != None).order_by('-valid_until')[0]
+        return Address.objects.filter(site = self).order_by('-created_by')[0]
+        # addr_last_invalidated = Address.objects.filter(site = self).filter(valid_until != None).order_by('-valid_until')[0]
 
-        if addr_last_invalidated.valid_until <= datetime.datetime.today():
-            try:
-                # Case: Usual
-                return Address.objects.filter(site=self).get(valid_until=None)
-            except:
-                # Case: Closed permanently
-                return addr_last_invalidated
-        else:
-            # Case: Window between notification and moving
-            return addr_last_invalidated
+        # if addr_last_invalidated.valid_until <= datetime.datetime.today():
+        #     try:
+        #         # Case: Usual
+        #         return Address.objects.filter(site=self).get(valid_until=None)
+        #     except:
+        #         # Case: Closed permanently
+        #         return addr_last_invalidated
+        # else:
+        #     # Case: Window between notification and moving
+        #     return addr_last_invalidated
 
 
 
@@ -317,27 +318,63 @@ class JobItem(AdminAuditTrail):
         else:
             return '-'
     
-    def list_price(self):
-        return Price.objects.filter(currency=self.job.currency).filter(price_list=self.price_list).get(product=self.product).value
-
     def resale_percentage(self):
         # Resale discount will apply. Check if the agent has negotiated a special deal on this item.
         if not self.job.invoice_to.site.company.is_agent:
             return 0
         else:
+            if self.product.resale_category == None and self.product.special_resale.all().count() == 0:
+                return 0
+
             deal = self.product.special_resale.filter(agent=self.job.invoice_to.site.company)
             if len(deal) != 0:
                 # There's a special deal, so use the special deal percentage
-                return deal.percentage
+                return deal[0].percentage
             else:
                 # No special arrangements, so use the standard percentage
                 return self.product.resale_category.resale_perc
 
-    def expected_price(self):
+
+
+
+    def list_price(self):
+        return Price.objects.filter(currency=self.job.currency).filter(price_list=self.price_list).get(product=self.product).value
+
+    def list_price_f(self):
+        return format_money(self.list_price())
+
+    def resale_price(self):
         """ Get current list price, in the Job currency, less resale discount """
         # Apply percentage to list price
         resale_multiplier = 1 - (self.resale_percentage() / 100)
-        return round(self.list_price * resale_multiplier, 2)
+        value = float(self.list_price()) * float(resale_multiplier)
+        return round(value, 2)
+
+    def resale_price_f(self):
+        return format_money(self.resale_price())
+
+    def list_difference_value_f(self):
+        diff = self.selling_price - self.list_price()
+        return get_plusminus_prefix(diff) + format_money(diff)
+
+    def resale_difference_value_f(self):
+        diff = float(self.selling_price) - self.resale_price()
+        return get_plusminus_prefix(diff) + format_money(diff)
+
+    def list_difference_perc(self):
+        return round((self.selling_price - self.list_price())/self.selling_price*100, 2)
+
+    def list_difference_perc_f(self):
+        return get_plusminus_prefix(self.list_difference_perc()) + format_money(self.list_difference_perc())
+
+    def resale_difference_perc(self):
+        return round((float(self.selling_price) - self.resale_price())/float(self.selling_price)*100, 2)
+
+    def resale_difference_perc_f(self):
+        return get_plusminus_prefix(self.resale_difference_perc()) + format_money(self.resale_difference_perc())
+
+
+
 
     def __str__(self):
         return f'({self.job.name}) {self.quantity} x {self.product.name}'

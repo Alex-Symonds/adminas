@@ -1,4 +1,4 @@
-const AUTO_DESC_CLASS = 'item-full-desc';
+const AUTO_DESC_CLASS = 'desc';
 const AUTO_PRICE_CLASS = 'item-price-results';
 
 document.addEventListener('DOMContentLoaded', (e) => {
@@ -6,11 +6,6 @@ document.addEventListener('DOMContentLoaded', (e) => {
         auto_item_desc_listener(dd);
         dd.after(get_auto_desc_element());
     })
-    /*
-    document.querySelectorAll('[id^="id_form-"][id$="-price_list"]').forEach(dd => {
-       auto_item_price_listener(dd);
-       dd.after(get_auto_prices_element());
-    })*/
 })
 
 
@@ -25,21 +20,6 @@ function auto_item_desc_listener(dropdown){
         update_auto_description(e);
     });
 }
-
-function get_auto_prices_element(){
-    
-}
-
-function auto_item_price_listener(dropdown){
-    dropdown.addEventListener('change', (e) => {
-        update_auto_item_prices(e);
-    });
-}
-
-function update_auto_item_prices(e){
-    alert('HAI!');
-}
-
 
 function update_auto_description(e){
     e.preventDefault();

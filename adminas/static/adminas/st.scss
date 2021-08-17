@@ -233,11 +233,45 @@ nav {
     padding: 5px;
     border: 1px solid #E6E6E6;
     border-radius: 5px;
+
+    .what{
+        font-weight: bold;
+    }
+    .desc{
+        &:before, &:after{
+            content: '"';
+        }
+
+        font-style: italic;
+        font-size: 0.9rem;
+        padding: 3px;
+        border-bottom: 1px solid #eee;
+    }
+    .money{
+        font-weight: bold;
+        font-size: 1.1rem;
+        padding: 3px;
+
+        .currency{
+            margin-right: 0.5rem;
+        }
+    }
+
+    .price_check{
+        font-size: 0.9rem;
+        padding-left: 6px;
+    }
+
+    .price_list, .resale_info{
+        display: block;
+        clear: both;
+    }
+
+
 }
 
-.form-row{
 
-}
+
 
 
 

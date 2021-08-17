@@ -18,6 +18,11 @@ function update_job_item(e){
     edit_div = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
     result_div = edit_div.previousElementSibling;
 
+    // Variables for fields that are needed in both the PUT and the price check update
+    qty = parseInt(edit_div.querySelector(prefix + 'quantity').value.trim());
+    product = edit_div.querySelector(prefix + 'product').value.trim();
+    price_list = edit_div.querySelector(prefix + 'price_list').value.trim();
+
     // Prepare for CSRF authentication
     var csrftoken = getCookie('csrftoken');
     var headers = new Headers();
@@ -28,9 +33,9 @@ function update_job_item(e){
     fetch(`/items?id=${e.target.dataset.jiid}`, {
         method: 'PUT',
         body: JSON.stringify({
-            'quantity': edit_div.querySelector(prefix + 'quantity').value.trim(),
-            'product': edit_div.querySelector(prefix + 'product').value.trim(),
-            'price_list': edit_div.querySelector(prefix + 'price_list').value.trim(),
+            'quantity': qty,
+            'product': product,
+            'price_list': price_list,
             'selling_price': edit_div.querySelector(prefix + 'selling_price').value.trim()
         }),
         headers: headers,
@@ -38,6 +43,7 @@ function update_job_item(e){
     })
     .then(response => {
         reset_job_item_display(result_div, edit_div);
+        update_prices(result_div, qty, product, price_list);
     })
     .catch(error =>{
         console.log('Error: ', error);
@@ -74,7 +80,7 @@ function update_item_field_on_page(read_div, edit_div, field_name){
 
     if(input_ele.tagName === 'INPUT'){
         if(input_ele.type === 'number' && input_ele.step === '0.01'){
-            result_ele.innerHTML = parseFloat(input_ele.value.trim()).toFixed(2);
+            result_ele.innerHTML = numberWithCommas(parseFloat(input_ele.value.trim()).toFixed(2));
 
         } else{
             result_ele.innerHTML = input_ele.value.trim();
@@ -223,6 +229,24 @@ function edit_item_field_id(prefix, name){
 function remove_formset_id(str){
     return str.replace(EDIT_ITEM_CLONED_FORMSET_ID, '');
 }
+
+
+function update_prices(result_div, qty, product_id, price_list_id){
+
+    fetch(`/prices?product_id=${product_id}&price_list_id=${price_list_id}`)
+    .then(response => response.json())
+    .then(item_info => {
+        display_auto_prices(item_info, result_div, qty);
+    })
+    .catch(error =>{
+        console.log('Error: ', error);
+    });
+}
+
+function display_auto_prices(price_info, result_div, qty){
+    
+}
+
 
 
 
