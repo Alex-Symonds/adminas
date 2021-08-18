@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models.deletion import SET_NULL
 from django.db.models.fields import CharField
+from django.db.models import Sum
 
 from django_countries.fields import CountryField
 
@@ -148,6 +149,9 @@ class Product(AdminAuditTrail):
     resale_category = models.ForeignKey('ResaleCategory', on_delete=models.SET_NULL, related_name='members', null=True)
     special_resale = models.ManyToManyField('AgentResaleGroup', related_name='special_deal_products', blank=True)
 
+    def get_price(self, currency, price_list):
+        return Price.objects.filter(currency=currency).filter(price_list=price_list).get(product=self).value
+
     def get_description(self, lang):
         return self.descriptions.filter(language=lang).order_by('-last_updated')[0].description
 
@@ -269,6 +273,27 @@ class Job(AdminAuditTrail):
     incoterm_code = models.CharField(max_length=3, choices=INCOTERMS)
     incoterm_location = models.CharField(max_length=30)
 
+    def order_value(self):
+        return self.items.aggregate(order_value=Sum('selling_price'))['order_value']
+
+    def order_value_f(self):
+        return format_money(self.order_value())
+
+    def order_list_price(self):
+        return sum([item.list_price() for item in self.items.all()])
+
+    def order_list_price_f(self):
+        return format_money(self.order_list_price())
+
+    def order_resale_price_f(self):
+        return format_money(sum([item.resale_price() for item in self.items.all()]))
+
+    def order_list_diff_value_f(self):
+        return format_money(self.order_list_price() - self.order_value())
+
+    def order_list_diff_perc(self):
+        return round( ( self.order_value() - self.order_list_price() ) / self.order_value() * 100, 2)
+
     def __str__(self):
         return f'{self.name} {self.created_on}'
 
@@ -310,7 +335,7 @@ class JobItem(AdminAuditTrail):
             except:
                 return "Words can't describe it."
     
-    def inv_part(self):
+    def inv_part_number(self):
         if self.invoice_wording != None:
             return self.invoice_wording.part_number
         elif self.product != '':
@@ -334,11 +359,8 @@ class JobItem(AdminAuditTrail):
                 # No special arrangements, so use the standard percentage
                 return self.product.resale_category.resale_perc
 
-
-
-
     def list_price(self):
-        return Price.objects.filter(currency=self.job.currency).filter(price_list=self.price_list).get(product=self.product).value
+        return self.quantity * Price.objects.filter(currency=self.job.currency).filter(price_list=self.price_list).get(product=self.product).value
 
     def list_price_f(self):
         return format_money(self.list_price())

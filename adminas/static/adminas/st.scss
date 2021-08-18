@@ -257,14 +257,26 @@ nav {
         }
     }
 
-    .price_check{
+    .price-check{
         font-size: 0.9rem;
         padding-left: 6px;
     }
 
-    .price_list, .resale_info{
+    .check-list{
+        border-bottom: 1px solid #f8f8f8;
+    }
+
+    .price-list-info, .resale-info, .price{
         display: block;
         clear: both;
+    }
+    .diff-perc{
+        &:before{
+            content: '(';
+        }
+        &:after{
+            content: ')';
+        }
     }
 
 

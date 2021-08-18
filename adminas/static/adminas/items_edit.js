@@ -18,11 +18,6 @@ function update_job_item(e){
     edit_div = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
     result_div = edit_div.previousElementSibling;
 
-    // Variables for fields that are needed in both the PUT and the price check update
-    qty = parseInt(edit_div.querySelector(prefix + 'quantity').value.trim());
-    product = edit_div.querySelector(prefix + 'product').value.trim();
-    price_list = edit_div.querySelector(prefix + 'price_list').value.trim();
-
     // Prepare for CSRF authentication
     var csrftoken = getCookie('csrftoken');
     var headers = new Headers();
@@ -33,9 +28,9 @@ function update_job_item(e){
     fetch(`/items?id=${e.target.dataset.jiid}`, {
         method: 'PUT',
         body: JSON.stringify({
-            'quantity': qty,
-            'product': product,
-            'price_list': price_list,
+            'quantity': parseInt(edit_div.querySelector(prefix + 'quantity').value.trim()),
+            'product': edit_div.querySelector(prefix + 'product').value.trim(),
+            'price_list': edit_div.querySelector(prefix + 'price_list').value.trim(),
             'selling_price': edit_div.querySelector(prefix + 'selling_price').value.trim()
         }),
         headers: headers,
@@ -43,7 +38,7 @@ function update_job_item(e){
     })
     .then(response => {
         reset_job_item_display(result_div, edit_div);
-        update_prices(result_div, qty, product, price_list);
+        update_prices(result_div, e.target.dataset.jiid);
     })
     .catch(error =>{
         console.log('Error: ', error);
@@ -60,7 +55,10 @@ function reset_job_item_display(result_div, edit_div){
     }
 
     // Update the auto-description
-    result_div.querySelector('.'+AUTO_DESC_CLASS).innerHTML = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
+    let desc = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
+    if (desc != ''){
+        result_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
+    }
 
     // Move currency back to its original position, before the selling price field
     result_div.querySelector('.selling_price').before(edit_div.querySelector('.currency'));
@@ -140,7 +138,7 @@ function edit_mode_div(display_div, edit_btn){
         new_item.append(field);
 
         if('product' === JOB_ITEM_INPUT_FIELDS[i]){
-            auto_item_desc_listener(new_item);
+            auto_item_desc_listener(field);
             new_item.append(get_auto_desc_element());
         }
     }
@@ -194,7 +192,7 @@ function edit_item_cancel_btn(edit_btn){
 
 function cancel_item_edit(e){
     let edit_div = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
-    let result_div = edit_div.previousElementSibling;        
+    let result_div = edit_div.previousElementSibling;      
     reset_job_item_display(result_div, edit_div);
 }
 
@@ -231,20 +229,30 @@ function remove_formset_id(str){
 }
 
 
-function update_prices(result_div, qty, product_id, price_list_id){
-
-    fetch(`/prices?product_id=${product_id}&price_list_id=${price_list_id}`)
+function update_prices(result_div, jobitem_id){
+    // Get the JobItem price info from the server
+    fetch(`/prices?ji_id=${jobitem_id}`)
     .then(response => response.json())
     .then(item_info => {
-        display_auto_prices(item_info, result_div, qty);
+        display_auto_prices(item_info, result_div);
     })
     .catch(error =>{
         console.log('Error: ', error);
     });
 }
 
-function display_auto_prices(price_info, result_div, qty){
-    
+function display_auto_prices(price_info, result_div){
+    // Update the price checker with a JSON set of info
+    let list_div = result_div.querySelector('.check-list');
+    list_div.querySelector('.price').innerHTML = price_info['list_price_f'];
+    list_div.querySelector('.diff-val').innerHTML = price_info['list_difference_value_f'];
+    list_div.querySelector('.diff-perc').innerHTML = `${price_info['list_difference_perc_f']}%`;
+
+    let resale_div = result_div.querySelector('.check-resale');
+    resale_div.querySelector('.percentage').innerHTML = `${price_info['resale_percentage']}%`;
+    resale_div.querySelector('.price').innerHTML = price_info['resale_price_f'];
+    resale_div.querySelector('.diff-val').innerHTML = price_info['resale_difference_value_f'];
+    resale_div.querySelector('.diff-perc').innerHTML = `${price_info['resale_difference_perc_f']}%`;
 }
 
 

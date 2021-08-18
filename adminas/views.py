@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm
 from adminas.constants import ADDRESS_DROPDOWN
 from adminas.util import anonymous_user, error_page
@@ -198,6 +198,28 @@ def items(request):
         return JsonResponse({
             'desc': description
         }, status=200)        
+
+
+def prices(request):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+    
+    if request.method == 'GET':
+        jobitem_id = request.GET.get('ji_id')
+        ji = JobItem.objects.get(id=jobitem_id)
+
+        if ji == None:
+            return error_page("Can't find JobItem")
+
+        return JsonResponse({
+            'list_price_f': ji.list_price_f(),
+            'list_difference_value_f': ji.list_difference_value_f(),
+            'list_difference_perc_f': ji.list_difference_perc_f(),
+            'resale_price_f': ji.resale_price_f(),
+            'resale_percentage': ji.resale_percentage(),
+            'resale_difference_value_f': ji.resale_difference_value_f(),
+            'resale_difference_perc_f': ji.resale_difference_perc_f()
+        }, status=200)
 
 
 

@@ -16,7 +16,7 @@
     <script src="{% static 'adminas/toggle-job-forms.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/items_form.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/items_edit.js' %}" type="text/javascript"></script>
-    <script src="{% static 'adminas/item_info.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/auto_item_desc.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
@@ -71,9 +71,9 @@
     <div id="job_po_section">
         <h3>Purchase Order</h3>
         <div class="job-po-container">
-            {% for po in po_list %}
+    {% for po in po_list %}
                 <div class="po-row">"{{ po.reference }}" dated {{ po.date_on_po }} for {{ po.currency }} {{ po.value_f }} [edit TODO]</div>
-            {% endfor %}
+    {% endfor %}
         </div>
         <div class="job-po-form-container">
             <button id="toggle_po_form_btn">Add PO</button>
@@ -89,36 +89,54 @@
         <h3>Items</h3>
         <div class="job-items-container">
 
+    {% if not item_list.is_empty %}
+            <div>
+                <h4>Summary</h4>
+                <table>
+                    <tr><th>Value</th><td>{{ job.currency }}</td><td>{{ job.order_value_f }}</td><td></td></tr>
+                    <tr><th>List price</th><td>{{ job.currency }}</td><td>{{ job.order_list_price_f }}</td><td></td></tr>
+                    <tr><th>Difference</th><td>{{ job.currency }}</td><td>{{ job.order_list_diff_value_f }}</td><td>({{ job.order_list_diff_perc }}%)</td></tr>
+                </table>
+            </div>
+            <button id="toggle_price_check">Check Prices</button>
             <div class="existing-items-container">
-    {% for it in item_list %}
+        {% for it in item_list %}
                 <div class="job-item-container">
                     <div class="what"><span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span></div>
                     <div class="desc">{% get_item_description it.product job.language %}</div>
                     <div class="money"><span class="currency">{{ job.currency }}</span><span class="selling_price">{{ it.selling_price_f }}</span></div>
-                    <div class="price_check">
-                        <div class="check_list">
-                            <span class="price_list">{{ it.price_list }}</span>
-                            <span class="price">{{ it.list_price_f }}</span>
-                            <span class="diff_val">{{ it.list_difference_value_f }}</span>
-                            <span class="diff_pc">{{ it.list_difference_perc_f }}%</span>
+                    <div class="price-check">
+                        <div class="check-list">
+                            <div class="price-list-info">
+                                <span class="price_list">{{ it.price_list }}</span>
+                            </div>
+                            <div class="price-check-details hide">
+                                <span class="price">{{ it.list_price_f }}</span>
+                                <span class="diff-val">{{ it.list_difference_value_f }}</span>
+                                <span class="diff-perc">{{ it.list_difference_perc_f }}%</span>
+                            </div>
                         </div>
-                        <div class="check_resale">
-                            <span class="resale_info">Resale discount = {{ it.resale_percentage }}%</span>
+                        <div class="check-resale price-check-details hide">
+                            <div class="resale-info">
+                                Less resale <span class="percentage">{{ it.resale_percentage }}%</span>
+                            </div>
                             <span class="price">{{ it.resale_price_f }}</span>
-                            <span class="diff_val">{{ it.resale_difference_value_f }}</span>
-                            <span class="diff_perc">{{ it.resale_difference_perc_f }}%</span>
+                            <span class="diff-val">{{ it.resale_difference_value_f }}</span>
+                            <span class="diff-perc">{{ it.resale_difference_perc_f }}%</span>
                         </div>
                     </div>
                     <button class="ji-edit" data-jiid="{{ it.id }}">edit</button>
                 </div>
-    {% endfor %}
+        {% endfor %}
             </div>
 
-    {% if not item_list.is_empty %}
+
             <button id="toggle_item_form_btn">add items</button>
             <div id="new_items_container" class="hide">
     {% else %}
-        <button id="toggle_item_form_btn" class="hide">add items</button>
+
+
+            <button id="toggle_item_form_btn" class="hide">add items</button>
             <div id="new_items_container">
     {% endif %}
                 <div class="add-multiple">
@@ -127,7 +145,7 @@
                 <form method="POST" action="{% url 'items' %}" id="items_form">
                     {% csrf_token %}
                     {{ item_formset.management_form }}
-                {% for form in item_formset %}
+    {% for form in item_formset %}
                     <div class="form-row">
                         <label for="{{ form.quantity.auto_id }}">{{ form.quantity.label }}</label>
                         {{ form.quantity }}
@@ -139,14 +157,12 @@
                         {{ form.price_list }}
                         <button class="remove-item-btn btn-danger">-</button><button id="add_item_btn" class="btn-success">+</button>
                     </div>
-                {% endfor %}
+    {% endfor %}
                     <input type="submit" action="submit" id="items_submit_button" value="submit">
                 </form>
             </div>
         </div>
     </div>
-
-    <!--<script src="{% static 'adminas/scripts.jsx' %}" type="text/babel"></script>-->
 
 {% endblock %}
 
