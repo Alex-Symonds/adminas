@@ -1,7 +1,10 @@
 from django.shortcuts import render
 
 def format_money(value):
-    return f'{value:,.2f}'
+    try:
+        return f'{value:,.2f}'
+    except:
+        return value
 
 def get_plusminus_prefix(value):
     if value > 0:

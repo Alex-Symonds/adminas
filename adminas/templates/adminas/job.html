@@ -89,7 +89,7 @@
         <h3>Items</h3>
         <div class="job-items-container">
 
-    {% if not item_list.is_empty %}
+    {% if item_list != None %}
             <div>
                 <h4>Summary</h4>
                 <table>
@@ -98,12 +98,22 @@
                     <tr><th>Difference</th><td>{{ job.currency }}</td><td>{{ job.order_list_diff_value_f }}</td><td>({{ job.order_list_diff_perc }}%)</td></tr>
                 </table>
             </div>
-            <button id="toggle_price_check">Check Prices</button>
+            <button id="toggle_price_check">Show Price Check</button>
             <div class="existing-items-container">
         {% for it in item_list %}
                 <div class="job-item-container">
                     <div class="what"><span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span></div>
                     <div class="desc">{% get_item_description it.product job.language %}</div>
+            {% if it.includes.count > 0 %}
+                    <div class="std-accs">
+                        <p>includes:</p>
+                        <ul>
+                {% for acc in it.includes.all %}
+                            <li>{{ acc.quantity }} x {{ acc.product }}
+                {% endfor %}
+                        </ul>
+                    </div>
+            {% endif %}
                     <div class="money"><span class="currency">{{ job.currency }}</span><span class="selling_price">{{ it.selling_price_f }}</span></div>
                     <div class="price-check">
                         <div class="check-list">
@@ -126,6 +136,7 @@
                         </div>
                     </div>
                     <button class="ji-edit" data-jiid="{{ it.id }}">edit</button>
+                    <button class="ji-delete" data-jiid="{{ it.id }}">delete</button>
                 </div>
         {% endfor %}
             </div>
@@ -155,6 +166,7 @@
                         {{ form.selling_price }}
                         <label for="{{ form.price_list.auto_id }}">{{ form.price_list.label }}</label>
                         {{ form.price_list }}
+                        {{ form.job }}
                         <button class="remove-item-btn btn-danger">-</button><button id="add_item_btn" class="btn-success">+</button>
                     </div>
     {% endfor %}

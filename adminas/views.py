@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm
 from adminas.constants import ADDRESS_DROPDOWN
 from adminas.util import anonymous_user, error_page
@@ -103,7 +103,7 @@ def edit_job(request):
                 currency = posted_form.cleaned_data['currency'],
                 payment_terms = posted_form.cleaned_data['payment_terms'],
                 incoterm_code = posted_form.cleaned_data['incoterm_code'],
-                incoterm_location = posted_form['incoterm_location'],
+                incoterm_location = posted_form.cleaned_data['incoterm_location'],
                 invoice_to = posted_form.cleaned_data['invoice_to'],
                 delivery_to = posted_form.cleaned_data['delivery_to']
             )
@@ -118,9 +118,11 @@ def job(request, job_id):
 
     my_job = Job.objects.get(id=job_id)
     po_list = PurchaseOrder.objects.filter(job=my_job)
-
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
-    item_list = JobItem.objects.filter(job=my_job)
+
+    item_list = JobItem.objects.filter(job=my_job).filter(included_with=None)
+    if item_list.count() == 0:
+        item_list = None
 
     return render(request, 'adminas/job.html', {
         'job': my_job,
@@ -166,15 +168,37 @@ def items(request):
                     selling_price = form.cleaned_data['selling_price']
                 )
                 ji.save()
+
+                stdAccs = StandardAccessory.objects.filter(parent=ji.product)
+                for stdAcc in stdAccs:
+                    sa = JobItem(
+                        created_by = request.user,
+                        job = form.cleaned_data['job'],
+                        product = stdAcc.accessory,
+                        price_list = form.cleaned_data['price_list'],
+                        quantity = stdAcc.quantity,
+                        selling_price = 0.00,
+                        included_with = ji
+                    )
+                    sa.save()
+
+                 
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
         else:
             return error_page(request, 'Item form was invalid.', 400)
             
     elif request.method == 'PUT':
+        ji_id = request.GET.get('id')
+
+        if request.GET.get('delete'):
+            ji = JobItem.objects.get(id=ji_id)
+            ji.delete()
+            return JsonResponse({
+                'message': 'Deleted record.'
+            }, status=200)
+
         put_data = json.loads(request.body)
         form = JobItemEditForm(put_data)
-        ji_id = request.GET.get('id')
-        
         if form.is_valid():
             ji = JobItem.objects.get(id=ji_id)
             ji.quantity = form.cleaned_data['quantity']
@@ -188,6 +212,8 @@ def items(request):
             }, status=200)
         else:
             error_page(request, 'Item has not been updated.', 400)
+
+
     elif request.method == 'GET':
         product_id = request.GET.get('product_id')
         job_id = request.GET.get('job_id')
@@ -221,6 +247,22 @@ def prices(request):
             'resale_difference_perc_f': ji.resale_difference_perc_f()
         }, status=200)
 
+
+def std_accs(request):
+    if not request.user.is_authenticated:
+        return error_page(request)
+
+    jobitem = JobItem.objects.get(request.GET.get('ji_id'))
+
+    if request.method == 'GET':
+        pass
+
+    # elif request.method == 'PUT':
+    #     if request.GET.get('delete'):
+    #         targets = JobItem.objects.filter(included_with=jobitem).delete()
+    #         return JsonResponse({
+    #             'message': 'Deleted standard accessories.'
+    #         }, status=200)
 
 
 def status(request):

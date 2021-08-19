@@ -274,13 +274,20 @@ class Job(AdminAuditTrail):
     incoterm_location = models.CharField(max_length=30)
 
     def order_value(self):
-        return self.items.aggregate(order_value=Sum('selling_price'))['order_value']
+        order_value = self.items.aggregate(order_value=Sum('selling_price'))['order_value']
+        if order_value == None:
+            return 0
+        else:
+            return order_value
 
     def order_value_f(self):
         return format_money(self.order_value())
 
     def order_list_price(self):
-        return sum([item.list_price() for item in self.items.all()])
+        try:
+            return sum([item.list_price() for item in self.items.filter(included_with=None)])
+        except:
+            return 0
 
     def order_list_price_f(self):
         return format_money(self.order_list_price())
@@ -292,6 +299,8 @@ class Job(AdminAuditTrail):
         return format_money(self.order_list_price() - self.order_value())
 
     def order_list_diff_perc(self):
+        if self.order_list_price() == 0 or self.order_list_price() == None:
+            return 0
         return round( ( self.order_value() - self.order_list_price() ) / self.order_value() * 100, 2)
 
     def __str__(self):
@@ -319,7 +328,7 @@ class JobItem(AdminAuditTrail):
 
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
-    included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True)
+    included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
 
     def selling_price_f(self):
         return format_money(self.selling_price)
@@ -384,12 +393,16 @@ class JobItem(AdminAuditTrail):
         return get_plusminus_prefix(diff) + format_money(diff)
 
     def list_difference_perc(self):
+        if self.selling_price == 0 or self.selling_price == None:
+            return 0
         return round((self.selling_price - self.list_price())/self.selling_price*100, 2)
 
     def list_difference_perc_f(self):
         return get_plusminus_prefix(self.list_difference_perc()) + format_money(self.list_difference_perc())
 
     def resale_difference_perc(self):
+        if self.selling_price == 0 or self.selling_price == None:
+            return 0
         return round((float(self.selling_price) - self.resale_price())/float(self.selling_price)*100, 2)
 
     def resale_difference_perc_f(self):

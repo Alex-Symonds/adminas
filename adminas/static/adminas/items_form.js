@@ -60,6 +60,7 @@ function clone_item_form(original, prefix){
     original.after(new_item);
 }
 
+
 // Wipe data from cloned form row
 function wipe_cloned_data(form_row){
     let targets = form_row.children;
@@ -95,14 +96,8 @@ function update_form_row_ids(row_ele, prefix, new_id){
     return false;
 }
 
-// Find the last element of a type
-function get_last_element(selector){
-    let elements = document.querySelectorAll(selector);
-    let arr_id = elements.length - 1;
-    return elements[arr_id];
-}
 
-// Delete one item form without messing up everything else
+// Delete one item form
 function delete_this_form_row(e, prefix){   
 
     // If there's more than one form row, delete the chosen form row
@@ -134,7 +129,7 @@ function delete_this_form_row(e, prefix){
     return false;
 }
 
-// Add more than one item form in one go
+// Add multiple item forms to the set in one go
 function add_multiple_items(e){
     num_to_add = document.querySelector('#add_multi_items').value;
 
@@ -144,7 +139,7 @@ function add_multiple_items(e){
     return false;
 }
 
-// Add an item form
+// Add one more item form to the set
 function add_single_item(e){
     clone_item_form(get_last_element('.form-row'), 'form');
     return false;

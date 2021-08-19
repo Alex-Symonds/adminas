@@ -1,3 +1,7 @@
+/*
+    Hide/show stuff on the Job page.
+*/
+
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('#toggle_po_form_btn').addEventListener(
         'click',
@@ -8,9 +12,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('#toggle_item_form_btn').addEventListener('click', function(e) {
         hide_show_form(e, '#new_items_container', 'Add Items', 'Hide');
     })
-    document.querySelector('#toggle_price_check').addEventListener('click', (e) =>{
-        hide_show_all(e, '.price-check-details', 'Check Prices', 'Hide Price Check');
-    })
+    
+    price_check_button = document.querySelector('#toggle_price_check')
+    if(price_check_button != null){
+        price_check_button.addEventListener('click', (e) =>{
+            hide_show_all(e, '.price-check-details', 'Show Price Check', 'Hide Price Check');
+        })
+    }
 })
 
 function hide_show_all(e, class_selector, show_text, hide_text){
