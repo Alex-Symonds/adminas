@@ -273,35 +273,38 @@ class Job(AdminAuditTrail):
     incoterm_code = models.CharField(max_length=3, choices=INCOTERMS)
     incoterm_location = models.CharField(max_length=30)
 
-    def order_value(self):
+    def total_value(self):
         order_value = self.items.aggregate(order_value=Sum('selling_price'))['order_value']
         if order_value == None:
             return 0
         else:
             return order_value
 
-    def order_value_f(self):
-        return format_money(self.order_value())
+    def total_value_f(self):
+        return format_money(self.total_value())
 
-    def order_list_price(self):
+    def total_list_price(self):
         try:
             return sum([item.list_price() for item in self.items.filter(included_with=None)])
         except:
             return 0
 
-    def order_list_price_f(self):
-        return format_money(self.order_list_price())
+    def total_list_price_f(self):
+        return format_money(self.total_list_price())
 
-    def order_resale_price_f(self):
+    def total_resale_price_f(self):
         return format_money(sum([item.resale_price() for item in self.items.all()]))
 
-    def order_list_diff_value_f(self):
-        return format_money(self.order_list_price() - self.order_value())
+    def total_list_diff_value(self):
+        return self.total_value() - self.total_list_price()
 
-    def order_list_diff_perc(self):
-        if self.order_list_price() == 0 or self.order_list_price() == None:
+    def total_list_diff_value_f(self):
+        return format_money(self.total_list_diff_value())
+
+    def total_list_diff_perc(self):
+        if self.total_list_price() == 0 or self.total_list_price() == None:
             return 0
-        return round( ( self.order_value() - self.order_list_price() ) / self.order_value() * 100, 2)
+        return round( self.total_list_diff_value() / self.total_value() * 100, 2)
 
     def __str__(self):
         return f'{self.name} {self.created_on}'
@@ -329,6 +332,36 @@ class JobItem(AdminAuditTrail):
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
+
+    def add_standard_accessories(self):
+        # Suppose the Thingummy product includes 3 x Widgets. Someone orders 2 x Thingummies. The system will store:
+        #   > JobItem record for 2 x Thingummy
+        #   > JobItem record for 6 x Widgets
+
+        stdAccs = StandardAccessory.objects.filter(parent=self.product)
+        for stdAcc in stdAccs:
+            sa = JobItem(
+                created_by = self.created_by,
+                job = self.job,
+                product = stdAcc.accessory,
+                price_list = self.price_list,
+                quantity = stdAcc.quantity * self.quantity,
+                selling_price = 0.00,
+                included_with = self
+            )
+            sa.save()
+    
+    def reset_standard_accessories(self):
+        self.includes.all().delete()
+        self.add_standard_accessories()
+
+    def update_standard_accessories_quantities(self):
+        for stdAcc in self.includes.all():
+            qty_per_parent = StandardAccessory.objects.filter(parent=self.product).filter(accessory=stdAcc.product)['quantity']
+            if qty_per_parent == None:
+                qty_per_parent = 0
+            stdAcc.quantity = self.quantity * qty_per_parent
+
 
     def selling_price_f(self):
         return format_money(self.selling_price)

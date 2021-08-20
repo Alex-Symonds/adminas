@@ -168,20 +168,7 @@ def items(request):
                     selling_price = form.cleaned_data['selling_price']
                 )
                 ji.save()
-
-                stdAccs = StandardAccessory.objects.filter(parent=ji.product)
-                for stdAcc in stdAccs:
-                    sa = JobItem(
-                        created_by = request.user,
-                        job = form.cleaned_data['job'],
-                        product = stdAcc.accessory,
-                        price_list = form.cleaned_data['price_list'],
-                        quantity = stdAcc.quantity,
-                        selling_price = 0.00,
-                        included_with = ji
-                    )
-                    sa.save()
-
+                ji.add_standard_accessories()
                  
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
         else:
@@ -189,9 +176,9 @@ def items(request):
             
     elif request.method == 'PUT':
         ji_id = request.GET.get('id')
+        ji = JobItem.objects.get(id=ji_id)
 
         if request.GET.get('delete'):
-            ji = JobItem.objects.get(id=ji_id)
             ji.delete()
             return JsonResponse({
                 'message': 'Deleted record.'
@@ -200,16 +187,25 @@ def items(request):
         put_data = json.loads(request.body)
         form = JobItemEditForm(put_data)
         if form.is_valid():
-            ji = JobItem.objects.get(id=ji_id)
+            previous_product = ji.product
+            previous_qty = ji.quantity
+
             ji.quantity = form.cleaned_data['quantity']
             ji.product = form.cleaned_data['product']
             ji.selling_price = form.cleaned_data['selling_price']
             ji.price_list = form.cleaned_data['price_list']
             ji.save()
 
+            if previous_product != ji.product:
+                ji.reset_standard_accessories()
+
+            elif previous_qty != ji.quantity:
+                ji.update_standard_accessories_quantities()
+            
             return JsonResponse({
                 'message': 'Item has been updated.'
             }, status=200)
+
         else:
             error_page(request, 'Item has not been updated.', 400)
 
@@ -244,7 +240,11 @@ def prices(request):
             'resale_price_f': ji.resale_price_f(),
             'resale_percentage': ji.resale_percentage(),
             'resale_difference_value_f': ji.resale_difference_value_f(),
-            'resale_difference_perc_f': ji.resale_difference_perc_f()
+            'resale_difference_perc_f': ji.resale_difference_perc_f(),
+            'total_sold_f': ji.job.total_value_f(),
+            'total_list_f': ji.job.total_list_price_f(),
+            'total_list_diff_val_f': ji.job.total_list_diff_value_f(),
+            'total_list_diff_perc': ji.job.total_list_diff_perc()
         }, status=200)
 
 

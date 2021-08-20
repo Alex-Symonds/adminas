@@ -28,104 +28,16 @@ document.addEventListener('DOMContentLoaded', function(e) {
 });
 
 
-// Update the JobItem on the server, then call functions to update the DOM
-function update_job_item(e){
-    e.preventDefault();
-
-    // Find the div with the "form" and the div where the results should be displayed
-    let edit_form = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
-    let result_div = edit_form.previousElementSibling;
-
-    // Prepare for CSRF authentication
-    var csrftoken = getCookie('csrftoken');
-    var headers = new Headers();
-    headers.append('X-CSRFToken', csrftoken);
-
-    // PUT it into the database and call functions to handle the DOM
-    let prefix = '#id_' + EDIT_ITEM_ID_PREFIX;
-    fetch(`/items?id=${e.target.dataset.jiid}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-            'quantity': parseInt(edit_form.querySelector(prefix + 'quantity').value.trim()),
-            'product': edit_form.querySelector(prefix + 'product').value.trim(),
-            'price_list': edit_form.querySelector(prefix + 'price_list').value.trim(),
-            'selling_price': edit_form.querySelector(prefix + 'selling_price').value.trim()
-        }),
-        headers: headers,
-        credentials: 'include'
-    })
-    .then(response => {
-        update_job_item_in_dom(result_div, edit_form, e.target.dataset.jiid);
-    })
-    .catch(error =>{
-        console.log('Error: ', error);
-    });
-}
 
 
-// Updates one JobItem element in DOM to reflect any/all edits
-function update_job_item_in_dom(result_div, edit_div, jobitem_id){
-
-    // Check if the product changed and, if so, update the standard accessories
-    // Note: Conditional because I have vague plans to make standard accessories individually delete-able. Don't want to undo the user's deleting.
-    // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
-    if(product_has_changed(result_div, edit_div)){
-        update_standard_accessories(result_div, jobitem_id)
-    }
-
-    // Update the display area to contain the values from the form
-    for(let i = 0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
-        update_one_item_field_in_dom(result_div, edit_div, JOB_ITEM_INPUT_FIELDS[i]);
-    }
-
-    // Update the auto-description, unless it's blank
-    let desc = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
-    if (desc != ''){
-        result_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
-    }
-
-    // Activate read-mode and update price checks
-    read_mode_job_item(result_div, edit_div);
-    update_price_checks(result_div, jobitem_id);
-}
 
 
-// Remove the edit form and update the read-only div
-function read_mode_job_item(result_div, edit_form){
-    // Move currency back to its original position (i.e. before the read-only selling price)
-    result_div.querySelector('.selling_price').before(edit_form.querySelector('.currency'));
-
-    // Unhide stuff that's hidden during edit-mode
-    result_div.classList.remove('hide');
-    document.querySelectorAll('.ji-edit').forEach(btn => {
-        btn.classList.remove('hide');
-    });
-
-    // Remove the edit form
-    // NOTE: Refactoring code? Make sure the line moving the currency element comes before this.
-    edit_form.remove();
-}
 
 
-// Update a single piece of display text with the contents of an edit form field
-function update_one_item_field_in_dom(read_div, edit_div, field_name){
-    let result_ele = read_div.querySelector(`.${field_name}`);
-    let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, field_name)}`);
 
-    if(input_ele.tagName === 'INPUT'){
-        if(input_ele.type === 'number' && input_ele.step === '0.01'){
-            result_ele.innerHTML = numberWithCommas(parseFloat(input_ele.value.trim()).toFixed(2));
-
-        } else{
-            result_ele.innerHTML = input_ele.value.trim();
-        }
-
-    } else if(input_ele.tagName === 'SELECT'){
-        result_ele.innerHTML = input_ele.options[input_ele.selectedIndex].text.trim();
-    }
-}
-
-
+/* -----------------------------------------------------------------------------------------------------------
+    EDIT MODE: PHASE I, DISPLAY A FORM
+-------------------------------------------------------------------------------------------------------------- */
 // Enter "edit mode" by hiding the display text and creating/adding an edit form
 function edit_mode_job_item(e){
     e.preventDefault();
@@ -145,7 +57,6 @@ function edit_mode_job_item(e){
         btn.classList.add('hide');
     });
 }
-
 
 // Create a form element for editing an existing JobItem
 function edit_mode_form(display_div, edit_btn){
@@ -184,6 +95,14 @@ function edit_mode_form(display_div, edit_btn){
     return edit_mode_form;
 }
 
+// Create a label element for the edit form
+function edit_item_label(field_name){
+    var original = get_form_element_from_job_item_formset(field_name);
+    var label = original.previousElementSibling.cloneNode(true);
+    label.htmlFor = remove_formset_id(label.htmlFor);
+    return label;
+}
+
 // Create an input/select element for the edit form via cloning the field added by Django
 function edit_item_field_ele(my_field){
     var original = get_form_element_from_job_item_formset(my_field);
@@ -193,24 +112,15 @@ function edit_item_field_ele(my_field){
     return field;   
 }
 
-// Create a label element for the edit form
-function edit_item_label(field_name){
-    var original = get_form_element_from_job_item_formset(field_name);
-    var label = original.previousElementSibling.cloneNode(true);
-    label.htmlFor = remove_formset_id(label.htmlFor);
-    return label;
-}
+// Retrieve the appropriately formatted preset input for the different types of edit item fields
+function edit_item_preset_input(field, value){
+    if(field.type === 'number' && field.step === '0.01'){
+        return parseFloat(value.replaceAll(',', '')).toFixed(2);
 
-// Create a submit button element for the edit form
-function edit_item_submit_btn(edit_btn){
-    let submit_btn = document.createElement('button');
-    submit_btn.innerHTML = 'submit';
-    submit_btn.id = 'id_btn_edit_item';
-    submit_btn.dataset.jiid =edit_btn.dataset.jiid;
-    submit_btn.addEventListener('click', (e) => {
-        update_job_item(e);
-    });
-    return submit_btn;
+    } else if (field.type === 'number'){
+        return parseInt(value.replaceAll(',', ''));   
+    }
+    return value;
 }
 
 // Create a cancel button element for the edit form
@@ -232,15 +142,16 @@ function cancel_item_edit(e){
     read_mode_job_item(result_div, edit_div);
 }
 
-// Retrieve the appropriately formatted preset input for the different types of edit item fields
-function edit_item_preset_input(field, value){
-    if(field.type === 'number' && field.step === '0.01'){
-        return parseFloat(value.replaceAll(',', '')).toFixed(2);
-
-    } else if (field.type === 'number'){
-        return parseInt(value.replaceAll(',', ''));   
-    }
-    return value;
+// Create a submit button element for the edit form
+function edit_item_submit_btn(edit_btn){
+    let submit_btn = document.createElement('button');
+    submit_btn.innerHTML = 'submit';
+    submit_btn.id = 'id_btn_edit_item';
+    submit_btn.dataset.jiid =edit_btn.dataset.jiid;
+    submit_btn.addEventListener('click', (e) => {
+        update_job_item(e);
+    });
+    return submit_btn;
 }
 
 // One liners
@@ -257,6 +168,113 @@ function remove_formset_id(str){
     return str.replace(EDIT_ITEM_CLONED_FORMSET_ID, '');
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* -----------------------------------------------------------------------------------------------------------
+    EDIT MODE: PHASE II, USER CLICKED SUBMIT
+-------------------------------------------------------------------------------------------------------------- */
+// Update the JobItem on the server, then call functions to update the DOM
+function update_job_item(e){
+    // This is called by the submit button on the JS-created edit form
+    e.preventDefault();
+
+    // Find the div with the "form" and the div where the results should be displayed
+    let edit_form = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
+    let result_div = edit_form.previousElementSibling;
+
+    // PUT it into the database and call functions to handle the DOM
+    let prefix = '#id_' + EDIT_ITEM_ID_PREFIX;
+    fetch(`/items?id=${e.target.dataset.jiid}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            'quantity': parseInt(edit_form.querySelector(prefix + 'quantity').value.trim()),
+            'product': edit_form.querySelector(prefix + 'product').value.trim(),
+            'price_list': edit_form.querySelector(prefix + 'price_list').value.trim(),
+            'selling_price': edit_form.querySelector(prefix + 'selling_price').value.trim()
+        }),
+        headers: getDjangoCsrfHeaders(),
+        credentials: 'include'
+    })
+    .then(response => {
+        update_job_item_in_dom(result_div, edit_form, e.target.dataset.jiid);
+    })
+    .catch(error =>{
+        console.log('Error: ', error);
+    });
+}
+
+
+// Updates one JobItem element in DOM to reflect any/all edits
+function update_job_item_in_dom(result_div, edit_div, jobitem_id){
+
+    // Check if the product changed and, if so, update the standard accessories
+    // Note: Conditional because of vague plans to make standard accessories individually delete-able. Don't want to undo the user's deleting.
+    // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
+    if(product_has_changed(result_div, edit_div)){
+        update_standard_accessories(result_div, jobitem_id)
+    }
+
+    // Update the display area to contain the values from the form
+    for(let i = 0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
+        update_one_item_field_in_dom(result_div, edit_div, JOB_ITEM_INPUT_FIELDS[i]);
+    }
+
+    // Update the auto-description, unless it's blank
+    let desc = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
+    if (desc != ''){
+        result_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
+    }
+
+    // Activate read-mode and update price checks
+    read_mode_job_item(result_div, edit_div);
+    update_price_checks(result_div, jobitem_id);
+}
+
+// Update a single piece of display text with the contents of an edit form field
+function update_one_item_field_in_dom(read_div, edit_div, field_name){
+    let result_ele = read_div.querySelector(`.${field_name}`);
+    let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, field_name)}`);
+
+    if(input_ele.tagName === 'INPUT'){
+        if(input_ele.type === 'number' && input_ele.step === '0.01'){
+            result_ele.innerHTML = numberWithCommas(parseFloat(input_ele.value.trim()).toFixed(2));
+
+        } else{
+            result_ele.innerHTML = input_ele.value.trim();
+        }
+
+    } else if(input_ele.tagName === 'SELECT'){
+        result_ele.innerHTML = input_ele.options[input_ele.selectedIndex].text.trim();
+    }
+}
+
+
+// Remove the edit form and update the read-only div
+function read_mode_job_item(result_div, edit_form){
+    // Move currency back to its original position (i.e. before the read-only selling price)
+    result_div.querySelector('.selling_price').before(edit_form.querySelector('.currency'));
+
+    // Unhide stuff that's hidden during edit-mode
+    result_div.classList.remove('hide');
+    document.querySelectorAll('.ji-edit').forEach(btn => {
+        btn.classList.remove('hide');
+    });
+
+    // Remove the edit form
+    // NOTE: Refactoring code? Make sure the line moving the currency element comes before this.
+    edit_form.remove();
+}
 
 // Get price check info from the server then call functions to update the DOM
 function update_price_checks(result_div, jobitem_id){
@@ -283,9 +301,26 @@ function display_auto_prices(price_info, result_div){
     resale_div.querySelector('.price').innerHTML = price_info['resale_price_f'];
     resale_div.querySelector('.diff-val').innerHTML = price_info['resale_difference_value_f'];
     resale_div.querySelector('.diff-perc').innerHTML = `${price_info['resale_difference_perc_f']}%`;
+
+    let summary_div = document.querySelector('#price_summary')
+    summary_div.querySelector('.selling-price').innerHTML = price_info['total_sold_f'];
+    summary_div.querySelector('.list-price').innerHTML = price_info['total_list_f'];
+    summary_div.querySelector('.diff-val').innerHTML = price_info['total_list_diff_val_f'];
+    summary_div.querySelector('.diff-perc').innerHTML = price_info['total_list_diff_perc'];
 }
 
 
+
+
+
+
+
+
+
+
+/* -----------------------------------------------------------------------------------------------------------
+    DELETE
+-------------------------------------------------------------------------------------------------------------- */
 // Delete a job item from the server, then call functions to update DOM
 function delete_job_item(e){
     // Prepare for CSRF authentication
@@ -310,6 +345,14 @@ function remove_job_item_from_dom(e){
 }
 
 
+
+
+
+
+/* -----------------------------------------------------------------------------------------------------------
+    working area
+-------------------------------------------------------------------------------------------------------------- */
+
 function product_has_changed(read_div, edit_div){
     let result_ele = read_div.querySelector(`.product`);
     let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, 'product')}`);
@@ -318,8 +361,6 @@ function product_has_changed(read_div, edit_div){
 }
 
 function update_standard_accessories(target_div, jobitem_id){
-    delete_old_standard_accessories(jobitem_id);
-
     fetch(`/standard_accessories?ji_id=${jobitem_id}`)
     .then(response => response.json())
     .then(stdacc_list => {
@@ -327,23 +368,6 @@ function update_standard_accessories(target_div, jobitem_id){
         console.log(stdacc_list);
     })
     .catch(error =>{
-        console.log('Error: ', error);
-    });
-}
-
-// Rethinking this: I think the standard accessories in the database should occur as part of the JobItem edit process
-function delete_old_standard_accessories(jobitem_id){
-    // Prepare for CSRF authentication
-    var csrftoken = getCookie('csrftoken');
-    var headers = new Headers();
-    headers.append('X-CSRFToken', csrftoken);
-
-    fetch(`/standard_accessories?ji_id=${jobitem_id}&delete=True`, {
-        method: 'PUT',
-        headers: headers,
-        credentials: 'include'
-    })
-    .catch(error => {
         console.log('Error: ', error);
     });
 }
@@ -365,20 +389,4 @@ function update_standard_accessories_in_dom(target_div, stdaccs){
 
 
 
-// GENERAL USE ----------------------------------------------------------------
-function getCookie(name) {
-    // Gets a cookie.
-    // Taken from Django documentation for CSRF handling
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+

@@ -13,8 +13,8 @@
         const URL_ITEMS = '{% url "items" %}';
         //const ADD_PO_URL = "{% url 'purchase_order' %}";
     </script>
-    <script src="{% static 'adminas/toggle-job-forms.js' %}" type="text/javascript"></script>
-    <script src="{% static 'adminas/items_form.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/job_toggle.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/items_new_form.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/items_edit.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/auto_item_desc.js' %}" type="text/javascript"></script>
 {% endblock %}
@@ -90,12 +90,12 @@
         <div class="job-items-container">
 
     {% if item_list != None %}
-            <div>
+            <div id="price_summary">
                 <h4>Summary</h4>
                 <table>
-                    <tr><th>Value</th><td>{{ job.currency }}</td><td>{{ job.order_value_f }}</td><td></td></tr>
-                    <tr><th>List price</th><td>{{ job.currency }}</td><td>{{ job.order_list_price_f }}</td><td></td></tr>
-                    <tr><th>Difference</th><td>{{ job.currency }}</td><td>{{ job.order_list_diff_value_f }}</td><td>({{ job.order_list_diff_perc }}%)</td></tr>
+                    <tr><th>Value</th><td>{{ job.currency }}</td><td class="selling-price">{{ job.total_value_f }}</td><td></td></tr>
+                    <tr><th>List price</th><td>{{ job.currency }}</td><td class="list-price">{{ job.total_list_price_f }}</td><td></td></tr>
+                    <tr><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val">{{ job.total_list_diff_value_f }}</td><td>(<span class="diff-perc">{{ job.total_list_diff_perc }}</span>%)</td></tr>
                 </table>
             </div>
             <button id="toggle_price_check">Show Price Check</button>
