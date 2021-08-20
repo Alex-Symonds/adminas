@@ -11,7 +11,6 @@ urlpatterns = [
     path('status', views.status, name='status'),
     path('records', views.records, name='records'),
     path('purchase_order', views.purchase_order, name='purchase_order'),
-    path('items', views.items, name='items'),
-    path('prices', views.prices, name='prices'),
-    path('standard_accessories', views.std_accs, name="std_accs")
+    path('items', views.items, name='items')#,
+    #path('prices', views.prices, name='prices')
 ]

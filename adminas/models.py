@@ -339,15 +339,21 @@ class JobItem(AdminAuditTrail):
             'list_difference_value_f': self.list_difference_value_f(),
             'list_difference_perc_f': self.list_difference_perc_f(),
             'resale_price_f': self.resale_price_f(),
-            'resale_percentage': self.resale_percentage(),
+            'resale_percentage': str(self.resale_percentage()),
             'resale_difference_value_f': self.resale_difference_value_f(),
             'resale_difference_perc_f': self.resale_difference_perc_f(),
             'total_sold_f': self.job.total_value_f(),
             'total_list_f': self.job.total_list_price_f(),
             'total_list_diff_val_f': self.job.total_list_diff_value_f(),
-            'total_list_diff_perc': self.job.total_list_diff_perc()
+            'total_list_diff_perc': str(self.job.total_list_diff_perc()),
+            'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()]
         }
-
+    
+    def serialise_stdAcc(self):
+        return {
+            'quantity': self.quantity,
+            'name': str(self.product)
+        }
 
 
     def add_standard_accessories(self):

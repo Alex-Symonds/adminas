@@ -15,17 +15,63 @@ const STD_ACC_CLASS = 'std-accs';
 
 // DOMContentLoaded eventListener additions
 document.addEventListener('DOMContentLoaded', function(e) {
-    document.querySelectorAll('.ji-edit').forEach(btn => {
-        btn.addEventListener('click', function(e){
-            edit_mode_job_item(e);
-        });
-    });
+
     document.querySelectorAll('.ji-delete').forEach(btn => {
         btn.addEventListener('click', function(e){
             delete_job_item(e);
         });
     });
+
+    document.querySelectorAll('.ji-edit').forEach(btn => {
+        btn.addEventListener('click', function(e){
+            edit_mode_job_item(e);
+        });
+    });
+
 });
+
+
+
+
+
+
+
+
+
+/* -----------------------------------------------------------------------------------------------------------
+    DELETE
+-------------------------------------------------------------------------------------------------------------- */
+// Delete a job item from the server, then call functions to update DOM
+function delete_job_item(e){
+    // Prepare for CSRF authentication
+    var csrftoken = getCookie('csrftoken');
+    var headers = new Headers();
+    headers.append('X-CSRFToken', csrftoken);    
+
+    fetch(`/items?id=${e.target.dataset.jiid}&delete=True`, {
+        method: 'PUT',
+        headers: headers,
+        credentials: 'include'
+    })
+    .then(response => {
+        remove_job_item_from_dom(e);
+    })
+}
+
+// Remove a job item from DOM entirely
+function remove_job_item_from_dom(e){
+    job_item_ele = e.target.closest('.job-item-container');
+    job_item_ele.remove();
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -208,7 +254,7 @@ function update_job_item(e){
     })
     .then(response => response.json())
     .then(response_data => {
-        update_job_item_in_dom(result_div, edit_form, response_data);
+        update_job_item_in_dom(result_div, edit_form, JSON.parse(response_data));
     })
     .catch(error =>{
         console.log('Error: ', error);
@@ -218,13 +264,12 @@ function update_job_item(e){
 
 // Updates one JobItem element in DOM to reflect any/all edits
 function update_job_item_in_dom(result_div, edit_div, response_data){
-
     // Check if the product changed and, if so, update the standard accessories
     // Note: Conditional because of vague plans to make standard accessories individually delete-able. Don't want to undo the user's deleting.
     // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
-    /*if(product_has_changed(result_div, edit_div)){
-        update_standard_accessories(result_div, jobitem_id)
-    }*/
+    if(product_has_changed(result_div, edit_div)){
+        update_standard_accessories_in_dom(result_div, response_data);
+    }
 
     // Update the display area to contain the values from the form
     for(let i = 0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
@@ -277,7 +322,7 @@ function read_mode_job_item(result_div, edit_form){
 }
 
 // Update the DOM with a set of price check info
-function update_price_checks_in_dom(price_info, result_div){
+function update_price_checks_in_dom(result_div, price_info){
     let list_div = result_div.querySelector('.check-list');
     list_div.querySelector('.price').innerHTML = price_info['list_price_f'];
     list_div.querySelector('.diff-val').innerHTML = price_info['list_difference_value_f'];
@@ -297,68 +342,32 @@ function update_price_checks_in_dom(price_info, result_div){
 }
 
 
-
-
-
-
-
-
-
-
-/* -----------------------------------------------------------------------------------------------------------
-    DELETE
--------------------------------------------------------------------------------------------------------------- */
-// Delete a job item from the server, then call functions to update DOM
-function delete_job_item(e){
-    // Prepare for CSRF authentication
-    var csrftoken = getCookie('csrftoken');
-    var headers = new Headers();
-    headers.append('X-CSRFToken', csrftoken);    
-
-    fetch(`/items?id=${e.target.dataset.jiid}&delete=True`, {
-        method: 'PUT',
-        headers: headers,
-        credentials: 'include'
-    })
-    .then(response => {
-        remove_job_item_from_dom(e);
-    })
-}
-
-// Remove a job item from DOM entirely
-function remove_job_item_from_dom(e){
-    job_item_ele = e.target.closest('.job-item-container');
-    job_item_ele.remove();
-}
-
-
-
-
-
-
 /* -----------------------------------------------------------------------------------------------------------
     working area
 -------------------------------------------------------------------------------------------------------------- */
-
 function product_has_changed(read_div, edit_div){
-    let result_ele = read_div.querySelector(`.product`);
+    let result_ele = read_div.querySelector('.product');
     let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, 'product')}`);
 
-    return result_ele.innerHTML == input_ele.options[input_ele.selectedIndex].text;
+    return result_ele.innerHTML != input_ele.options[input_ele.selectedIndex].text;
 }
 
-function update_standard_accessories(target_div, jobitem_id){
-    fetch(`/standard_accessories?ji_id=${jobitem_id}`)
-    .then(response => response.json())
-    .then(stdacc_list => {
-        //update_standard_accessories_in_dom(target_div, stdacc_list)
-        console.log(stdacc_list);
-    })
-    .catch(error =>{
-        console.log('Error: ', error);
-    });
+function update_standard_accessories_in_dom(target_div, response_data){
+    let display_ul = target_div.querySelector('.' + STD_ACC_CLASS).getElementsByTagName('ul')[0];
+    let stdaccs = response_data.stdAccs;
+
+    let new_ul = document.createElement('ul');
+    for(let i = 0; i < stdaccs.length; i++){
+        var li = document.createElement('li');
+        li.innerHTML = `${stdaccs[i]['quantity']} x ${stdaccs[i]['name']}`;
+        new_ul.append(li);
+    }
+
+    display_ul.before(new_ul);
+    display_ul.remove();
 }
 
+/*
 function update_standard_accessories_in_dom(target_div, stdaccs){
     let display_ul = target_div.querySelector('.' + STD_ACC_CLASS).getElementsByTagName('UL');
 
@@ -372,7 +381,7 @@ function update_standard_accessories_in_dom(target_div, stdaccs){
     display_ul.before(new_ul);
     display_ul.remove();
 }
-
+*/
 
 
 

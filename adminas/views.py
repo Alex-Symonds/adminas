@@ -201,8 +201,8 @@ def items(request):
 
             elif previous_qty != ji.quantity:
                 ji.update_standard_accessories_quantities()
-            
-            return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+
+            return JsonResponse(json.dumps(ji.get_post_edit_dictionary()), safe=False, status=200)
 
         else:
             error_page(request, 'Item has not been updated.', 400)
@@ -220,6 +220,16 @@ def items(request):
         }, status=200)        
 
 
+def status(request):
+    return render(request, 'adminas/status.html')
+
+def records(request):
+    return render(request, 'adminas/records.html')
+
+
+
+
+# probably deleting stuff below here
 def prices(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
@@ -244,27 +254,3 @@ def prices(request):
             'total_list_diff_val_f': ji.job.total_list_diff_value_f(),
             'total_list_diff_perc': ji.job.total_list_diff_perc()
         }, status=200)
-
-
-def std_accs(request):
-    if not request.user.is_authenticated:
-        return error_page(request)
-
-    jobitem = JobItem.objects.get(request.GET.get('ji_id'))
-
-    if request.method == 'GET':
-        pass
-
-    # elif request.method == 'PUT':
-    #     if request.GET.get('delete'):
-    #         targets = JobItem.objects.filter(included_with=jobitem).delete()
-    #         return JsonResponse({
-    #             'message': 'Deleted standard accessories.'
-    #         }, status=200)
-
-
-def status(request):
-    return render(request, 'adminas/status.html')
-
-def records(request):
-    return render(request, 'adminas/records.html')
