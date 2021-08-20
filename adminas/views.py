@@ -202,9 +202,7 @@ def items(request):
             elif previous_qty != ji.quantity:
                 ji.update_standard_accessories_quantities()
             
-            return JsonResponse({
-                'message': 'Item has been updated.'
-            }, status=200)
+            return JsonResponse(ji.get_post_edit_dictionary(), status=200)
 
         else:
             error_page(request, 'Item has not been updated.', 400)

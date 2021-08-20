@@ -206,8 +206,9 @@ function update_job_item(e){
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
-    .then(response => {
-        update_job_item_in_dom(result_div, edit_form, e.target.dataset.jiid);
+    .then(response => response.json())
+    .then(response_data => {
+        update_job_item_in_dom(result_div, edit_form, response_data);
     })
     .catch(error =>{
         console.log('Error: ', error);
@@ -216,14 +217,14 @@ function update_job_item(e){
 
 
 // Updates one JobItem element in DOM to reflect any/all edits
-function update_job_item_in_dom(result_div, edit_div, jobitem_id){
+function update_job_item_in_dom(result_div, edit_div, response_data){
 
     // Check if the product changed and, if so, update the standard accessories
     // Note: Conditional because of vague plans to make standard accessories individually delete-able. Don't want to undo the user's deleting.
     // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
-    if(product_has_changed(result_div, edit_div)){
+    /*if(product_has_changed(result_div, edit_div)){
         update_standard_accessories(result_div, jobitem_id)
-    }
+    }*/
 
     // Update the display area to contain the values from the form
     for(let i = 0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
@@ -238,7 +239,7 @@ function update_job_item_in_dom(result_div, edit_div, jobitem_id){
 
     // Activate read-mode and update price checks
     read_mode_job_item(result_div, edit_div);
-    update_price_checks(result_div, jobitem_id);
+    update_price_checks_in_dom(result_div, response_data);
 }
 
 // Update a single piece of display text with the contents of an edit form field
@@ -259,8 +260,7 @@ function update_one_item_field_in_dom(read_div, edit_div, field_name){
     }
 }
 
-
-// Remove the edit form and update the read-only div
+// Remove the edit form and update the read-only div. Called by cancel button and during the post-edit process
 function read_mode_job_item(result_div, edit_form){
     // Move currency back to its original position (i.e. before the read-only selling price)
     result_div.querySelector('.selling_price').before(edit_form.querySelector('.currency'));
@@ -276,21 +276,8 @@ function read_mode_job_item(result_div, edit_form){
     edit_form.remove();
 }
 
-// Get price check info from the server then call functions to update the DOM
-function update_price_checks(result_div, jobitem_id){
-    // Get the JobItem price info from the server
-    fetch(`/prices?ji_id=${jobitem_id}`)
-    .then(response => response.json())
-    .then(item_info => {
-        display_auto_prices(item_info, result_div);
-    })
-    .catch(error =>{
-        console.log('Error: ', error);
-    });
-}
-
 // Update the DOM with a set of price check info
-function display_auto_prices(price_info, result_div){
+function update_price_checks_in_dom(price_info, result_div){
     let list_div = result_div.querySelector('.check-list');
     list_div.querySelector('.price').innerHTML = price_info['list_price_f'];
     list_div.querySelector('.diff-val').innerHTML = price_info['list_difference_value_f'];

@@ -333,6 +333,23 @@ class JobItem(AdminAuditTrail):
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
 
+    def get_post_edit_dictionary(self):
+        return {
+            'list_price_f': self.list_price_f(),
+            'list_difference_value_f': self.list_difference_value_f(),
+            'list_difference_perc_f': self.list_difference_perc_f(),
+            'resale_price_f': self.resale_price_f(),
+            'resale_percentage': self.resale_percentage(),
+            'resale_difference_value_f': self.resale_difference_value_f(),
+            'resale_difference_perc_f': self.resale_difference_perc_f(),
+            'total_sold_f': self.job.total_value_f(),
+            'total_list_f': self.job.total_list_price_f(),
+            'total_list_diff_val_f': self.job.total_list_diff_value_f(),
+            'total_list_diff_perc': self.job.total_list_diff_perc()
+        }
+
+
+
     def add_standard_accessories(self):
         # Suppose the Thingummy product includes 3 x Widgets. Someone orders 2 x Thingummies. The system will store:
         #   > JobItem record for 2 x Thingummy
