@@ -253,8 +253,8 @@ function update_job_item(e){
         credentials: 'include'
     })
     .then(response => response.json())
-    .then(response_data => {
-        update_job_item_in_dom(result_div, edit_form, JSON.parse(response_data));
+    .then(data => {
+        update_job_item_in_dom(result_div, edit_form, data);
     })
     .catch(error =>{
         console.log('Error: ', error);

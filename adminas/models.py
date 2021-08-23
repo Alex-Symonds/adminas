@@ -155,6 +155,9 @@ class Product(AdminAuditTrail):
     def get_description(self, lang):
         return self.descriptions.filter(language=lang).order_by('-last_updated')[0].description
 
+    def is_modular(self):
+        return Slot.objects.filter(parent=self).count() > 0
+
     def __str__(self):
         return self.part_number + ': ' + self.name
 
@@ -226,16 +229,20 @@ class Slot(models.Model):
     parent = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='slots')
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
 
-    quantity = models.IntegerField(default=1)
-    is_required = models.BooleanField()
+    quantity_required = models.IntegerField()
+    quantity_optional = models.IntegerField()
+    #is_required = models.BooleanField()
     choices = models.ForeignKey(SlotChoiceList, on_delete=SET_NULL, related_name='used_by', null=True)
 
     def __str__(self):
-        if self.is_required:
-            req_str = '(REQ)'
-        else:
-            req_str = ''
-        return self.name + ' slot ' + req_str + ' for ' + self.parent.name
+        return f'[{self.quantity_required} REQ, {self.quantity_optional} opt] {self.name} for {self.parent.name}'
+
+    # def __str__(self):
+    #     if self.is_required:
+    #         req_str = '(REQ)'
+    #     else:
+    #         req_str = '(opt)'
+    #     return req_str + ' ' + self.name + ' slot, for ' + self.parent.name
 
 
 # PO-specific stuff
@@ -332,7 +339,7 @@ class JobItem(AdminAuditTrail):
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
-
+   
     def get_post_edit_dictionary(self):
         return {
             'list_price_f': self.list_price_f(),
@@ -348,7 +355,7 @@ class JobItem(AdminAuditTrail):
             'total_list_diff_perc': str(self.job.total_list_diff_perc()),
             'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()]
         }
-    
+
     def serialise_stdAcc(self):
         return {
             'quantity': self.quantity,
@@ -385,6 +392,32 @@ class JobItem(AdminAuditTrail):
                 qty_per_parent = 0
             stdAcc.quantity = self.quantity * qty_per_parent
 
+
+    def all_required_modules_assigned(self):
+        if self.product.is_modular():
+            return self.modules_assigned(True)
+        else:
+            return True
+
+    def all_optional_modules_assigned(self):
+        if self.product.is_modular():
+            return self.modules_assigned(False)
+        else:
+            return True
+
+
+    def modules_assigned(self, required):
+        all_slots = self.product.slots.all()
+        if required:
+            slots = all_slots.filter(quantity_required__gt=0)
+        else:
+            slots = all_slots.filter(quantity_optional__gt=0)
+
+        for slot in slots:
+            if slot not in self.modules.all():
+                return False
+        return True
+  
 
     def selling_price_f(self):
         return format_money(self.selling_price)
@@ -463,9 +496,6 @@ class JobItem(AdminAuditTrail):
 
     def resale_difference_perc_f(self):
         return get_plusminus_prefix(self.resale_difference_perc()) + format_money(self.resale_difference_perc())
-
-
-
 
     def __str__(self):
         return f'({self.job.name}) {self.quantity} x {self.product.name}'

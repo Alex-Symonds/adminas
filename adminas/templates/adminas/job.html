@@ -102,7 +102,25 @@
             <div class="existing-items-container">
         {% for it in item_list %}
                 <div class="job-item-container">
-                    <div class="what"><span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span></div>
+                    <div class="what">
+                        <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span>                       
+                        
+            {% if it.product.is_modular == True %}
+                        <div class="mod-req-status"><a href="{% url 'manage_modules' job.id %}">
+                            [spec: 
+                {% if it.all_required_modules_assigned == True %}
+                            ok
+                {% else %}
+                            INCOMPLETE
+                {% endif %}
+                        
+                {% if it.all_optional_modules_assigned == False %}
+                            <span class="mod-opt-status"> +? </span>
+                {% endif %}
+                            ]
+                        </a></div>
+            {% endif %}
+                    </div>
                     <div class="desc">{% get_item_description it.product job.language %}</div>
             {% if it.includes.count > 0 %}
                     <div class="std-accs">

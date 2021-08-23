@@ -202,7 +202,7 @@ def items(request):
             elif previous_qty != ji.quantity:
                 ji.update_standard_accessories_quantities()
 
-            return JsonResponse(json.dumps(ji.get_post_edit_dictionary()), safe=False, status=200)
+            return JsonResponse(ji.get_post_edit_dictionary(), status=200)
 
         else:
             error_page(request, 'Item has not been updated.', 400)
@@ -218,6 +218,32 @@ def items(request):
         return JsonResponse({
             'desc': description
         }, status=200)        
+
+
+def manage_modules(request, job_id):
+    if not request.user.is_authenticated:
+        return anonymous_user()
+
+    job = Job.objects.get(id=job_id)
+
+    job_items = JobItem.objects.filter(job=job)
+    modular_jobitems = []
+    for ji in job_items:
+        if ji.product.is_modular():
+            modular_jobitems.append(ji)
+    
+    if len(modular_jobitems) == 0:
+        return error_page('This job has no modular items, so there are no modules to manage.')
+
+    return render(request, 'adminas/manage_modules.html', {
+        'job': job,
+        'items': modular_jobitems
+    })
+    
+
+    
+    
+
 
 
 def status(request):
