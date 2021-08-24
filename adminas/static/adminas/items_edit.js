@@ -12,6 +12,7 @@ const EDIT_ITEM_ID_PREFIX = 'edit_item_';
 const EDIT_ITEM_CONTAINER_ID = 'container_edit_item';
 const EDIT_ITEM_CLONED_FORMSET_ID = '0-';
 const STD_ACC_CLASS = 'std-accs';
+const STD_ACC_CONTAINER_CLASS = 'std-accs-container';
 
 // DOMContentLoaded eventListener additions
 document.addEventListener('DOMContentLoaded', function(e) {
@@ -353,18 +354,52 @@ function product_has_changed(read_div, edit_div){
 }
 
 function update_standard_accessories_in_dom(target_div, response_data){
-    let display_ul = target_div.querySelector('.' + STD_ACC_CLASS).getElementsByTagName('ul')[0];
-    let stdaccs = response_data.stdAccs;
+    let stdAccs_div = target_div.querySelector('.' + STD_ACC_CLASS);
+    let stdAccs_list = response_data.stdAccs;
 
+    let old_had_stdAccs = stdAccs_div != null;
+    let new_wants_stdAccs = stdAccs_list.length > 0;
+
+    if(old_had_stdAccs && new_wants_stdAccs){
+        // Reuse the existing div, but replace the old ul with a new one
+        let display_ul = stdAccs_div.getElementsByTagName('ul')[0];
+        let stdAccs_ul = get_ul_with_qty_name(stdAccs_list);
+        display_ul.before(stdAccs_ul);
+        display_ul.remove();  
+    } 
+    else if(old_had_stdAccs && !new_wants_stdAccs){
+        // Remove the stdAccs div
+        stdAccs_div.remove();
+    }
+    else if(!old_had_stdAccs && new_wants_stdAccs){
+        // Create a stdAccs div and add it to the DOM
+        let new_div = document.createElement('div');
+        new_div.classList.add(STD_ACC_CLASS);
+
+        let new_p = document.createElement('p');
+        new_p.innerHTML = 'includes:';
+        new_div.append(new_p);
+
+        let new_ul = get_ul_with_qty_name(stdAccs_list);        
+        new_div.append(new_ul);
+
+        let anchor_div = target_div.querySelector('.' + STD_ACC_CONTAINER_CLASS);
+        anchor_div.append(new_div);
+    }
+    else{
+        return
+    }
+}
+
+
+function get_ul_with_qty_name(item_list){
     let new_ul = document.createElement('ul');
-    for(let i = 0; i < stdaccs.length; i++){
+    for(let i = 0; i < item_list.length; i++){
         var li = document.createElement('li');
-        li.innerHTML = `${stdaccs[i]['quantity']} x ${stdaccs[i]['name']}`;
+        li.innerHTML = `${item_list[i]['quantity']} x ${item_list[i]['name']}`;
         new_ul.append(li);
     }
-
-    display_ul.before(new_ul);
-    display_ul.remove();
+    return new_ul;
 }
 
 /*

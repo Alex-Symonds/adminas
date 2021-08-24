@@ -221,11 +221,13 @@ def items(request):
 
 
 def manage_modules(request, job_id):
+
     if not request.user.is_authenticated:
         return anonymous_user()
 
     job = Job.objects.get(id=job_id)
 
+    # Get a list of JobItems in this Job which have modules
     job_items = JobItem.objects.filter(job=job)
     modular_jobitems = []
     for ji in job_items:
@@ -234,6 +236,10 @@ def manage_modules(request, job_id):
     
     if len(modular_jobitems) == 0:
         return error_page('This job has no modular items, so there are no modules to manage.')
+
+    
+
+
 
     return render(request, 'adminas/manage_modules.html', {
         'job': job,

@@ -122,16 +122,18 @@
             {% endif %}
                     </div>
                     <div class="desc">{% get_item_description it.product job.language %}</div>
+                    <div class="std-accs-container">
             {% if it.includes.count > 0 %}
-                    <div class="std-accs">
-                        <p>includes:</p>
-                        <ul>
+                        <div class="std-accs">
+                            <p>includes:</p>
+                            <ul>
                 {% for acc in it.includes.all %}
-                            <li>{{ acc.quantity }} x {{ acc.product }}
+                                <li>{{ acc.quantity }} x {{ acc.product }}
                 {% endfor %}
-                        </ul>
-                    </div>
+                            </ul>
+                        </div>
             {% endif %}
+                    </div>
                     <div class="money"><span class="currency">{{ job.currency }}</span><span class="selling_price">{{ it.selling_price_f }}</span></div>
                     <div class="price-check">
                         <div class="check-list">

@@ -53,8 +53,8 @@ class Company(AdminAuditTrail):
     is_agent = models.BooleanField(default=False)
 
     def invoice_address(self):
-        inv_site = self.sites.filter(default_invoice=True)
-        return inv_site.addresses
+        inv_site = self.sites.filter(default_invoice=True)[0]
+        return inv_site.current_address()
  
     def third_parties(self):
         """
@@ -231,18 +231,13 @@ class Slot(models.Model):
 
     quantity_required = models.IntegerField()
     quantity_optional = models.IntegerField()
-    #is_required = models.BooleanField()
-    choices = models.ForeignKey(SlotChoiceList, on_delete=SET_NULL, related_name='used_by', null=True)
+    choice_group = models.ForeignKey(SlotChoiceList, on_delete=SET_NULL, related_name='used_by', null=True)
+
+    def choice_list(self):
+        return self.choice_group.choices.all()
 
     def __str__(self):
         return f'[{self.quantity_required} REQ, {self.quantity_optional} opt] {self.name} for {self.parent.name}'
-
-    # def __str__(self):
-    #     if self.is_required:
-    #         req_str = '(REQ)'
-    #     else:
-    #         req_str = '(opt)'
-    #     return req_str + ' ' + self.name + ' slot, for ' + self.parent.name
 
 
 # PO-specific stuff
@@ -333,8 +328,8 @@ class JobItem(AdminAuditTrail):
     quantity = models.IntegerField(blank=True)
     selling_price = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
 
-    description = models.CharField(max_length=DOCS_ONE_LINER, blank=True)
-    dummy_part_num = models.CharField(max_length=PART_NUM_LENGTH, blank=True)
+    #description = models.CharField(max_length=DOCS_ONE_LINER, blank=True, null=True)
+    #dummy_part_num = models.CharField(max_length=PART_NUM_LENGTH, blank=True)
 
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
@@ -382,7 +377,9 @@ class JobItem(AdminAuditTrail):
             sa.save()
     
     def reset_standard_accessories(self):
-        self.includes.all().delete()
+        stdAccs = self.includes.all()
+        if stdAccs.count() > 0:
+            stdAccs.delete()
         self.add_standard_accessories()
 
     def update_standard_accessories_quantities(self):
