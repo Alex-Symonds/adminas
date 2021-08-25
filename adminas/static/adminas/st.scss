@@ -282,6 +282,20 @@ nav {
 
 }
 
+.slot_existing_jobitems_container{
+    .existing_jobitem{
+        display: flex;
+        align-items:center;
+    }
+    label{
+        margin: 0; 
+    }
+    p{
+        color: grey;
+        font-style: italic;
+        margin-left: 10px;
+    }
+}
 
 
 

@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm
 from adminas.constants import ADDRESS_DROPDOWN
-from adminas.util import anonymous_user, error_page
+from adminas.util import anonymous_user, error_page, add_jobitem
 
 # Create your views here.
 def login_view(request):
@@ -159,16 +159,18 @@ def items(request):
         formset = JobItemFormSet(request.POST)
         if formset.is_valid():
             for form in formset:
-                ji = JobItem(
-                    created_by = request.user,
-                    job = form.cleaned_data['job'],
-                    product = form.cleaned_data['product'],
-                    price_list = form.cleaned_data['price_list'],
-                    quantity = form.cleaned_data['quantity'],
-                    selling_price = form.cleaned_data['selling_price']
-                )
-                ji.save()
-                ji.add_standard_accessories()
+                add_jobitem(request.user, form)
+                # ji = JobItem(
+                #     created_by = request.user,
+                #     job = form.cleaned_data['job'],
+                #     product = form.cleaned_data['product'],
+                #     price_list = form.cleaned_data['price_list'],
+                #     quantity = form.cleaned_data['quantity'],
+                #     selling_price = form.cleaned_data['selling_price']
+                # )
+                # ji.save()
+                # ji.add_standard_accessories()
+                
                  
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
         else:

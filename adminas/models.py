@@ -156,7 +156,7 @@ class Product(AdminAuditTrail):
         return self.descriptions.filter(language=lang).order_by('-last_updated')[0].description
 
     def is_modular(self):
-        return Slot.objects.filter(parent=self).count() > 0
+        return self.slots.all().count() > 0
 
     def __str__(self):
         return self.part_number + ': ' + self.name
@@ -235,6 +235,11 @@ class Slot(models.Model):
 
     def choice_list(self):
         return self.choice_group.choices.all()
+
+    def valid_jobitems(self, parent):
+        sibling_jobitems = JobItem.objects.filter(job=parent.job).exclude(id=parent.id).filter(included_with=None)
+        result = sibling_jobitems.filter(product__id__in=self.choice_group.choices.all())
+        return result
 
     def __str__(self):
         return f'[{self.quantity_required} REQ, {self.quantity_optional} opt] {self.name} for {self.parent.name}'
@@ -335,6 +340,7 @@ class JobItem(AdminAuditTrail):
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
    
+
     def get_post_edit_dictionary(self):
         return {
             'list_price_f': self.list_price_f(),
@@ -389,7 +395,6 @@ class JobItem(AdminAuditTrail):
                 qty_per_parent = 0
             stdAcc.quantity = self.quantity * qty_per_parent
 
-
     def all_required_modules_assigned(self):
         if self.product.is_modular():
             return self.modules_assigned(True)
@@ -413,6 +418,11 @@ class JobItem(AdminAuditTrail):
         for slot in slots:
             if slot not in self.modules.all():
                 return False
+
+            #todo:  right now this method is only checking for the /existence/ of a JobModule for each slot
+            #       It should also be checking the quantities of the assigned JobModules, to see if the assignments are sufficient
+            #       Do that after getting "add JobModule assignments" to work, so there are some JobModules to test with
+        
         return True
   
 
@@ -499,7 +509,7 @@ class JobItem(AdminAuditTrail):
 
 class JobModule(models.Model):
     parent = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='modules')
-    child = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='module_of')
+    child = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='module_of', null=True, blank=True)
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='usages')
 
     def __str__(self):

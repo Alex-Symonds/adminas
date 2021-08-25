@@ -1,4 +1,5 @@
 from django.shortcuts import render
+import adminas.models
 
 def format_money(value):
     try:
@@ -22,3 +23,14 @@ def error_page(request, message, error_code):
         'message': message
     }, status=error_code)
     
+def add_jobitem(admin_user, form):
+    ji = adminas.models.JobItem(
+        created_by = admin_user,
+        job = form.cleaned_data['job'],
+        product = form.cleaned_data['product'],
+        price_list = form.cleaned_data['price_list'],
+        quantity = form.cleaned_data['quantity'],
+        selling_price = form.cleaned_data['selling_price']
+    )
+    ji.save()
+    ji.add_standard_accessories()
