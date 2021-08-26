@@ -3,9 +3,14 @@
 {% load static %}
 {% load get_item_description %}
 {% load get_valid_jobitems_for_slot %}
+{% load get_num_assigned_modules %}
 
 {% block title %}
     - Module Management
+{% endblock %}
+
+{% block javascript %}
+    <script src="{% static 'adminas/manage_modules.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
@@ -21,30 +26,25 @@
 
             {% for slot in jobitem.product.slots.all %}
             <div>
-                <h4>{{ slot.name }}</h4>
-                <p>{{ slot.quantity_required }} required, {{ slot.quantity_optional }} optional</p>
                 <div>
-                    <h5>Unassigned</h5>
-                    <div class="slot_existing_jobitems_container">
-                {% get_valid_jobitems_for_slot slot jobitem as valid_jobitem_options %}
-                {% for ji in valid_jobitem_options %}
-                        <div class="existing_jobitem">
-                            <div id="checkbox_existing_{{ jobitem.id }}_{{ slot.id }}_{{ ji.id }}">{{ ji.quantity }} x {{ ji.product }}</div>
-                        </div>
-                {% empty %}
-                        <p>No suitable items are available.</p>
-                {% endfor %}
-                    </div>
+                    <h4>{{ slot.name }}</h4>
+                    {% get_num_assigned_modules jobitem slot as num_assigned %}
+                    {% if num_assigned < slot.quantity_required|add:slot.quantity_optional %}
+                        <div>Add slot (?/{{ slot.quantity_required|add:slot.quantity_optional }})</div>
+                    {% endif %}
                 </div>
-                    <h5><label for="add_item_{{ jobitem.id }}_{{ slot.id }}">Add new item</label></h5>
-                    <p>1 x 
-                        <select id="add_item_{{ jobitem.id }}_{{ slot.id }}">
-                {% for opt in slot.choice_list %}
-                            <option value="{{ opt.id }}">{{ opt.name }}</option>
-                {% endfor %}
-                        </select>
                 <div>
-                    
+                {% for existing in jobitem.modules.all %}
+                    {% if existing.slot == slot %}
+                        <div>{{ existing.child.quantity }} x {{ existing.child.product }}</div>
+                    {% endif %}
+                {% endfor %}
+
+                {% if num_assigned < slot.quantity_required %}
+                    <div class="empty-module-slot" data-slot="{{ slot.id }}" data-parent="{{ jobitem.id }}"><i>Click to fill</i></div>
+                {% endif %}
+                
+
                 </div>
             </div>
             {% endfor %}

@@ -340,6 +340,8 @@ class JobItem(AdminAuditTrail):
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
    
+    def num_modules_assigned(self, slot):
+        return self.modules.all().filter(slot=slot).count()
 
     def get_post_edit_dictionary(self):
         return {
