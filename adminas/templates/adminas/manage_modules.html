@@ -1,0 +1,57 @@
+{% extends "adminas/layout.html" %}
+
+{% load static %}
+{% load get_item_description %}
+{% load get_valid_jobitems_for_slot %}
+
+{% block title %}
+    - Module Management
+{% endblock %}
+
+{% block body %}
+    <h2>Module Management</h2>
+    <h2>Job {{ job.name }} for {{ job.customer.name }}</h2>
+
+    {% for jobitem in items %}
+        <div>
+            <div>
+                <h3>{{ jobitem.quantity }} x {{ jobitem.product }}</h3>
+                <div class="desc">{% get_item_description jobitem.product job.language %}</div>
+            </div>
+
+            {% for slot in jobitem.product.slots.all %}
+            <div>
+                <h4>{{ slot.name }}</h4>
+                <p>{{ slot.quantity_required }} required, {{ slot.quantity_optional }} optional</p>
+                <div>
+                    <h5>Unassigned</h5>
+                    <div class="slot_existing_jobitems_container">
+                {% get_valid_jobitems_for_slot slot jobitem as valid_jobitem_options %}
+                {% for ji in valid_jobitem_options %}
+                        <div class="existing_jobitem">
+                            <div id="checkbox_existing_{{ jobitem.id }}_{{ slot.id }}_{{ ji.id }}">{{ ji.quantity }} x {{ ji.product }}</div>
+                        </div>
+                {% empty %}
+                        <p>No suitable items are available.</p>
+                {% endfor %}
+                    </div>
+                </div>
+                    <h5><label for="add_item_{{ jobitem.id }}_{{ slot.id }}">Add new item</label></h5>
+                    <p>1 x 
+                        <select id="add_item_{{ jobitem.id }}_{{ slot.id }}">
+                {% for opt in slot.choice_list %}
+                            <option value="{{ opt.id }}">{{ opt.name }}</option>
+                {% endfor %}
+                        </select>
+                <div>
+                    
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
+
+
+
+{% endblock %}
