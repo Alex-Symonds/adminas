@@ -34,3 +34,5 @@ def add_jobitem(admin_user, form):
     )
     ji.save()
     ji.add_standard_accessories()
+
+    return ji

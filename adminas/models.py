@@ -513,9 +513,10 @@ class JobModule(models.Model):
     parent = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='modules')
     child = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='module_of', null=True, blank=True)
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='usages')
+    quantity = models.IntegerField(default=1)
 
     def __str__(self):
-        return f'{self.slot.name} slot for {self.parent.product.name}'
+        return f"{self.parent.product.name}'s {self.slot.name} slot filled by {self.child.product.name}"
 
 class ProdGroup(AdminAuditTrail):
     date_wanted = models.DateTimeField()

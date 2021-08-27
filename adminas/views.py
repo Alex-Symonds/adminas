@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm
 from adminas.constants import ADDRESS_DROPDOWN
 from adminas.util import anonymous_user, error_page, add_jobitem
@@ -160,18 +160,7 @@ def items(request):
         if formset.is_valid():
             for form in formset:
                 add_jobitem(request.user, form)
-                # ji = JobItem(
-                #     created_by = request.user,
-                #     job = form.cleaned_data['job'],
-                #     product = form.cleaned_data['product'],
-                #     price_list = form.cleaned_data['price_list'],
-                #     quantity = form.cleaned_data['quantity'],
-                #     selling_price = form.cleaned_data['selling_price']
-                # )
-                # ji.save()
-                # ji.add_standard_accessories()
-                
-                 
+
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
         else:
             return error_page(request, 'Item form was invalid.', 400)
@@ -216,7 +205,6 @@ def items(request):
         lang = Job.objects.get(id=job_id).language
         description = Product.objects.get(id=product_id).get_description(lang)
 
-        #            'info': 'product # ' + product_id + ', job #' + job_id,
         return JsonResponse({
             'desc': description
         }, status=200)        
@@ -238,18 +226,47 @@ def manage_modules(request, job_id):
     
     if len(modular_jobitems) == 0:
         return error_page('This job has no modular items, so there are no modules to manage.')
-
-    
-
-
-
+ 
     return render(request, 'adminas/manage_modules.html', {
         'job': job,
         'items': modular_jobitems
     })
     
 
-    
+def module_assignments(request):
+    if not request.user.is_authenticated:
+        return anonymous_user()
+
+    if request.method == 'GET':
+        data_wanted = request.GET.get('return')
+        parent = JobItem.objects.get(id=request.GET.get('parent'))
+        slot = Slot.objects.get(id=request.GET.get('slot'))
+        
+        data_f = []
+        if data_wanted == 'jobitems':
+            for ji in slot.valid_jobitems(parent):
+                ji_f = {}
+                ji_f['id'] = ji.id
+                ji_f['quantity'] = ji.quantity
+                ji_f['name'] = ji.product.part_number + ': ' + ji.product.name
+                data_f.append(ji_f)
+
+        elif data_wanted == 'products':
+            for prod in slot.choice_list():
+                pr_f = {}
+                pr_f['id'] = prod.id
+                pr_f['name'] = prod.part_number + ': ' + prod.name
+                pr_f['price_f'] = parent.currency + ' ' + Price.objects.filter(product=prod).filter(price_list=parent.price_list).filter(currency=parent.job.currency).value_f()
+                data_f.append(pr_f)
+
+        return JsonResponse({
+            'data': data_f
+        }, status=200) 
+
+
+
+
+
     
 
 
