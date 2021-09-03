@@ -126,6 +126,21 @@ class Site(AdminAuditTrail):
             company = self.company.name
         return f'({company}) {self.name}'
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Stuff on offer
 class Product(AdminAuditTrail):
     available = models.BooleanField(default=True)
@@ -217,6 +232,22 @@ class AgentResaleGroup(AdminAuditTrail):
         return f'{self.agent}, {self.name}'
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Support for modular ordering
 class SlotChoiceList(models.Model):
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
@@ -236,6 +267,17 @@ class Slot(models.Model):
     def choice_list(self):
         return self.choice_group.choices.all()
 
+    def num_empty_spaces(self, parent):
+        total_qty = self.quantity_required + self.quantity_optional
+        assignments = JobModule.objects.filter(parent=parent)
+
+        if assignments.count() == 0:
+            qty_assigned = 0
+        else:
+            qty_assigned = assignments.aggregate(sum('quantity'))['quantity__sum']
+
+        return total_qty - qty_assigned
+
     def valid_jobitems(self, parent):
         sibling_jobitems = JobItem.objects.filter(job=parent.job).exclude(id=parent.id).filter(included_with=None)
         result = sibling_jobitems.filter(product__id__in=self.choice_group.choices.all())
@@ -243,6 +285,16 @@ class Slot(models.Model):
 
     def __str__(self):
         return f'[{self.quantity_required} REQ, {self.quantity_optional} opt] {self.name} for {self.parent.name}'
+
+
+
+
+
+
+
+
+
+
 
 
 # PO-specific stuff
@@ -340,6 +392,10 @@ class JobItem(AdminAuditTrail):
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
    
+    def num_unassigned(self):
+        # This is used to work out whether there are any "left" to assign to more slots
+        return self.quantity - self.module_of.all().count()
+
     def num_modules_assigned(self, slot):
         return self.modules.all().filter(slot=slot).count()
 

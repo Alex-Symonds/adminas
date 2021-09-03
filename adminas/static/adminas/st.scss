@@ -1,6 +1,11 @@
 $f_heading: 'Arial', sans-serif;
 $f_contents: 'Calibri', sans-serif;
 
+$c_bg_module_parent: #BBB;
+$c_bg_module_title: #F6F6F6;
+$c_bg_module_slot_type: #666;
+
+
 
 $c_brd_navbar: #1E90FF;
 
@@ -30,6 +35,7 @@ body {
     background: $c_bg_main;
     color: $c_txt_main;
 }
+
 
 h2, h3, h4, h5{
     font-family: $f_heading;
@@ -228,24 +234,27 @@ nav {
     display: block;
 }
 
+.desc{
+    &:before, &:after{
+        content: '"';
+    }
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 3px;
+}
+
 .job-item-container, #container_edit_item{
     margin-top: 5px;
     padding: 5px;
     border: 1px solid #E6E6E6;
     border-radius: 5px;
 
+    .desc{
+        border-bottom: 1px solid #eee;
+    }
+
     .what{
         font-weight: bold;
-    }
-    .desc{
-        &:before, &:after{
-            content: '"';
-        }
-
-        font-style: italic;
-        font-size: 0.9rem;
-        padding: 3px;
-        border-bottom: 1px solid #eee;
     }
     .money{
         font-weight: bold;
@@ -297,8 +306,133 @@ nav {
     }
 }
 
+
+
+.modular-item-container{
+    background: $c_bg_module_parent;
+    margin-top: 2rem;
+    padding: 1rem 0.8rem;
+    border-radius: 10px;
+
+    max-width: 40rem;
+
+    .item-desc{
+        background: $c_bg_module_title;
+        padding: 0.7rem;
+        margin:0;
+        border-radius: 10px;
+
+        h3{
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.1rem;
+        }
+    }
+
+    .modular-slot-container{
+        background: $c_bg_module_slot_type;
+        margin-top: 1rem;
+
+        padding: 0.3rem;
+        border-radius: 10px;
+
+        display: grid;
+        grid-template-columns: minmax(6rem, 25%) auto;
+        grid-column-gap: 10px;
+
+        .spine{
+            color: white;
+            text-align: right;
+            padding: 0.2rem;
+            
+            h4{
+                font-size: 1rem;
+                margin: 0.2rem;
+            }
+
+            .add-slot{
+                font-size: 0.8rem;
+                font-style: italic;
+            }
+        }
+
+        .contents{
+            flex-grow: 2;
+            padding: 0.5rem 0;
+
+            .empty-module-slot{
+                background: white;
+                border-radius: 9px;
+                padding: 4px 10px;
+            }
+
+            .full-module-slot{
+                border-radius: 9px;
+                padding: 4px 10px;                
+            }
+
+            .jobitem{
+                /*background: #ccc;
+                border: 1px solid #aaa;*/
+                background: $c_bg_module_slot_type;
+                border: 1px solid #BBB;
+                color: white;
+            }
+
+        }
+
+    }
+
+}
+
+
+
 .module-bucket-container{
     position: absolute;
+    background: white;
+    border: 3px solid #333;
+    padding: 0;
+
+    h4{
+        margin: 0;
+        background: #EEE;
+        padding: 0.5rem 0.5rem 0.3rem;
+        border-color: #ccc;
+    }
+
+    .x-btn{
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #EEE;
+        border: 0;
+        padding: 5px;
+        font-weight: bold;
+        color: #666;
+    }
+
+    .bucket-options-container{
+        display: flex;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #DDD;
+    }
+
+    .bucket-item{
+        border-radius: 10px;
+        padding: 2px 10px;
+        margin: 8px;
+    }
+
+    .add-new-btn{
+        border: 1px solid rgb(0, 142, 15);
+        background: white;
+        color: rgb(0, 142, 15);
+
+        font-size: 0.9rem;
+        border-radius: 10px;
+        padding: 3px 10px;
+        margin: 8px;
+    }
 }
 
 

@@ -1,5 +1,5 @@
 from django.forms import ModelForm, modelformset_factory, modelform_factory, ModelChoiceField, Textarea, HiddenInput
-from adminas.models import Job, JobItem, PurchaseOrder, Company, Address, Site, Product
+from adminas.models import Job, JobItem, JobModule, PurchaseOrder, Company, Address, Site, Product
 
 
 class CompanyForm(ModelForm):
@@ -64,7 +64,6 @@ PoFormSet = modelform_factory(
 )
 
 
-
 class JobItemForm(ModelForm):
     class Meta():
         model = JobItem
@@ -89,8 +88,12 @@ JobItemFormSet = modelformset_factory(
 class JobItemEditForm(ModelForm):
     class Meta():
         model = JobItem
-        fields=['quantity', 'product', 'price_list', 'selling_price']
+        fields = ['quantity', 'product', 'price_list', 'selling_price']
 
+class JobModuleForm(ModelForm):
+    class Meta():
+        model = JobModule
+        exclude = ['quantity']
 
 class POForm(ModelForm):
     class Meta():
@@ -104,3 +107,7 @@ class POForm(ModelForm):
             'job': HiddenInput()
         }
 
+
+
+
+ 

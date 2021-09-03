@@ -7,8 +7,8 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price
-from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule
+from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm
 from adminas.constants import ADDRESS_DROPDOWN
 from adminas.util import anonymous_user, error_page, add_jobitem
 
@@ -258,10 +258,102 @@ def module_assignments(request):
                 pr_f['name'] = prod.part_number + ': ' + prod.name
                 pr_f['price_f'] = parent.currency + ' ' + Price.objects.filter(product=prod).filter(price_list=parent.price_list).filter(currency=parent.job.currency).value_f()
                 data_f.append(pr_f)
+        
+        elif data_wanted == 'max_quantity':
+            child = JobItem.objects.get(id=request.GET.get('child'))
+            child_remaining = child.num_unassigned()
+            slot_remaining = slot.num_empty_spaces(parent)
+
+            qty = {}
+            qty['max_qty'] = min(child_remaining, slot_remaining)
+            data_f.append(qty)
 
         return JsonResponse({
             'data': data_f
-        }, status=200) 
+        }, status=200)
+
+
+
+    elif request.method == 'POST': 
+        posted_data = json.loads(request.body)
+        posted_form = JobModuleForm(posted_data)
+
+        if posted_form.is_valid():
+            jobmod = JobModule(
+                parent = posted_form.cleaned_data['parent'],
+                child = posted_form.cleaned_data['child'],
+                slot = posted_form.cleaned_data['slot'],
+                quantity = 1
+            )
+            jobmod.save()
+            return JsonResponse({
+                'id': jobmod.id
+            }, status=201)
+        
+        else:
+            return JsonResponse({
+                'message': 'POST data was invalid.'
+            }, status=400)
+
+
+
+    elif request.method == 'PUT':
+        put_data = json.loads(request.body)
+
+
+        if put_data['action'] == 'delete':
+            try:
+                jm = JobModule.objects.get(id=put_data['id'])
+    
+            except:
+                return JsonResponse({
+                    'message': 'PUT data was invalid.'
+                }, status=400)
+
+            jm.delete()
+            return JsonResponse({
+                'message': 'Deleted JobModule slot assignment.'
+            }, status=200)
+        
+
+
+        elif put_data['action'] == 'edit_qty':
+
+            new_qty = int(put_data['qty'].strip())
+
+            # Check the qty has changed
+            print('------------------------------------')
+            print(put_data)
+            print('-------------------------------------')
+
+
+            if int(put_data['prev_qty']) == new_qty:
+                return JsonResponse({
+                    'message': 'No changes required.'
+                }, status=200)
+
+            # Handle it if the new qty is <= 0
+            if new_qty <= 0:
+                return JsonResponse({
+                    'message': 'Edit failed. Quantity must be 1 or more.'
+                }, status=400)
+
+            # Ensure valid JobModule ID
+            try:
+                jm = JobModule.objects.get(id=put_data['id'])
+    
+            except:
+                return JsonResponse({
+                    'message': 'PUT data was invalid.'
+                }, status=400)            
+
+            # Edit the quantity
+            jm.quantity = new_qty
+            jm.save()
+            return JsonResponse({
+                'message': 'Quantity has been updated.'
+            }, status=200)  
+                        
 
 
 

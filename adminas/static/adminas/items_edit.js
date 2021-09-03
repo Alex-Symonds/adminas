@@ -343,9 +343,7 @@ function update_price_checks_in_dom(result_div, price_info){
 }
 
 
-/* -----------------------------------------------------------------------------------------------------------
-    working area
--------------------------------------------------------------------------------------------------------------- */
+
 function product_has_changed(read_div, edit_div){
     let result_ele = read_div.querySelector('.product');
     let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, 'product')}`);
@@ -402,21 +400,6 @@ function get_ul_with_qty_name(item_list){
     return new_ul;
 }
 
-/*
-function update_standard_accessories_in_dom(target_div, stdaccs){
-    let display_ul = target_div.querySelector('.' + STD_ACC_CLASS).getElementsByTagName('UL');
-
-    let new_ul = document.createElement('ul');
-    for(let i = 0; i < stdaccs.length; i++){
-        var li = document.createElement('li');
-        li.innerHTML = `${stdaccs[i]['quantity']} x ${stdaccs[i]['product']}`;
-        new_ul.append(li);
-    }
-
-    display_ul.before(new_ul);
-    display_ul.remove();
-}
-*/
 
 
 

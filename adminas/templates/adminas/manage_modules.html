@@ -21,39 +21,43 @@
     <h2>Job {{ job.name }} for {{ job.customer.name }}</h2>
 
     {% for jobitem in items %}
-        <div>
+    <div class="modular-item-container">
 
-            <div>
-                <h3>{{ jobitem.quantity }} x {{ jobitem.product }}</h3>
-                <div class="desc">{% get_item_description jobitem.product job.language %}</div>
-            </div>
+        <div class="item-desc">
+            <h3>{{ jobitem.quantity }} x {{ jobitem.product }}</h3>
+            <div class="desc">{% get_item_description jobitem.product job.language %}</div>
+        </div>
 
         {% for slot in jobitem.product.slots.all %}
-            <div>
+        <div class="modular-slot-container">
 
-                <div>
-                    <h4>{{ slot.name }}</h4>
+            <div class="spine">
+                <h4>{{ slot.name }}</h4>
             {% get_num_assigned_modules jobitem slot as num_assigned %}
             {% if num_assigned < slot.quantity_required|add:slot.quantity_optional %}
-                    <div>Add slot (?/{{ slot.quantity_required|add:slot.quantity_optional }})</div>
+                <div class="add-slot">+ Slot (?/{{ slot.quantity_required|add:slot.quantity_optional }})</div>
             {% endif %}
-                </div>
+            </div>
 
-                <div>
+            <div class="contents">
             {% for existing in jobitem.modules.all %}
                 {% if existing.slot == slot %}
-                    <div>{{ existing.quantity }} x {{ existing.child.product }}</div>
+                <div class="full-module-slot jobitem" data-slot="{{ slot.id }}" data-parent="{{ jobitem.id }}">
+                    <span class="child-desc">{{ existing.quantity }} x {{ existing.child.product }}</span>
+                    <button class="edit-slot-filler-btn" data-jobmod="{{ existing.id }}">edit</button>
+                    <button class="remove-from-slot-btn" data-jobmod="{{ existing.id }}">x</button>
+                </div>
                 {% endif %}
             {% endfor %}
 
             {% if num_assigned < slot.quantity_required %}
-                    <div class="empty-module-slot" data-slot="{{ slot.id }}" data-parent="{{ jobitem.id }}"><i>Click to fill</i></div>
+                <div class="empty-module-slot" data-slot="{{ slot.id }}" data-parent="{{ jobitem.id }}"><i>Click to fill</i></div>
             {% endif %}
                 
-                </div>
             </div>
-        {% endfor %}
         </div>
+        {% endfor %}
+    </div>
     {% endfor %}
 
 
