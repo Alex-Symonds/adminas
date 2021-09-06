@@ -244,10 +244,12 @@ def module_assignments(request):
         
         data_f = []
         if data_wanted == 'jobitems':
-            for ji in slot.valid_jobitems(parent):
+            eligible_ji_unsorted = slot.valid_jobitems(parent)
+            sorted_eligible = sorted(eligible_ji_unsorted, key= lambda t: t.num_unassigned(), reverse=True)
+            for ji in sorted_eligible:
                 ji_f = {}
                 ji_f['id'] = ji.id
-                ji_f['quantity'] = ji.quantity
+                ji_f['quantity'] = ji.num_unassigned()
                 ji_f['name'] = ji.product.part_number + ': ' + ji.product.name
                 data_f.append(ji_f)
 
@@ -260,6 +262,7 @@ def module_assignments(request):
                 data_f.append(pr_f)
         
         elif data_wanted == 'max_quantity':
+            # As of 2021-09-06, this isn't used for anything. Keep for now, since it seems it could be useful. If not, delete later
             child = JobItem.objects.get(id=request.GET.get('child'))
             child_remaining = child.num_unassigned()
             slot_remaining = slot.num_empty_spaces(parent)
@@ -319,20 +322,22 @@ def module_assignments(request):
 
         elif put_data['action'] == 'edit_qty':
 
+            # Maybe the user entered symbols permitted by 'type=number', but which don't actually result in a number
+            # (e.g. e, +, -)
+            if put_data['qty'] == '':
+                return JsonResponse({
+                    'message': 'Invalid quantity.'
+                }, status=400)
+
             new_qty = int(put_data['qty'].strip())
 
-            # Check the qty has changed
-            print('------------------------------------')
-            print(put_data)
-            print('-------------------------------------')
-
-
+            # Maybe the new qty is the same as the old qty, so there's nothing to be done
             if int(put_data['prev_qty']) == new_qty:
                 return JsonResponse({
                     'message': 'No changes required.'
                 }, status=200)
 
-            # Handle it if the new qty is <= 0
+            # Maybe the user entered a new qty of 0 or a negative number
             if new_qty <= 0:
                 return JsonResponse({
                     'message': 'Edit failed. Quantity must be 1 or more.'
@@ -346,6 +351,14 @@ def module_assignments(request):
                 return JsonResponse({
                     'message': 'PUT data was invalid.'
                 }, status=400)            
+
+            # Maybe the user entered a qty which exceeds the number of unassigned job items on the order
+            num_unassigned = jm.child.num_unassigned()
+            if num_unassigned < new_qty:
+                return JsonResponse({
+                    'message': 'Insufficient unassigned items.',
+                    'max_qty': num_unassigned
+                }, status=400)          
 
             # Edit the quantity
             jm.quantity = new_qty

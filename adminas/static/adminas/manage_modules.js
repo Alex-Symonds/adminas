@@ -3,6 +3,7 @@ BUCKET_MENU_CLASS = 'module-bucket-container';
 ADD_SLOT_CLASS = 'add-slot';
 CLASS_EDIT_SLOT_FILLER_BTN = 'edit-slot-filler-btn';
 CLASS_REMOVE_SLOT_FILLER_BTN = 'remove-from-slot-btn';
+CLASS_TEMP_ERROR_MSG = 'temp-warning-msg';
 
 // Add event handlers to elements created by Django
 document.addEventListener('DOMContentLoaded', (e) =>{
@@ -156,17 +157,22 @@ function create_module_bucket_filler_div(slot, parent, data){
     var ji_option_div = document.createElement('div');
 
     ji_option_div.classList.add('bucket-item');
-    ji_option_div.classList.add('jobitem');
+
+    if(parseInt(data['quantity']) === 0){
+        ji_option_div.classList.add('jobitem_usedup');
+
+    } else {
+        ji_option_div.classList.add('jobitem');
+        ji_option_div.addEventListener('click', (e) =>{
+            assign_jobitem_to_slot(e);
+        });
+    }
 
     ji_option_div.setAttribute('data-slot', slot);
     ji_option_div.setAttribute('data-parent', parent);
     ji_option_div.setAttribute('data-child', data['id']);
 
     ji_option_div.innerHTML = `${data['quantity']} x ${data['name']}`;
-
-    ji_option_div.addEventListener('click', (e) =>{
-        assign_jobitem_to_slot(e);
-    });
 
     return ji_option_div;
 }
@@ -221,14 +227,6 @@ function fill_slot_with_new_jobitem_form(e){
 // ------------------------------------------------------------------------
 // Called onClick of one of the existing JobItems in the bucket menu
 async function assign_jobitem_to_slot(e){
-    console.log(`TODO. My job is to tell the server to create/edit a JobModule where: child = ${e.target.dataset.child}, parent = ${e.target.dataset.parent}, slot = ${e.target.dataset.slot}`);
-    let max_qty = await get_max_qty(e.target.dataset.child, e.target.dataset.parent, e.target.dataset.slot);
-
-    if(typeof max_qty === 'undefined'){
-        console.log('Failed to obtain max_qty.')
-        return 0;
-    }
-
     let jobmod_id = await create_jobmodule_on_server(e.target.dataset.child, e.target.dataset.parent, e.target.dataset.slot);
     let description = e.target.innerHTML;
     let bucket_div = e.target.closest('.' + BUCKET_MENU_CLASS);
@@ -240,11 +238,6 @@ async function assign_jobitem_to_slot(e){
     slot_contents_div.append(filled_slot);
     empty_slot.remove();
     bucket_div.remove();
-
-    if (max_qty > 1){
-        console.log('Enter edit mode with a max_qty setting of... ajhfgjahsg ' + data[0]['max_qty']);
-    }
-
 }
 
 // Assignments: Asks the server for the max_qty, for use in form validation
@@ -261,9 +254,7 @@ async function get_max_qty(child_id, parent_id, slot_id){
 }
 
 // Assignments: Send data about the selected JobModule to the server to store the relationship there
-async function create_jobmodule_on_server(child_id, parent_id, slot_id){
-    console.log('TODO: I will send data to the server so as to create a JobModule!');
-    
+async function create_jobmodule_on_server(child_id, parent_id, slot_id){  
     let response = await fetch(`${URL_ASSIGNMENTS}`, {
         method: 'POST',
         body: JSON.stringify({
@@ -330,11 +321,9 @@ function get_slot_filler_remove_btn(jobmod_id){
     btn.classList.add(CLASS_REMOVE_SLOT_FILLER_BTN);
     btn.innerHTML = 'x';
     btn.setAttribute('data-jobmod', jobmod_id);
-    //btn.setAttribute('data-slot', slot_id);
-    //btn.setAttribute('data-parent', parent_id);
     btn.addEventListener('click', (e) => {
         remove_jobmodule(e);
-    })
+    });
     return btn;
 }
 
@@ -463,7 +452,6 @@ function get_slot_filler_edit_form(jobmod_id, filler_text, re){
     fld.id = 'id_qty';
     fld.required = true;
     fld.min = 1;
-    fld.step = 1;
 
     fld.setAttribute('data-id', jobmod_id);
     fld.setAttribute('data-prev_qty', filler_text.match(re));
@@ -520,6 +508,7 @@ function close_edit_mode(ele, new_qty){
 
     unhide_all_by_class(CLASS_EDIT_SLOT_FILLER_BTN);
     unhide_all_by_class(CLASS_REMOVE_SLOT_FILLER_BTN);
+    remove_module_qty_errors();
 }
 
 
@@ -530,11 +519,11 @@ function close_edit_mode(ele, new_qty){
 
 // Edit action: Perform the update
 function update_module_qty(qty_field){
-    update_module_qty_on_server(qty_field);
-    update_module_qty_on_page(qty_field);
-}
+    //update_module_qty_on_server(qty_field);
+    //update_module_qty_on_page(qty_field);
+//}
 
-function update_module_qty_on_server(qty_field){
+//function update_module_qty_on_server(qty_field){
     fetch(`${URL_ASSIGNMENTS}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -546,60 +535,41 @@ function update_module_qty_on_server(qty_field){
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
+    .then(response => response.json())
+    .then(data => {
+        if(typeof data['max_qty'] === 'undefined'){
+            update_module_qty_on_page(qty_field);
+        } else {
+            display_module_qty_error(qty_field, data['max_qty']);
+        }
+    })
     .catch(error => {
         console.log('Error: ', error)
-    })
+    });
 }
 
+
 function update_module_qty_on_page(qty_field){
+    if(qty_field.value === '' || parseFloat(qty_field.value) <= 0){
+        close_edit_mode(qty_field);
+        return;
+    }
     close_edit_mode(qty_field, qty_field.value);
 }
 
 
 
+function display_module_qty_error(qty_field, max_qty_str){
+    let error_msg = document.createElement('div');
+    error_msg.classList.add(CLASS_TEMP_ERROR_MSG);
+    error_msg.innerHTML = `Not enough items (${max_qty_str} remaining)`;
+    qty_field.after(error_msg);
+}
 
-
-
-
-function FIRST_get_slot_filler_edit_form(jobmod_id, filler_text, re){
-    let form = document.createElement('form');
-
-    let jobmod = document.createElement('input');
-    jobmod.name = 'id';
-    jobmod.hidden = true;
-    jobmod.setAttribute('value', jobmod_id);
-    form.append(jobmod);
-
-    let prev_qty = document.createElement('input');
-    prev_qty.name = 'prev_qty';
-    prev_qty.hidden = true;
-    prev_qty.setAttribute('value', filler_text.match(re));
-    form.append(prev_qty);
-
-    let action_fld = document.createElement('input');
-    action_fld.name = 'action';
-    action_fld.hidden = true;
-    action_fld.setAttribute = ('value', 'edit_qty');
-    form.append(action_fld);
-
-    let fld = document.createElement('input');
-    fld.value = filler_text.match(re);
-    fld.type = 'number';
-    fld.name = 'qty';
-    fld.id = 'id_qty';
-    fld.required = true;
-    fld.min = 1;
-    fld.step = 1;
-    form.append(fld);
-
-    let submit = document.createElement('input');
-    submit.type = 'submit';
-    submit.action = 'submit';
-    submit.value = 'submit';
-    submit.id = 'edit_qty_jobmodule_btn';
-    form.append(submit);
-
-    return form;
+function remove_module_qty_errors(){
+    document.querySelectorAll('.' + CLASS_TEMP_ERROR_MSG).forEach(div => {
+        div.remove();
+    });
 }
 
 

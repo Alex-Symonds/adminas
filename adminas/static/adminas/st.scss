@@ -353,12 +353,66 @@ nav {
             .add-slot{
                 font-size: 0.8rem;
                 font-style: italic;
+                margin-top: 3px;
+                padding: 2px 5px;
+                background: #444;
+                border: 1px solid #222;
+                border-radius: 0.4rem;
+                color: white;
             }
+
+            .slot-info{
+                display: flex;
+                justify-content: flex-end;
+                font-size: 0.8rem;
+
+                div {
+                    margin: 0.1rem;
+                    border-radius: 3px;
+
+                    border: 1px solid rgb(38, 238, 38);
+                }
+
+                .head{
+                    padding: 0 4px;
+                }
+
+                .body{
+                    padding: 3px;
+                }
+
+                .required{
+                    background: rgb(38, 238, 38);
+                    color: black;
+
+                    .head{
+                        font-weight: bold;
+                        border-right: 1px solid black;
+                    }
+                }
+
+                .optional{
+                    background: white;
+                    color: green;
+
+                    .head{
+                        border-right: 1px solid rgb(38, 238, 38);
+                    }
+                }
+
+            }
+
         }
 
         .contents{
             flex-grow: 2;
             padding: 0.5rem 0;
+
+            .temp-warning-msg{
+                color: red;
+                font-size: 0.9rem;
+                border: 1px solid #AAA;
+            }
 
             .empty-module-slot{
                 background: white;
@@ -372,13 +426,10 @@ nav {
             }
 
             .jobitem{
-                /*background: #ccc;
-                border: 1px solid #aaa;*/
                 background: $c_bg_module_slot_type;
                 border: 1px solid #BBB;
                 color: white;
             }
-
         }
 
     }
@@ -421,6 +472,13 @@ nav {
         border-radius: 10px;
         padding: 2px 10px;
         margin: 8px;
+    }
+
+    .jobitem_usedup{
+        background: white;
+        border: 1px solid #BBB;
+        color: $c_bg_module_slot_type;
+        font-style: italic;
     }
 
     .add-new-btn{
