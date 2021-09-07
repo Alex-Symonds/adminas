@@ -427,9 +427,6 @@ class JobItem(AdminAuditTrail):
     quantity = models.IntegerField(blank=True)
     selling_price = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
 
-    #description = models.CharField(max_length=DOCS_ONE_LINER, blank=True, null=True)
-    #dummy_part_num = models.CharField(max_length=PART_NUM_LENGTH, blank=True)
-
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
@@ -445,7 +442,7 @@ class JobItem(AdminAuditTrail):
         # For parent JobItems. Is this a functional spec, with all required filled?
         if self.product.is_modular():
             for slot in self.product.slots.all():
-                if slot.num_assignments(self) < slot.quantity_required:
+                if slot.num_assigned(self) < slot.quantity_required:
                     return False
         return True
 
@@ -453,7 +450,7 @@ class JobItem(AdminAuditTrail):
         # For parent JobItems. Offer the user more spots?
         if self.product.is_modular():
             for slot in self.product.slots.all():
-                if slot.num_assignments(self) < slot.quantity_required + slot.quantity_optional:
+                if slot.num_assigned(self) < slot.quantity_required + slot.quantity_optional:
                     return False                
         return True
 
@@ -461,8 +458,8 @@ class JobItem(AdminAuditTrail):
         # For parent JobItems. Display a warning that this is a non-standard spec? 
         if self.product.is_modular():
             for slot in self.product.slots.all():
-                if slot.num_assignments(self) > slot.quantity_required + slot.quantity_optional:
-                    return True               
+                if slot.num_assigned(self) > slot.quantity_required + slot.quantity_optional:
+                    return True          
         return False   
 
 

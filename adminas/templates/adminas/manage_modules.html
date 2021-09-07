@@ -21,10 +21,11 @@
 {% block body %}
     <h2>Module Management</h2>
     <h2>Job {{ job.name }} for {{ job.customer.name }}</h2>
+    <a href="{% url 'job' job.id %}">Return to job</a>
 
     {% for jobitem in items %}
     <div class="modular-item-container">
-
+        {% if jobitem.excess_modules_assigned %}excess-modules{% endif %}
         <div class="item-desc">
             <h3>{{ jobitem.quantity }} x {{ jobitem.product }}</h3>
             <div class="desc">{% get_item_description jobitem.product job.language %}</div>
@@ -36,7 +37,6 @@
             <div class="spine">
                 <h4>{{ slot.name }}</h4>
             {% get_num_assigned_modules jobitem slot as num_assigned %}
-
                 <div class="slot-info">
                     <div class="required"><span class="head">R</span><span class="body">{% get_slot_details_string_required jobitem slot%}</span></div>
                     <div class="optional"><span class="head">O</span><span class="body">{% get_slot_details_string_optional jobitem slot%}</span></div>

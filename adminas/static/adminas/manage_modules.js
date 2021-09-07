@@ -72,6 +72,9 @@ async function open_module_bucket_of_options(e){
     let empty_slot_div = get_empty_slot_div(e.target);
     let bucket_div = await create_module_bucket_div(empty_slot_div.dataset.slot, empty_slot_div.dataset.parent);
     empty_slot_div.after(bucket_div);
+    
+    // Clear any error messages
+    remove_module_qty_errors();
 }
 
 // Bucket menu: close the bucket window
@@ -90,9 +93,11 @@ function get_empty_slot_div(target){
 
 // Bucket menu: create a div element for the bucket menu and fill it with stuff created by other functions
 async function create_module_bucket_div(slot_id, parent_id){
+    // Create bucket div
     let div = document.createElement('div');
     div.classList.add(BUCKET_MENU_CLASS);
-    
+
+    // Fill with other elements
     div.append(get_module_bucket_title());
     div = append_cancel_button(div);
     div = await append_existing_jobitems(div, slot_id, parent_id);
@@ -228,15 +233,21 @@ function fill_slot_with_new_jobitem_form(e){
 // Called onClick of one of the existing JobItems in the bucket menu
 async function assign_jobitem_to_slot(e){
     let jobmod_id = await create_jobmodule_on_server(e.target.dataset.child, e.target.dataset.parent, e.target.dataset.slot);
-    let description = e.target.innerHTML;
+
     let bucket_div = e.target.closest('.' + BUCKET_MENU_CLASS);
     let slot_contents_div = bucket_div.parentElement;
     let empty_slot = slot_contents_div.querySelector('.' + EMPTY_MODULE_SLOT_CLASS);
+    
+    if(typeof jobmod_id !== 'undefined'){
+        let description = e.target.innerHTML;
+        let filled_slot = create_slot_filler_read(description, 1, e.target.dataset.slot, e.target.dataset.parent, jobmod_id);
 
-    let filled_slot = create_slot_filler_read(description, 1, e.target.dataset.slot, e.target.dataset.parent, jobmod_id);
+        empty_slot.remove();
+        slot_contents_div.append(filled_slot);
+    } else {
+        display_module_qty_error(empty_slot, '0');
+    }
 
-    slot_contents_div.append(filled_slot);
-    empty_slot.remove();
     bucket_div.remove();
 }
 
@@ -519,11 +530,6 @@ function close_edit_mode(ele, new_qty){
 
 // Edit action: Perform the update
 function update_module_qty(qty_field){
-    //update_module_qty_on_server(qty_field);
-    //update_module_qty_on_page(qty_field);
-//}
-
-//function update_module_qty_on_server(qty_field){
     fetch(`${URL_ASSIGNMENTS}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -559,11 +565,11 @@ function update_module_qty_on_page(qty_field){
 
 
 
-function display_module_qty_error(qty_field, max_qty_str){
+function display_module_qty_error(preceding_ele, remaining_qty_str){
     let error_msg = document.createElement('div');
     error_msg.classList.add(CLASS_TEMP_ERROR_MSG);
-    error_msg.innerHTML = `Not enough items (${max_qty_str} remaining)`;
-    qty_field.after(error_msg);
+    error_msg.innerHTML = `Not enough items (${remaining_qty_str} remaining)`;
+    preceding_ele.after(error_msg);
 }
 
 function remove_module_qty_errors(){

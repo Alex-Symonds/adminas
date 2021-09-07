@@ -288,10 +288,15 @@ def module_assignments(request):
                 slot = posted_form.cleaned_data['slot'],
                 quantity = 1
             )
-            jobmod.save()
-            return JsonResponse({
-                'id': jobmod.id
-            }, status=201)
+            if jobmod.child.num_unassigned() >= 1:
+                jobmod.save()
+                return JsonResponse({
+                    'id': jobmod.id
+                }, status=201)
+            else:
+                return JsonResponse({
+                    'message': 'Child item is already fully assigned to slots.'
+                }, status=400)
         
         else:
             return JsonResponse({
