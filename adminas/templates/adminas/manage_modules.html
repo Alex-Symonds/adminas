@@ -24,15 +24,15 @@
     <a href="{% url 'job' job.id %}">Return to job</a>
 
     {% for jobitem in items %}
-    <div class="modular-item-container">
-        {% if jobitem.excess_modules_assigned %}excess-modules{% endif %}
+    <div class="modular-item-container{% if jobitem.excess_modules_assigned %} excess-modules{% endif %}">
         <div class="item-desc">
             <h3>{{ jobitem.quantity }} x {{ jobitem.product }}</h3>
             <div class="desc">{% get_item_description jobitem.product job.language %}</div>
         </div>
 
         {% for slot in jobitem.product.slots.all %}
-        <div class="modular-slot-container">
+            {% get_num_excess jobitem slot as num_excess %}
+        <div class="modular-slot-container{% if num_excess > 0 %} excess-modules{% endif %}">
 
             <div class="spine">
                 <h4>{{ slot.name }}</h4>
@@ -40,14 +40,15 @@
                 <div class="slot-info">
                     <div class="required"><span class="head">R</span><span class="body">{% get_slot_details_string_required jobitem slot%}</span></div>
                     <div class="optional"><span class="head">O</span><span class="body">{% get_slot_details_string_optional jobitem slot%}</span></div>
-                </div>
-            {% get_num_excess jobitem slot as num_excess %}
             {% if num_excess > 0 %}
-                <div>excess {{ num_excess }}</div>
+                    <div class="excess"><span class="head">excess</span><span class="body">{{ num_excess }}</span></div>
             {% endif %}
-            {% if num_assigned < slot.quantity_required|add:slot.quantity_optional %}
-                <div class="add-slot">+ Slot</div>
+                </div>
+                <div class="add-slot">+ Slot
+            {% if num_assigned > slot.quantity_required|add:slot.quantity_optional %}
+                    (full)
             {% endif %}
+                </div>
             </div>
 
             <div class="contents">

@@ -1,3 +1,4 @@
+from django.core.exceptions import RequestDataTooBig
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect
@@ -213,7 +214,7 @@ def items(request):
 def manage_modules(request, job_id):
 
     if not request.user.is_authenticated:
-        return anonymous_user()
+        return anonymous_user(request)
 
     job = Job.objects.get(id=job_id)
 
@@ -235,7 +236,7 @@ def manage_modules(request, job_id):
 
 def module_assignments(request):
     if not request.user.is_authenticated:
-        return anonymous_user()
+        return anonymous_user(request)
 
     if request.method == 'GET':
         data_wanted = request.GET.get('return')
@@ -265,7 +266,7 @@ def module_assignments(request):
             # As of 2021-09-06, this isn't used for anything. Keep for now, since it seems it could be useful. If not, delete later
             child = JobItem.objects.get(id=request.GET.get('child'))
             child_remaining = child.num_unassigned()
-            slot_remaining = slot.num_empty_spaces(parent)
+            slot_remaining = parent.num_empty_spaces(slot)
 
             qty = {}
             qty['max_qty'] = min(child_remaining, slot_remaining)
@@ -282,17 +283,18 @@ def module_assignments(request):
         posted_form = JobModuleForm(posted_data)
 
         if posted_form.is_valid():
-            jobmod = JobModule(
+            jm = JobModule(
                 parent = posted_form.cleaned_data['parent'],
                 child = posted_form.cleaned_data['child'],
                 slot = posted_form.cleaned_data['slot'],
                 quantity = 1
             )
-            if jobmod.child.num_unassigned() >= 1:
-                jobmod.save()
-                return JsonResponse({
-                    'id': jobmod.id
-                }, status=201)
+            if jm.child.num_unassigned() >= 1:
+                jm.save()
+                data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
+                data_dict['id'] = jm.id
+                return JsonResponse(data_dict, status=201)
+
             else:
                 return JsonResponse({
                     'message': 'Child item is already fully assigned to slots.'
@@ -308,7 +310,6 @@ def module_assignments(request):
     elif request.method == 'PUT':
         put_data = json.loads(request.body)
 
-
         if put_data['action'] == 'delete':
             try:
                 jm = JobModule.objects.get(id=put_data['id'])
@@ -318,10 +319,10 @@ def module_assignments(request):
                     'message': 'PUT data was invalid.'
                 }, status=400)
 
+            parent = jm.parent
+            slot = jm.slot
             jm.delete()
-            return JsonResponse({
-                'message': 'Deleted JobModule slot assignment.'
-            }, status=200)
+            return JsonResponse(parent.get_slot_status_dictionary(slot), status=200)
         
 
 
@@ -359,7 +360,8 @@ def module_assignments(request):
 
             # Maybe the user entered a qty which exceeds the number of unassigned job items on the order
             num_unassigned = jm.child.num_unassigned()
-            if num_unassigned < new_qty:
+            old_qty = jm.quantity
+            if num_unassigned + old_qty < new_qty:
                 return JsonResponse({
                     'message': 'Insufficient unassigned items.',
                     'max_qty': num_unassigned
@@ -368,9 +370,15 @@ def module_assignments(request):
             # Edit the quantity
             jm.quantity = new_qty
             jm.save()
-            return JsonResponse({
-                'message': 'Quantity has been updated.'
-            }, status=200)  
+            dict = jm.parent.get_slot_status_dictionary(jm.slot)
+            print(dict)
+            return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
+            # return JsonResponse({
+            #     'jobitem_has_excess': jm.parent.excess_modules_assigned(),
+            #     'slot_num_excess': jm.parent.get_num_excess(jm.slot),
+            #     'required_str': jm.parent.get_slot_details_string_required(jm.slot),
+            #     'optional_str': jm.parent.get_slot_details_string_optional(jm.slot)
+            # }, status=200)  
                         
 
 

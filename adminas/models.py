@@ -267,59 +267,6 @@ class Slot(models.Model):
     def choice_list(self):
         return self.choice_group.choices.all()
 
-    def num_assigned(self, parent):
-        assignments = JobModule.objects.filter(parent=parent).filter(slot=self)
-        if assignments.count() == 0:
-            qty_assigned = 0
-        else:
-            qty_assigned = assignments.aggregate(Sum('quantity'))['quantity__sum']
-        return qty_assigned
-
-    def num_extra_spots(self, parent):
-        # Use when displaying the + Slot button on the module management page
-        total_qty = self.quantity_required + self.quantity_optional
-        qty_assigned = self.num_assigned(parent)
-        spots_left = total_qty - qty_assigned
-        return min(spots_left, self.quantity_optional)
-
-    def num_empty_spaces(self, parent):
-        # Not sure when I'm using this
-        total_qty = self.quantity_required + self.quantity_optional
-        qty_assigned = self.num_assigned(parent)
-        return total_qty - qty_assigned
-
-    def get_slot_details_string_required(self, parent):
-        if parent.product.is_modular():
-            num_assignments = self.num_assigned(parent)
-            if num_assignments <= self.quantity_required:
-                result = num_assignments
-            else:
-                result = self.quantity_required
-            return f'{result}/{self.quantity_required}'
-        return ''
-
-    def get_slot_details_string_optional(self, parent):
-        if parent.product.is_modular():
-            num_assignments = self.num_assigned(parent)    
-
-            if num_assignments <= self.quantity_required:
-                result = 0
-            elif num_assignments <= self.quantity_required + self.quantity_optional:
-                result = num_assignments - self.quantity_required
-            else:
-                result = self.quantity_required
-            return f'{result}/{self.quantity_optional}'
-        return ''
-    
-    def get_num_excess(self, parent):
-        if parent.product.is_modular():
-            num_assignments = self.num_assigned(parent)  
-            if num_assignments <= self.quantity_required + self.quantity_optional:
-                return 0
-            else:
-                return num_assignments - self.quantity_required - self.quantity_optional
-        return 0
-
     def valid_jobitems(self, parent):
         sibling_jobitems = JobItem.objects.filter(job=parent.job).exclude(id=parent.id).filter(included_with=None)
         slot_eligible_siblings = sibling_jobitems.filter(product__id__in=self.choice_group.choices.all())
@@ -430,7 +377,8 @@ class JobItem(AdminAuditTrail):
     # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
-   
+
+# Modular JobItems, non slot-specific
     def num_unassigned(self):
         # For child JobItems. Are any "left" to assign to other slots?
         assignments = self.module_of.all()
@@ -442,7 +390,7 @@ class JobItem(AdminAuditTrail):
         # For parent JobItems. Is this a functional spec, with all required filled?
         if self.product.is_modular():
             for slot in self.product.slots.all():
-                if slot.num_assigned(self) < slot.quantity_required:
+                if self.num_assigned(slot) < slot.quantity_required:
                     return False
         return True
 
@@ -450,7 +398,7 @@ class JobItem(AdminAuditTrail):
         # For parent JobItems. Offer the user more spots?
         if self.product.is_modular():
             for slot in self.product.slots.all():
-                if slot.num_assigned(self) < slot.quantity_required + slot.quantity_optional:
+                if self.num_assigned(slot) < slot.quantity_required + slot.quantity_optional:
                     return False                
         return True
 
@@ -458,9 +406,79 @@ class JobItem(AdminAuditTrail):
         # For parent JobItems. Display a warning that this is a non-standard spec? 
         if self.product.is_modular():
             for slot in self.product.slots.all():
-                if slot.num_assigned(self) > slot.quantity_required + slot.quantity_optional:
+                if self.num_assigned(slot) > slot.quantity_required + slot.quantity_optional:
                     return True          
         return False   
+
+
+# Modular JobItems, slot-specific
+    def num_assigned(self, slot):
+        # Parent JobItems. Use to find out qty of children assigned to a particular slot.
+        assignments = JobModule.objects.filter(parent=self).filter(slot=slot)
+        if assignments.count() == 0:
+            qty_assigned = 0
+        else:
+            qty_assigned = assignments.aggregate(Sum('quantity'))['quantity__sum']
+        return qty_assigned
+
+    def remaining_slot_elements(self, slot):
+        # Use when displaying the + Slot button on the module management page
+        total_qty = slot.quantity_required + slot.quantity_optional
+        qty_assigned = self.num_assigned(slot)
+        spots_left = total_qty - qty_assigned
+        return min(spots_left, slot.quantity_optional)
+
+    def num_empty_spaces(self, slot):
+        # This is used in the max_quantity GET call. If I remove that, I can also remove this.
+        total_qty = slot.quantity_required + slot.quantity_optional
+        qty_assigned = self.num_assigned(slot)
+        return total_qty - qty_assigned
+
+    def get_slot_details_string_required(self, slot):
+        # Get the "1/3" string for displaying the slot status for required slots
+        if self.product.is_modular():
+            num_assignments = self.num_assigned(slot)
+            if num_assignments <= slot.quantity_required:
+                result = num_assignments
+            else:
+                result = slot.quantity_required
+            return f'{result}/{slot.quantity_required}'
+        return ''
+
+    def get_slot_details_string_optional(self, slot):
+        # Get the "1/3" string for displaying the slot status for optional slots
+        if self.product.is_modular():
+            num_assignments = self.num_assigned(slot)    
+
+            if num_assignments <= slot.quantity_required:
+                result = 0
+            elif num_assignments <= slot.quantity_required + slot.quantity_optional:
+                result = num_assignments - slot.quantity_required
+            else:
+                result = slot.quantity_optional
+            return f'{result}/{slot.quantity_optional}'
+        return ''
+    
+    def get_num_excess(self, slot):
+        # Get the number of excess assignments to this slot
+        if self.product.is_modular():
+            num_assignments = self.num_assigned(slot)  
+            if num_assignments <= slot.quantity_required + slot.quantity_optional:
+                return 0
+            else:
+                return num_assignments - slot.quantity_required - slot.quantity_optional
+        return 0
+
+
+    def get_slot_status_dictionary(self, slot):
+        return {
+            'jobitem_has_excess': self.excess_modules_assigned(),
+            'slot_num_excess': self.get_num_excess(slot),
+            'required_str': self.get_slot_details_string_required(slot),
+            'optional_str': self.get_slot_details_string_optional(slot)
+        }
+
+
 
 
 

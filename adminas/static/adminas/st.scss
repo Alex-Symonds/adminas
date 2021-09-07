@@ -308,6 +308,8 @@ nav {
 
 
 
+
+
 .modular-item-container{
     background: $c_bg_module_parent;
     margin-top: 2rem;
@@ -364,13 +366,12 @@ nav {
             .slot-info{
                 display: flex;
                 justify-content: flex-end;
+                flex-wrap:wrap;
                 font-size: 0.8rem;
 
                 div {
                     margin: 0.1rem;
                     border-radius: 3px;
-
-                    border: 1px solid rgb(38, 238, 38);
                 }
 
                 .head{
@@ -383,6 +384,7 @@ nav {
 
                 .required{
                     background: rgb(38, 238, 38);
+                    border: 1px solid rgb(38, 238, 38);
                     color: black;
 
                     .head{
@@ -394,11 +396,28 @@ nav {
                 .optional{
                     background: white;
                     color: green;
+                    border: 1px solid rgb(38, 238, 38);
 
                     .head{
                         border-right: 1px solid rgb(38, 238, 38);
                     }
                 }
+
+                .excess{
+                    background: white;
+                    color: red;
+                    border: 1px solid red;
+                    font-weight: bold;
+
+                    .head{
+                        background: red;
+                        color: white;
+                        border-right: 1px solid red;
+                    }
+
+                }
+
+
 
             }
 
@@ -493,6 +512,9 @@ nav {
     }
 }
 
+.excess-modules{
+    border: 2px solid red;
+}
 
 
 

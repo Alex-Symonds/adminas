@@ -4,6 +4,9 @@ ADD_SLOT_CLASS = 'add-slot';
 CLASS_EDIT_SLOT_FILLER_BTN = 'edit-slot-filler-btn';
 CLASS_REMOVE_SLOT_FILLER_BTN = 'remove-from-slot-btn';
 CLASS_TEMP_ERROR_MSG = 'temp-warning-msg';
+CLASS_EXCESS_MODULES = 'excess-modules';
+CLASS_EXCESS_INDICATOR = 'excess';
+CLASS_SLOT_STATUS_INDICATOR = 'slot-info';
 
 // Add event handlers to elements created by Django
 document.addEventListener('DOMContentLoaded', (e) =>{
@@ -232,7 +235,8 @@ function fill_slot_with_new_jobitem_form(e){
 // ------------------------------------------------------------------------
 // Called onClick of one of the existing JobItems in the bucket menu
 async function assign_jobitem_to_slot(e){
-    let jobmod_id = await create_jobmodule_on_server(e.target.dataset.child, e.target.dataset.parent, e.target.dataset.slot);
+    let data = await create_jobmodule_on_server(e.target.dataset.child, e.target.dataset.parent, e.target.dataset.slot);
+    let jobmod_id = data['id'];
 
     let bucket_div = e.target.closest('.' + BUCKET_MENU_CLASS);
     let slot_contents_div = bucket_div.parentElement;
@@ -242,6 +246,7 @@ async function assign_jobitem_to_slot(e){
         let description = e.target.innerHTML;
         let filled_slot = create_slot_filler_read(description, 1, e.target.dataset.slot, e.target.dataset.parent, jobmod_id);
 
+        update_slot_status(e.target, data);
         empty_slot.remove();
         slot_contents_div.append(filled_slot);
     } else {
@@ -281,7 +286,7 @@ async function create_jobmodule_on_server(child_id, parent_id, slot_id){
     });
 
     let resp_json = await response.json();
-    return resp_json['id'];
+    return resp_json;
 }
 
 
@@ -354,14 +359,14 @@ function get_slot_filler_remove_btn(jobmod_id){
 // Un-assignments
 // ------------------------------------------------------------------------
 // Called onClick by the [x] button on filled slots. Manages removing a JobItem from a slot
-function remove_jobmodule(e){
-    unfill_slot_on_server(e);
-    unfill_slot_on_page(e);
+async function remove_jobmodule(e){
+    let resp = await unfill_slot_on_server(e);
+    unfill_slot_on_page(e, resp);
 }
 
 // Backend removal of the JobItem from the slot
-function unfill_slot_on_server(e){
-    fetch(`${URL_ASSIGNMENTS}`, {
+async function unfill_slot_on_server(e){
+    let resp = await fetch(`${URL_ASSIGNMENTS}`, {
         method: 'PUT',
         body: JSON.stringify({
             'action': 'delete',
@@ -373,13 +378,16 @@ function unfill_slot_on_server(e){
     .catch(error => {
         console.log('Error: ', error);
     })
+    return await resp.json();
 }
 
 // Frontend removal of the JobItem from the slot
-function unfill_slot_on_page(e){
+function unfill_slot_on_page(e, data){
     let slot_filler = e.target.parentElement;
     let empty_slot = create_empty_slot_div(slot_filler.dataset.slot, slot_filler.dataset.parent);
     slot_filler.after(empty_slot);
+    update_slot_status(e.target, data);
+
     slot_filler.remove();
 }
 
@@ -544,7 +552,7 @@ function update_module_qty(qty_field){
     .then(response => response.json())
     .then(data => {
         if(typeof data['max_qty'] === 'undefined'){
-            update_module_qty_on_page(qty_field);
+            update_module_qty_on_page(qty_field, data);
         } else {
             display_module_qty_error(qty_field, data['max_qty']);
         }
@@ -555,14 +563,18 @@ function update_module_qty(qty_field){
 }
 
 
-function update_module_qty_on_page(qty_field){
+function update_module_qty_on_page(qty_field, data){
+    // input=number allows some inputs that would be unsuitable here (e.g. 'e' by itself, negative numbers)
+    // If the user entered something unsuitable, close the form 'normally' 
     if(qty_field.value === '' || parseFloat(qty_field.value) <= 0){
         close_edit_mode(qty_field);
         return;
     }
-    close_edit_mode(qty_field, qty_field.value);
-}
 
+    // Otherwise close edit mode, replace the quantity in the display text and update the slot status gubbins
+    update_slot_status(qty_field, data);
+    close_edit_mode(qty_field, qty_field.value);   
+}
 
 
 function display_module_qty_error(preceding_ele, remaining_qty_str){
@@ -577,5 +589,108 @@ function remove_module_qty_errors(){
         div.remove();
     });
 }
+
+
+
+
+
+
+// Slot status: affected by create, edit and delete
+function update_slot_status(ele, data){
+    // Find the ancestor divs for the JobItem and the Slot
+    let jobitem_ele = ele.closest('.modular-item-container');
+    let slot_ele = ele.closest('.modular-slot-container');
+
+    // Update the CSS for those two
+    update_excess_modules_css(jobitem_ele, data['jobitem_has_excess']);
+    update_excess_modules_css(slot_ele, parseInt(data['slot_num_excess']) > 0);
+
+    // Update innerHTML of the indicators in the spine
+    update_slot_status_indicator(slot_ele, 'required', data['required_str']);
+    update_slot_status_indicator(slot_ele, 'optional', data['optional_str']);
+    update_excess_slot_status_indicator(slot_ele, 'excess', data['slot_num_excess']);
+
+    return;
+}
+
+function update_excess_modules_css(element, has_excess){
+    if(has_excess){
+        if(!element.classList.contains(CLASS_EXCESS_MODULES)){
+            element.classList.add(CLASS_EXCESS_MODULES);
+        }
+    } else {
+        if(element.classList.contains(CLASS_EXCESS_MODULES)){
+            element.classList.remove(CLASS_EXCESS_MODULES);
+        }
+    }
+    return;
+}
+
+function ORIG_update_slot_status_indicator(slot_ele, class_indicator, display_text){
+    let result_ele = slot_ele.querySelector('.' + class_indicator).querySelector('.body');
+    result_ele.innerHTML = display_text;
+    return;
+}
+
+
+
+function update_slot_status_indicator(slot_ele, class_indicator, display_text){
+    let result_ele = slot_ele.querySelector('.' + class_indicator).querySelector('.body');
+    result_ele.innerHTML = display_text;
+    return;
+}
+
+function update_excess_slot_status_indicator(slot_ele, class_indicator, display_text){
+    // The excess indicator is a bit special, since it's removed when the value is 0
+    let excess_indicator = slot_ele.querySelector('.' + class_indicator);
+    let does_exist = excess_indicator !== null;
+    let should_exist = parseInt(display_text) > 0;
+
+    if (!should_exist && !does_exist){
+        // All is ok as it is, so do nothing.
+        return;
+
+    } else if (!should_exist && does_exist){
+        // Excess indicator is no longer required. Remove it.
+        slot_ele.querySelector('.' + class_indicator).remove();
+        return;
+
+    } else if(should_exist && !does_exist){
+        // Excess indicator is missing. Create it.
+        let div = create_module_excess_indicator(display_text);
+        let target = slot_ele.querySelector('.' + CLASS_SLOT_STATUS_INDICATOR);
+        target.append(div);
+        return;
+
+    } else {
+        // It's there and needs an update, just the same as the others
+        update_slot_status_indicator(slot_ele, class_indicator, display_text);
+    }
+} 
+
+
+
+function create_module_excess_indicator(num_excess){
+    let div = document.createElement('div');
+    div.classList.add('excess');  
+
+    let head_span = document.createElement('span');
+    head_span.classList.add('head');
+    head_span.innerHTML = 'excess';
+    div.append(head_span);
+
+    let body_span = document.createElement('span');
+    body_span.classList.add('body');
+    body_span.innerHTML = num_excess;
+    div.append(body_span);
+
+    return div;
+}
+
+
+
+
+
+
 
 

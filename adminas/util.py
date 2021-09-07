@@ -16,7 +16,7 @@ def get_plusminus_prefix(value):
     #    return '-'
 
 def anonymous_user(request):
-    error_page(request, 'You must be logged in to view this page.', 401)
+    return error_page(request, 'You must be logged in to view this page.', 401)
 
 def error_page(request, message, error_code):
     return render(request, 'adminas/error.html', {
