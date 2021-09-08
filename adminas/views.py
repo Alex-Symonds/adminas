@@ -157,14 +157,35 @@ def items(request):
         return anonymous_user(request)
     
     if request.method == 'POST':
-        formset = JobItemFormSet(request.POST)
-        if formset.is_valid():
-            for form in formset:
-                add_jobitem(request.user, form)
+        posted_data = json.loads(request.body)
 
-            return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
-        else:
-            return error_page(request, 'Item form was invalid.', 400)
+        if 'source_page' not in posted_data:
+            formset = JobItemFormSet(request.POST)
+            if formset.is_valid():
+                for form in formset:
+                    add_jobitem(request.user, form)
+                return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
+            else:
+                return error_page(request, 'Item form was invalid.', 400)
+
+        elif posted_data['source_page'] == 'module_management':
+            # Add a JobItem based on modular info, then return the JobItem ID
+            parent = JobItem.objects.get(id=posted_data['parent'])
+            my_product = Product.objects.get(id=posted_data['product'])
+            form = JobItemForm({
+                'job': parent.job,
+                'quantity': posted_data['quantity'],
+                'product': my_product.id,
+                'price_list': parent.price_list,
+                'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
+            })
+            if form.is_valid():
+                ji = add_jobitem(request.user, form)
+                return JsonResponse({
+                    'id': ji.id
+                }, status=200)
+            else:
+                return error_page(request, 'Item form was invalid.', 400)
             
     elif request.method == 'PUT':
         ji_id = request.GET.get('id')
@@ -256,12 +277,19 @@ def module_assignments(request):
 
         elif data_wanted == 'products':
             for prod in slot.choice_list():
+                price_obj = Price.objects.filter(product=prod).filter(price_list=parent.price_list).filter(currency=parent.job.currency)[0]
+
                 pr_f = {}
                 pr_f['id'] = prod.id
                 pr_f['name'] = prod.part_number + ': ' + prod.name
-                pr_f['price_f'] = parent.currency + ' ' + Price.objects.filter(product=prod).filter(price_list=parent.price_list).filter(currency=parent.job.currency).value_f()
+                pr_f['value'] = price_obj.value
+                pr_f['price_f'] = parent.job.currency + ' ' + price_obj.value_f()
                 data_f.append(pr_f)
         
+            data_f = sorted(data_f, key= lambda pr: pr['value'])
+            for d in data_f:
+                del d['value']
+
         elif data_wanted == 'max_quantity':
             # As of 2021-09-06, this isn't used for anything. Keep for now, since it seems it could be useful. If not, delete later
             child = JobItem.objects.get(id=request.GET.get('child'))

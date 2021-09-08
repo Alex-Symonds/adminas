@@ -1,4 +1,5 @@
-EMPTY_MODULE_SLOT_CLASS = 'empty-module-slot';
+CLASS_MODULE_SLOT_EMPTY = 'empty';
+CLASS_MODULE_SLOT = 'module-slot';
 BUCKET_MENU_CLASS = 'module-bucket-container';
 ADD_SLOT_CLASS = 'add-slot';
 CLASS_EDIT_SLOT_FILLER_BTN = 'edit-slot-filler-btn';
@@ -7,10 +8,12 @@ CLASS_TEMP_ERROR_MSG = 'temp-warning-msg';
 CLASS_EXCESS_MODULES = 'excess-modules';
 CLASS_EXCESS_INDICATOR = 'excess';
 CLASS_SLOT_STATUS_INDICATOR = 'slot-info';
+CLASS_FILLED_SLOT = 'filled';
+CLASS_SLOT_ELEMENT = 'modular-slot-container';
 
 // Add event handlers to elements created by Django
 document.addEventListener('DOMContentLoaded', (e) =>{
-    document.querySelectorAll('.' + EMPTY_MODULE_SLOT_CLASS).forEach(div => {
+    document.querySelectorAll('.' + CLASS_MODULE_SLOT + '.' + CLASS_MODULE_SLOT_EMPTY).forEach(div => {
         div.addEventListener('click', (e) =>{
             open_module_bucket_of_options(e);
         })
@@ -49,8 +52,10 @@ document.addEventListener('DOMContentLoaded', (e) =>{
 // Adding extra "slots" to the page
 // -------------------------------------------------------------------
 function add_empty_slot(e){
-    console.log("TODO. My job is to check how many slots exist already, then add another slot to this section if there's space.");
-    // Remember you already have "create_empty_slot(slot, parent)"
+    let slot_ele = e.target.closest('.' + CLASS_SLOT_ELEMENT);
+    let contents_ele = slot_ele.querySelector('.contents');
+    let new_slot = create_empty_slot_div(e.target.dataset.slot, e.target.dataset.parent);
+    contents_ele.append(new_slot);
 }
 
 
@@ -87,10 +92,10 @@ function close_module_bucket_of_options(){
 
 // Bucket menu: find the div for the "empty slot", regardless of whether what you just clicked counts as that div or a child
 function get_empty_slot_div(target){
-    if(target.classList.contains(EMPTY_MODULE_SLOT_CLASS)){
+    if(target.classList.contains(CLASS_MODULE_SLOT_EMPTY)){
         return target;
     } else {
-        return target.closest('.' + EMPTY_MODULE_SLOT_CLASS);
+        return target.closest('.' + CLASS_MODULE_SLOT + '.' + CLASS_MODULE_SLOT_EMPTY);
     }
 }
 
@@ -156,7 +161,6 @@ async function get_list_for_module_slot(slot_id, parent_id, list_type){
     .catch(error => {
         console.log('Error: ', error);
     });
-
     return await response.json();
 }
 
@@ -212,14 +216,137 @@ function append_new_jobitem_button(div, slot_id, parent_id){
 
 
 
+
+
+
+
+
+
+
+
+
 // --------------------------------------------------------------
 // Fill slot with a new JobItem
 // -------------------------------------------------------------
-function fill_slot_with_new_jobitem_form(e){
-    console.log('TODO. My job is to display a form for adding a new item.');
+async function fill_slot_with_new_jobitem_form(e){
+    let new_div = await get_module_slot_with_new_item_form(e.target.dataset.slot, e.target.dataset.parent);
+
+    let bucket_div = e.target.closest('.' + BUCKET_MENU_CLASS);
+    let empty_slot = bucket_div.previousSibling;
+
+    empty_slot.after(new_div);
+
+    empty_slot.remove();
+    bucket_div.remove();
+}
+
+async function get_module_slot_with_new_item_form(slot_id, parent_id){
+    let div = document.createElement('div');
+    div.classList.add(CLASS_MODULE_SLOT);
+    div.classList.add('new-slot-filler-inputs');
+
+    let qty_fld = get_jobitem_qty_field();
+    qty_fld.value = 1;
+    div.append(qty_fld);
+    div.append(document.createTextNode(' x '));
+    div.append(await get_jobitem_module_dropdown(slot_id, parent_id));
+    div.append(get_new_slot_filler_submit_btn(slot_id, parent_id));
+    div.append(get_new_slot_filler_cancel_btn());
+
+    return div;
+}
+
+async function get_jobitem_module_dropdown(slot_id, parent_id){
+    let sel = document.createElement('select');
+    sel.name = 'product';
+
+    let json_response = await get_list_for_module_slot(slot_id, parent_id, 'products');
+    let list_of_valid_options = json_response['data'];
+
+    for(let i=0; i < list_of_valid_options.length; i++){
+        var opt_data = list_of_valid_options[i];
+        var opt = document.createElement('option');
+        opt.value = opt_data['id'];
+        opt.innerHTML = `${opt_data['name']} @ ${opt_data['price_f']}`;
+        sel.append(opt);
+    }
+
+    return sel;
+}
+
+function get_new_slot_filler_submit_btn(slot_id, parent_id){
+    let btn = document.createElement('button');
+    btn.innerHTML = 'submit';
+    btn.id = 'id_submit_new';
+    btn.setAttribute('data-slot', slot_id);
+    btn.setAttribute('data-parent', parent_id);
+    btn.addEventListener('click', (e) => {
+        add_new_jobitem_and_jobmodule(e);
+    });
+    return btn;
+}
+
+function get_new_slot_filler_cancel_btn(){
+    let btn = document.createElement('button');
+    btn.classList.add('close-new-mode');
+    btn.innerHTML = 'cancel';
+    btn.addEventListener('click', (e) => {
+        close_new_slot_filler_mode(e.target);
+    });
+    return btn; 
+}
+
+function close_new_slot_filler_mode(btn){
+    let new_slot_div = btn.closest('.' + CLASS_MODULE_SLOT);
+
+    let submit_btn = new_slot_div.querySelector('#' + 'id_submit_new');
+    let empty_slot = create_empty_slot_div(submit_btn.dataset.slot, submit_btn.dataset.parent);
+
+    new_slot_div.after(empty_slot);
+    new_slot_div.remove();
+    return;
 }
 
 
+// Fill slot with new: onclick of new item submit btn
+async function add_new_jobitem_and_jobmodule(e){
+    let parent_id = e.target.dataset.parent;
+    let slot_id = e.target.dataset.slot;
+
+    let form_div = e.target.parentElement;
+    let qty = form_div.querySelector('input[name="qty"]').value;
+    let product = form_div.querySelector('select').value;
+    let product_name = form_div.querySelector('select').innerHTML;
+
+    let json_resp = await create_new_jobitem_for_module(parent_id, qty, product);
+
+    let child_id = json_resp['id'];
+    json_resp = await create_jobmodule_on_server(child_id, parent_id, slot_id);
+    let jobmod_id = data['id'];
+
+    // I will need to run this. The question is how to get the description
+    //let filled_slot = create_slot_filler_read(`${qty} x `, qty, slot_id, parent_id, jobmod_id);
+
+}
+
+async function create_new_jobitem_for_module(parent_id, qty, product){
+    let response = await fetch('/items', {
+        method: 'POST',
+        body: JSON.stringify({
+            'source_page': 'module_management',
+            'quantity': qty,
+            'product': product,
+            'parent': parent_id
+        }),
+        headers: getDjangoCsrfHeaders(),
+        credentials: 'include'
+    })
+    .catch(error => {
+        console.log('Error: ', error);
+    })
+
+    return await response.json();
+}
 
 
 
@@ -239,22 +366,24 @@ async function assign_jobitem_to_slot(e){
     let jobmod_id = data['id'];
 
     let bucket_div = e.target.closest('.' + BUCKET_MENU_CLASS);
-    let slot_contents_div = bucket_div.parentElement;
-    let empty_slot = slot_contents_div.querySelector('.' + EMPTY_MODULE_SLOT_CLASS);
+    let empty_slot = bucket_div.previousSibling;
     
     if(typeof jobmod_id !== 'undefined'){
         let description = e.target.innerHTML;
         let filled_slot = create_slot_filler_read(description, 1, e.target.dataset.slot, e.target.dataset.parent, jobmod_id);
 
         update_slot_status(e.target, data);
+        empty_slot.after(filled_slot);
         empty_slot.remove();
-        slot_contents_div.append(filled_slot);
     } else {
         display_module_qty_error(empty_slot, '0');
     }
 
     bucket_div.remove();
 }
+
+
+
 
 // Assignments: Asks the server for the max_qty, for use in form validation
 // Note: is this still needed?
@@ -293,7 +422,7 @@ async function create_jobmodule_on_server(child_id, parent_id, slot_id){
 // Assignments: Create a div to "fill the slot" with the selected JobItem
 function create_slot_filler_read(description, quantity, slot_id, parent_id, jobmod_id){
     let div = document.createElement('div');
-    div.classList.add('full-module-slot');
+    div.classList.add(CLASS_MODULE_SLOT);
     div.classList.add('jobitem');
 
     div.setAttribute('data-slot', slot_id);
@@ -394,7 +523,8 @@ function unfill_slot_on_page(e, data){
 // Create an empty slot div (mimicking the ones Django makes on initial page load)
 function create_empty_slot_div(slot_id, parent_id){
     let div = document.createElement('div');
-    div.classList.add(EMPTY_MODULE_SLOT_CLASS);
+    div.classList.add(CLASS_MODULE_SLOT);
+    div.classList.add(CLASS_MODULE_SLOT_EMPTY);
 
     div.setAttribute('data-slot', slot_id);
     div.setAttribute('data-parent', parent_id);
@@ -435,7 +565,7 @@ function edit_mode_slot_filler_qty(e){
     let jobmod_id = e.target.dataset.jobmod;
     let filler_text = desc_span.innerHTML;
     let re = get_qty_re();
-    let qty_form = get_slot_filler_edit_form(jobmod_id, filler_text, re);
+    let qty_form = get_slot_filler_edit_field(jobmod_id, filler_text, re);
 
     // Add the qty form and a cancel button in front of the display text span, then edit the display text to remove the qty
     desc_span.before(qty_form);
@@ -460,18 +590,23 @@ function unhide_all_by_class(classname){
     });   
 }
 
-
-
-// Edit mode: form for editting the qty, complete with submit button and exciting hidden inputs
-function get_slot_filler_edit_form(jobmod_id, filler_text, re){
+// Module management: create a quantity field for a form for edit and create
+function get_jobitem_qty_field(){
     let fld = document.createElement('input');
-    fld.value = filler_text.match(re);
     fld.type = 'number';
     fld.name = 'qty';
     fld.id = 'id_qty';
     fld.required = true;
     fld.min = 1;
 
+    return fld;
+}
+
+
+// Edit mode: form for editting the qty
+function get_slot_filler_edit_field(jobmod_id, filler_text, re){
+    let fld = get_jobitem_qty_field();
+    fld.value = filler_text.match(re);
     fld.setAttribute('data-id', jobmod_id);
     fld.setAttribute('data-prev_qty', filler_text.match(re));
 
@@ -599,7 +734,7 @@ function remove_module_qty_errors(){
 function update_slot_status(ele, data){
     // Find the ancestor divs for the JobItem and the Slot
     let jobitem_ele = ele.closest('.modular-item-container');
-    let slot_ele = ele.closest('.modular-slot-container');
+    let slot_ele = ele.closest('.' + CLASS_SLOT_ELEMENT);
 
     // Update the CSS for those two
     update_excess_modules_css(jobitem_ele, data['jobitem_has_excess']);
@@ -626,20 +761,32 @@ function update_excess_modules_css(element, has_excess){
     return;
 }
 
-function ORIG_update_slot_status_indicator(slot_ele, class_indicator, display_text){
-    let result_ele = slot_ele.querySelector('.' + class_indicator).querySelector('.body');
-    result_ele.innerHTML = display_text;
-    return;
-}
-
-
-
+// Updates the numbers and CSS for the req and opt indicators
 function update_slot_status_indicator(slot_ele, class_indicator, display_text){
-    let result_ele = slot_ele.querySelector('.' + class_indicator).querySelector('.body');
-    result_ele.innerHTML = display_text;
+    let indicator_ele = slot_ele.querySelector('.' + class_indicator)
+    let text_ele = indicator_ele.querySelector('.body');
+
+    text_ele.innerHTML = display_text;
+    text_is_full = display_text_shows_full_slot(display_text);
+    css_is_full = indicator_ele.classList.contains(CLASS_FILLED_SLOT);
+
+    if(text_is_full && !css_is_full){
+        indicator_ele.classList.add(CLASS_FILLED_SLOT);
+    }
+    else if(!text_is_full && css_is_full){
+        indicator_ele.classList.remove(CLASS_FILLED_SLOT);
+    } 
+
     return;
 }
 
+function display_text_shows_full_slot(text){
+    let str_arr = text.split('/');
+    return str_arr[0] === str_arr[1];
+}
+
+
+// Slot status: update the excess indicator
 function update_excess_slot_status_indicator(slot_ele, class_indicator, display_text){
     // The excess indicator is a bit special, since it's removed when the value is 0
     let excess_indicator = slot_ele.querySelector('.' + class_indicator);
@@ -663,13 +810,14 @@ function update_excess_slot_status_indicator(slot_ele, class_indicator, display_
         return;
 
     } else {
-        // It's there and needs an update, just the same as the others
-        update_slot_status_indicator(slot_ele, class_indicator, display_text);
+        // It's there and needs an update to the text (but not the CSS, so don't call the function handling req and opt)
+        let result_ele = slot_ele.querySelector('.excess').querySelector('.body');
+        result_ele.innerHTML = display_text;
     }
 } 
 
 
-
+// Slot status: create a new excess indicator div
 function create_module_excess_indicator(num_excess){
     let div = document.createElement('div');
     div.classList.add('excess');  

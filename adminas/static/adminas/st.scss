@@ -382,7 +382,7 @@ nav {
                     padding: 3px;
                 }
 
-                .required{
+                .OLD_required{
                     background: rgb(38, 238, 38);
                     border: 1px solid rgb(38, 238, 38);
                     color: black;
@@ -393,13 +393,33 @@ nav {
                     }
                 }
 
-                .optional{
+                .required{
                     background: white;
                     color: green;
                     border: 1px solid rgb(38, 238, 38);
 
                     .head{
                         border-right: 1px solid rgb(38, 238, 38);
+                    }
+                }
+
+                .optional{
+                    background: #888;
+                    color: white;
+                    border: 1px solid #bbb;
+
+                    .head{
+                        border-right: 1px solid #bbb;
+                    }
+                }
+
+                .filled{
+                    background: $c_bg_module_slot_type;
+                    border: 1px solid #888;
+                    color: white;
+
+                    .head{
+                        border-right: 1px solid #888;
                     }
                 }
 
@@ -433,15 +453,18 @@ nav {
                 border: 1px solid #AAA;
             }
 
-            .empty-module-slot{
-                background: white;
+            .module-slot{
+                margin-top: 3px;
                 border-radius: 9px;
                 padding: 4px 10px;
             }
 
-            .full-module-slot{
-                border-radius: 9px;
-                padding: 4px 10px;                
+            .empty{
+                background: white;
+            }
+
+            .new-slot-filler-inputs{
+                color: white;
             }
 
             .jobitem{
