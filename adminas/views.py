@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm
 from adminas.constants import ADDRESS_DROPDOWN
-from adminas.util import anonymous_user, error_page, add_jobitem
+from adminas.util import anonymous_user, error_page, add_jobitem, debug
 
 # Create your views here.
 def login_view(request):
@@ -78,38 +78,53 @@ def edit_job(request):
 
         if job_id == default_get:
             task_name = 'Create New'
-            job_form = JobForm() #(auto_id="job_id_%s") for when there's more than one with the same fields
+            job_form = JobForm()
+            job_id = 0
 
-            # Note to self: you're planning to move the return outside of the if statement once you've setup the "else" block.
-            # That's why you bothered with variables instead of directly setting these via the form classes
-            return render(request, 'adminas/edit.html',{
-                'job_form': job_form,
-                'addr_ddopt': ADDRESS_DROPDOWN,
-                'task_name': task_name
-            })
         else:
-            pass
-            # load the formy page with inputs pre-populated with existing order data
-    else:
-        posted_form = JobForm(request.POST)
-        if posted_form.is_valid():
-            new_job = Job(
-                created_by = request.user,
-                name = posted_form.cleaned_data['name'],
-                agent = posted_form.cleaned_data['agent'],
-                customer = posted_form.cleaned_data['customer'],
-                country = posted_form.cleaned_data['country'],
-                language = posted_form.cleaned_data['language'],
-                quote_ref = posted_form.cleaned_data['quote_ref'],
-                currency = posted_form.cleaned_data['currency'],
-                payment_terms = posted_form.cleaned_data['payment_terms'],
-                incoterm_code = posted_form.cleaned_data['incoterm_code'],
-                incoterm_location = posted_form.cleaned_data['incoterm_location'],
-                invoice_to = posted_form.cleaned_data['invoice_to'],
-                delivery_to = posted_form.cleaned_data['delivery_to']
-            )
-            new_job.save()
-            return HttpResponseRedirect(reverse('job', kwargs={'job_id': new_job.id}))
+            try:
+                job = Job.objects.get(id=job_id)
+            except:
+                return error_page(request, 'Invalid Job ID.', 400)
+
+            task_name = 'Edit'
+            job_form = JobForm(instance=job)
+            job_id = job.id
+
+
+        return render(request, 'adminas/edit.html',{
+            'job_form': job_form,
+            'addr_ddopt': ADDRESS_DROPDOWN,
+            'task_name': task_name,
+            'job_id': job_id
+        })
+
+    elif request.method == 'POST':
+        job_id = request.POST['job_id']
+
+        if job_id == '0':
+            posted_form = JobForm(request.POST)
+            if posted_form.is_valid():
+                new_job = Job(
+                    created_by = request.user,
+                    name = posted_form.cleaned_data['name'],
+                    agent = posted_form.cleaned_data['agent'],
+                    customer = posted_form.cleaned_data['customer'],
+                    country = posted_form.cleaned_data['country'],
+                    language = posted_form.cleaned_data['language'],
+                    quote_ref = posted_form.cleaned_data['quote_ref'],
+                    currency = posted_form.cleaned_data['currency'],
+                    payment_terms = posted_form.cleaned_data['payment_terms'],
+                    incoterm_code = posted_form.cleaned_data['incoterm_code'],
+                    incoterm_location = posted_form.cleaned_data['incoterm_location'],
+                    invoice_to = posted_form.cleaned_data['invoice_to'],
+                    delivery_to = posted_form.cleaned_data['delivery_to']
+                )
+                new_job.save()
+                return HttpResponseRedirect(reverse('job', kwargs={'job_id': new_job.id}))
+
+        else:
+            debug('edit mode achieved')
     
     return render(request, 'adminas/edit.html')
 
@@ -401,14 +416,34 @@ def module_assignments(request):
             dict = jm.parent.get_slot_status_dictionary(jm.slot)
             print(dict)
             return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
-            # return JsonResponse({
-            #     'jobitem_has_excess': jm.parent.excess_modules_assigned(),
-            #     'slot_num_excess': jm.parent.get_num_excess(jm.slot),
-            #     'required_str': jm.parent.get_slot_details_string_required(jm.slot),
-            #     'optional_str': jm.parent.get_slot_details_string_optional(jm.slot)
-            # }, status=200)  
-                        
 
+                        
+def get_data(request):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+
+    if request.method == 'GET':
+        info_requested = request.GET.get('info')
+
+        if info_requested == 'site_address':
+            addr_id = request.GET.get('id')
+
+            try:
+                req_addr = Address.objects.get(id=addr_id)
+            except:
+                return JsonResponse({
+                    'message': 'Invalid address ID.'
+                }, status=400)
+            
+            company = req_addr.site.company
+            return JsonResponse({
+                'address': req_addr.address,
+                'region': req_addr.region,
+                'postcode': req_addr.postcode,
+                'country': req_addr.country.name
+            }, status=200)
+
+    
 
 
 

@@ -36,3 +36,9 @@ def add_jobitem(admin_user, form):
     ji.add_standard_accessories()
 
     return ji
+
+
+def debug(print_this):
+    print("------------- here comes something you're checking on! --------------------")
+    print(print_this)
+    print('-----------------------------------------')

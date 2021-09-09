@@ -39,7 +39,7 @@ class JobForm(ModelForm):
     delivery_to = AddressModelChoiceField(queryset=Address.objects.filter(valid_until=None).order_by('-site__default_delivery'))
     class Meta():
         model = Job
-        fields = ['name', 'quote_ref', 'country', 'language', 'agent', 'customer', 'currency', 'payment_terms', 'incoterm_code', 'incoterm_location']
+        fields = ['name', 'quote_ref', 'country', 'language', 'agent', 'customer', 'currency', 'payment_terms', 'incoterm_code', 'incoterm_location', 'invoice_to', 'delivery_to']
         labels = {
             'name': 'Job ID'
         }

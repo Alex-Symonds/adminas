@@ -44,11 +44,7 @@
                     <div class="excess"><span class="head">excess</span><span class="body">{{ num_excess }}</span></div>
             {% endif %}
                 </div>
-                <button class="add-slot" data-slot="{{ slot.id }}" data-parent="{{ jobitem.id }}">+ Slot
-            {% if num_assigned > slot.quantity_required|add:slot.quantity_optional %}
-                    (full)
-            {% endif %}
-                </button>
+                <button class="add-slot" data-slot="{{ slot.id }}" data-parent="{{ jobitem.id }}">+ Slot</button>
             </div>
 
             <div class="contents">

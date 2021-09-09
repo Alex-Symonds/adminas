@@ -13,5 +13,6 @@ urlpatterns = [
     path('purchase_order', views.purchase_order, name='purchase_order'),
     path('items', views.items, name='items'),
     path('job/<int:job_id>/manage_modules', views.manage_modules, name='manage_modules'),
-    path('job/module_assignments', views.module_assignments, name='module_assignments')
+    path('job/module_assignments', views.module_assignments, name='module_assignments'),
+    path('get_data', views.get_data, name='get_data')
 ]
