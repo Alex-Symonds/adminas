@@ -192,33 +192,35 @@ def items(request):
         return anonymous_user(request)
     
     if request.method == 'POST':
-        posted_data = json.loads(request.body)
 
-        if 'source_page' not in posted_data:
+        try:
+            posted_data = json.loads(request.body)
+
+            if posted_data['source_page'] == 'module_management':
+                # Add a JobItem based on modular info, then return the JobItem ID
+                parent = JobItem.objects.get(id=posted_data['parent'])
+                my_product = Product.objects.get(id=posted_data['product'])
+                form = JobItemForm({
+                    'job': parent.job,
+                    'quantity': posted_data['quantity'],
+                    'product': my_product.id,
+                    'price_list': parent.price_list,
+                    'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
+                })
+                if form.is_valid():
+                    ji = add_jobitem(request.user, form)
+                    return JsonResponse({
+                        'id': ji.id
+                    }, status=200)
+                else:
+                    return error_page(request, 'Item form was invalid.', 400)
+                    
+        except:
             formset = JobItemFormSet(request.POST)
             if formset.is_valid():
                 for form in formset:
                     add_jobitem(request.user, form)
                 return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
-            else:
-                return error_page(request, 'Item form was invalid.', 400)
-
-        elif posted_data['source_page'] == 'module_management':
-            # Add a JobItem based on modular info, then return the JobItem ID
-            parent = JobItem.objects.get(id=posted_data['parent'])
-            my_product = Product.objects.get(id=posted_data['product'])
-            form = JobItemForm({
-                'job': parent.job,
-                'quantity': posted_data['quantity'],
-                'product': my_product.id,
-                'price_list': parent.price_list,
-                'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
-            })
-            if form.is_valid():
-                ji = add_jobitem(request.user, form)
-                return JsonResponse({
-                    'id': ji.id
-                }, status=200)
             else:
                 return error_page(request, 'Item form was invalid.', 400)
             
@@ -234,6 +236,7 @@ def items(request):
 
         put_data = json.loads(request.body)
         form = JobItemEditForm(put_data)
+
         if form.is_valid():
             previous_product = ji.product
             previous_qty = ji.quantity
@@ -253,7 +256,7 @@ def items(request):
             return JsonResponse(ji.get_post_edit_dictionary(), status=200)
 
         else:
-            error_page(request, 'Item has not been updated.', 400)
+            return error_page(request, 'Item has not been updated.', 400)
 
 
     elif request.method == 'GET':

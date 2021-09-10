@@ -91,22 +91,16 @@
         <div class="job-items-container">
 
     {% if item_list != None %}
-            <div id="price_summary">
-                <h4>Summary</h4>
-                <table>
-                    <tr><th>Value</th><td>{{ job.currency }}</td><td class="selling-price">{{ job.total_value_f }}</td><td></td></tr>
-                    <tr><th>List price</th><td>{{ job.currency }}</td><td class="list-price">{{ job.total_list_price_f }}</td><td></td></tr>
-                    <tr><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val">{{ job.total_list_diff_value_f }}</td><td>(<span class="diff-perc">{{ job.total_list_diff_perc }}</span>%)</td></tr>
-                </table>
-            </div>
-            <button id="toggle_price_check">Show Price Check</button>
             <div class="existing-items-container">
+
         {% for it in item_list %}
                 <div class="job-item-container">
                     <div class="what">
                         <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span>                       
                     </div>
+
                     <div class="desc">{% get_item_description it.product job.language %}</div>
+
                     <div class="std-accs-container">
             {% if it.includes.count > 0 %}
                         <div class="std-accs">
@@ -118,11 +112,12 @@
                             </ul>
                         </div>
             {% endif %}
-
+                    </div>
 
             {% if it.product.is_modular == True %}
-                        <div class="mod-req-status">
-                            <p>Modules:<a href="{% url 'manage_modules' job.id %}" class="details-hider">
+                    <div class="mod-req-status">
+                        <p><<< Modules:
+                            <a href="{% url 'manage_modules' job.id %}" class="details-hider">
                                 [ 
                 {% if it.all_required_modules_assigned == True %}
                                 ok
@@ -134,64 +129,41 @@
                                 <span class="mod-opt-status"> +? </span>
                 {% endif %}
                                 ]
-                            </a></p>
-                            <ul class="details hidden">
+                            </a>
+                        </p>
+                        <ul class="details hidden">
                 {% for module in it.modules.all %}
-                                <li>{{ module.quantity }} x [{{ module.child.product.part_number }}] {{ module.child.product.name }}</li>
+                            <li>{{ module.quantity }} x [{{ module.child.product.part_number }}] {{ module.child.product.name }}</li>
                 {% endfor %}
-                            </ul>
-                        </div>
+                        </ul>
+                    </div>
             {% endif %}
             
             {% if it.module_of.all.count != 0 %}
-                        <div>
-                            <p>Assigned to:</p>
-                            <ul>
+                    <div>
+                        <p>>>> Assigned to:</p>
+                        <ul>
                 {% for module in it.module_of.all %}
-                                <li>{{ module.quantity }} to [{{ module.parent.product.part_number }}] {{ module.parent.product.name }}</li>
+                            <li>{{ module.quantity }} to [{{ module.parent.product.part_number }}] {{ module.parent.product.name }}</li>
                     {% if forloop.last %}
-                                <li>{{ it.num_unassigned }} unassigned</li>
+                            <li>{{ it.num_unassigned }} unassigned</li>
                     {% endif %}
                 {% endfor %}
-                            </ul>
-
-                        </div>
+                        </ul>
+                    </div>
             {% endif %}
 
-
-                    </div>
                     <div class="money"><span class="currency">{{ job.currency }}</span><span class="selling_price">{{ it.selling_price_f }}</span></div>
-                    <div class="price-check">
-                        <div class="check-list">
-                            <div class="price-list-info">
-                                <span class="price_list">{{ it.price_list }}</span>
-                            </div>
-                            <div class="price-check-details hide">
-                                <span class="price">{{ it.list_price_f }}</span>
-                                <span class="diff-val">{{ it.list_difference_value_f }}</span>
-                                <span class="diff-perc">{{ it.list_difference_perc_f }}%</span>
-                            </div>
-                        </div>
-                        <div class="check-resale price-check-details hide">
-                            <div class="resale-info">
-                                Less resale <span class="percentage">{{ it.resale_percentage }}%</span>
-                            </div>
-                            <span class="price">{{ it.resale_price_f }}</span>
-                            <span class="diff-val">{{ it.resale_difference_value_f }}</span>
-                            <span class="diff-perc">{{ it.resale_difference_perc_f }}%</span>
-                        </div>
-                    </div>
+                    <div class="price-list-info"><span class="price_list">{{ it.price_list }}</span></div>
                     <button class="ji-edit" data-jiid="{{ it.id }}">edit</button>
                     <button class="ji-delete" data-jiid="{{ it.id }}">delete</button>
                 </div>
         {% endfor %}
             </div>
 
-
             <button id="toggle_item_form_btn">add items</button>
             <div id="new_items_container" class="hide">
     {% else %}
-
 
             <button id="toggle_item_form_btn" class="hide">add items</button>
             <div id="new_items_container">
@@ -219,6 +191,66 @@
                     <input type="submit" action="submit" id="items_submit_button" value="submit">
                 </form>
             </div>
+
+            <div id="price_check_section">
+                <h3>Price Check</h3>
+
+    {% if item_list == None %}
+                <p>Activates upon entering items.</p>
+    {% else %}
+                <div id="price_summary">
+                    <h4>Overall</h4>
+                    <table>
+                        <tr><th>Value</th><td>{{ job.currency }}</td><td class="selling-price">{{ job.total_value_f }}</td><td></td></tr>
+                        <tr><th>List price</th><td>{{ job.currency }}</td><td class="list-price">{{ job.total_list_price_f }}</td><td></td></tr>
+                        <tr><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val">{{ job.total_list_diff_value_f }}</td><td>(<span class="diff-perc">{{ job.total_list_diff_perc }}</span>%)</td></tr>
+                    </table>
+                </div>
+
+                <h4>Details</h4>
+                <table id="price_check_table">
+                    <tr>
+                        <th colspan=3></th>
+                        <th colspan=3>vs. Price List</th>
+                        <th colspan=3>vs. Resale</th>
+                    </tr>
+                    <tr>
+                        <th>qty</th>
+                        <th>part #</th>
+                        <th>sold @</th>
+                        <th>version</th>
+                        <th>value</th>
+                        <th>diff</th>
+                        <th>perc</th>
+                        <th>value</th>
+                        <th>diff</th>
+                    </tr>
+
+        {% for item in item_list %}
+            {% if item.included_with == None %}
+                    <tr id="price_check_row_{{ item.id }}">
+                        <td class="qty">{{ item.quantity }}</td>
+                        <td class="description"><span class="details-toggle">{{ item.product.part_number }}</span> <span class="details hide">{{ item.product.name }}</span></td>
+                        <td class="selling-price">{{ item.selling_price_f }}</td>
+                        <td class="version">{{ item.price_list }}</td>
+                        <td class="list-price">{{ item.list_price_f }}</td>
+                        <td class="list-diff">
+                            <span class="diff-val">{{ item.list_difference_value_f }}</span>
+                            <span class="diff-perc">{{ item.list_difference_perc_f }}%</span>
+                        </td>
+                        <td class="resale-percentage">{{ item.resale_percentage }}%</td>
+                        <td class="resale-price">{{ item.resale_price_f }}</td>
+                        <td class="resale-diff">
+                            <span class="diff-val">{{ item.resale_difference_value_f }}</span>
+                            <span class="diff-perc">{{ item.resale_difference_perc_f }}%</span>    
+                        </td>
+
+                    </tr>
+            {% endif %}
+        {% endfor %}
+                </table>
+    {% endif %}
+
         </div>
     </div>
 

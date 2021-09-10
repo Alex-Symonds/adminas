@@ -492,6 +492,8 @@ class JobItem(AdminAuditTrail):
 
     def get_post_edit_dictionary(self):
         return {
+            'part_number': self.product.part_number,
+            'name': self.product.name,
             'list_price_f': self.list_price_f(),
             'list_difference_value_f': self.list_difference_value_f(),
             'list_difference_perc_f': self.list_difference_perc_f(),

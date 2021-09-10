@@ -13,6 +13,7 @@ const EDIT_ITEM_CONTAINER_ID = 'container_edit_item';
 const EDIT_ITEM_CLONED_FORMSET_ID = '0-';
 const STD_ACC_CLASS = 'std-accs';
 const STD_ACC_CONTAINER_CLASS = 'std-accs-container';
+const ID_PREFIX_PRICE_CHECK_ROW = 'price_check_row_';
 
 // DOMContentLoaded eventListener additions
 document.addEventListener('DOMContentLoaded', function(e) {
@@ -61,7 +62,11 @@ function delete_job_item(e){
 
 // Remove a job item from DOM entirely
 function remove_job_item_from_dom(e){
-    job_item_ele = e.target.closest('.job-item-container');
+    let jobitem_id = e.target.dataset.jiid;
+    let price_check_tr = get_price_check_tr(jobitem_id);
+    price_check_tr.remove();
+
+    let job_item_ele = e.target.closest('.job-item-container');
     job_item_ele.remove();
 }
 
@@ -240,22 +245,30 @@ function update_job_item(e){
     let edit_form = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
     let result_div = edit_form.previousElementSibling;
 
-    // PUT it into the database and call functions to handle the DOM
     let prefix = '#id_' + EDIT_ITEM_ID_PREFIX;
+    let prl_sel = edit_form.querySelector(prefix + 'price_list')
+    let new_info = {};
+    new_info['quantity'] = parseInt(edit_form.querySelector(prefix + 'quantity').value.trim());
+    new_info['product_id'] = edit_form.querySelector(prefix + 'product').value.trim();
+    new_info['price_list'] = prl_sel[prl_sel.selectedIndex].text;
+    new_info['selling_price'] = edit_form.querySelector(prefix + 'selling_price').value.trim();
+
+    // PUT it into the database and call functions to handle the DOM
     fetch(`/items?id=${e.target.dataset.jiid}`, {
         method: 'PUT',
+        //body: JSON.stringify(new_info),
         body: JSON.stringify({
-            'quantity': parseInt(edit_form.querySelector(prefix + 'quantity').value.trim()),
-            'product': edit_form.querySelector(prefix + 'product').value.trim(),
-            'price_list': edit_form.querySelector(prefix + 'price_list').value.trim(),
-            'selling_price': edit_form.querySelector(prefix + 'selling_price').value.trim()
+            'quantity': new_info['quantity'],
+            'product': new_info['product_id'],
+            'price_list': prl_sel.value.trim(),
+            'selling_price': new_info['selling_price']
         }),
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
     .then(response => response.json())
     .then(data => {
-        update_job_item_in_dom(result_div, edit_form, data);
+        update_job_item_in_dom(result_div, edit_form, data, e.target.dataset.jiid, new_info);
     })
     .catch(error =>{
         console.log('Error: ', error);
@@ -264,7 +277,7 @@ function update_job_item(e){
 
 
 // Updates one JobItem element in DOM to reflect any/all edits
-function update_job_item_in_dom(result_div, edit_div, response_data){
+function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id, new_info){
     // Check if the product changed and, if so, update the standard accessories
     // Note: Conditional because of vague plans to make standard accessories individually delete-able. Don't want to undo the user's deleting.
     // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
@@ -285,7 +298,9 @@ function update_job_item_in_dom(result_div, edit_div, response_data){
 
     // Activate read-mode and update price checks
     read_mode_job_item(result_div, edit_div);
-    update_price_checks_in_dom(result_div, response_data);
+
+    let price_check_div = get_price_check_tr(jobitem_id);
+    update_price_checks_in_dom(price_check_div, response_data, new_info);
 }
 
 // Update a single piece of display text with the contents of an edit form field
@@ -322,18 +337,35 @@ function read_mode_job_item(result_div, edit_form){
     edit_form.remove();
 }
 
-// Update the DOM with a set of price check info
-function update_price_checks_in_dom(result_div, price_info){
-    let list_div = result_div.querySelector('.check-list');
-    list_div.querySelector('.price').innerHTML = price_info['list_price_f'];
-    list_div.querySelector('.diff-val').innerHTML = price_info['list_difference_value_f'];
-    list_div.querySelector('.diff-perc').innerHTML = `${price_info['list_difference_perc_f']}%`;
 
-    let resale_div = result_div.querySelector('.check-resale');
-    resale_div.querySelector('.percentage').innerHTML = `${price_info['resale_percentage']}%`;
-    resale_div.querySelector('.price').innerHTML = price_info['resale_price_f'];
-    resale_div.querySelector('.diff-val').innerHTML = price_info['resale_difference_value_f'];
-    resale_div.querySelector('.diff-perc').innerHTML = `${price_info['resale_difference_perc_f']}%`;
+// Price Checker: Get a row in the table for a particular item
+function get_price_check_tr(jobitem_id){
+    return document.querySelector('#' + ID_PREFIX_PRICE_CHECK_ROW + jobitem_id);
+}
+
+// Price Checker: Update the DOM with a set of price check info
+function update_price_checks_in_dom(item_row, price_info, new_info){
+
+    item_row.querySelector('.qty').innerHTML = new_info['quantity'];
+    item_row.querySelector('.selling-price').innerHTML = new_info['selling_price'];
+
+    let desc_td = item_row.querySelector('.description');
+    desc_td.querySelector('.details-toggle').innerHTML = price_info['part_number'];
+    desc_td.querySelector('.details').innerHTML = price_info['name'];
+
+    item_row.querySelector('.list-price').innerHTML = price_info['list_price_f'];
+    item_row.querySelector('.version').innerHTML = new_info['price_list'];
+
+    let diff_td = item_row.querySelector('.list-diff');
+    diff_td.querySelector('.diff-val').innerHTML = price_info['list_difference_value_f'];
+    diff_td.querySelector('.diff-perc').innerHTML = `${price_info['list_difference_perc_f']}%`;
+
+    item_row.querySelector('.resale-percentage').innerHTML = `${price_info['resale_percentage']}%`;
+    item_row.querySelector('.resale-price').innerHTML = price_info['resale_price_f'];
+
+    diff_td = item_row.querySelector('.resale-diff');
+    diff_td.querySelector('.diff-val').innerHTML = price_info['resale_difference_value_f'];
+    diff_td.querySelector('.diff-perc').innerHTML = `${price_info['resale_difference_perc_f']}%`;
 
     let summary_div = document.querySelector('#price_summary')
     summary_div.querySelector('.selling-price').innerHTML = price_info['total_sold_f'];
