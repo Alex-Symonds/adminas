@@ -101,10 +101,10 @@ def edit_job(request):
 
     elif request.method == 'POST':
         job_id = request.POST['job_id']
+        posted_form = JobForm(request.POST)
 
-        if job_id == '0':
-            posted_form = JobForm(request.POST)
-            if posted_form.is_valid():
+        if posted_form.is_valid():
+            if job_id == '0':
                 new_job = Job(
                     created_by = request.user,
                     name = posted_form.cleaned_data['name'],
@@ -121,10 +121,29 @@ def edit_job(request):
                     delivery_to = posted_form.cleaned_data['delivery_to']
                 )
                 new_job.save()
-                return HttpResponseRedirect(reverse('job', kwargs={'job_id': new_job.id}))
+                redirect_id = new_job.id
 
-        else:
-            debug('edit mode achieved')
+            else:
+                job = Job.objects.get(id=job_id)
+                job.created_by = request.user
+                job.name = posted_form.cleaned_data['name']
+                job.agent = posted_form.cleaned_data['agent']
+                job.customer = posted_form.cleaned_data['customer']
+                job.country = posted_form.cleaned_data['country']
+                job.language = posted_form.cleaned_data['language']
+                job.quote_ref = posted_form.cleaned_data['quote_ref']
+                job.currency = posted_form.cleaned_data['currency']
+                job.payment_terms = posted_form.cleaned_data['payment_terms']
+                job.incoterm_code = posted_form.cleaned_data['incoterm_code']
+                job.incoterm_location = posted_form.cleaned_data['incoterm_location']
+                job.invoice_to = posted_form.cleaned_data['invoice_to']
+                job.delivery_to = posted_form.cleaned_data['delivery_to']
+                job.save()
+                redirect_id = job_id
+
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': redirect_id}))
+
+
     
     return render(request, 'adminas/edit.html')
 
@@ -414,7 +433,6 @@ def module_assignments(request):
             jm.quantity = new_qty
             jm.save()
             dict = jm.parent.get_slot_status_dictionary(jm.slot)
-            print(dict)
             return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
 
                         
@@ -456,7 +474,10 @@ def status(request):
     return render(request, 'adminas/status.html')
 
 def records(request):
-    return render(request, 'adminas/records.html')
+    data = Job.objects.all()
+    return render(request, 'adminas/records.html', {
+        'data': data
+    })
 
 
 
