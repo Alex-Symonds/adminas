@@ -378,6 +378,12 @@ class JobItem(AdminAuditTrail):
     # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
 
+    def display_str(self):
+        return f'{self.quantity} x [{self.product.part_number}] {self.product.name}'
+
+    def display_str_money(self):
+        return f'{self.display_str()} @ {self.job.currency} {self.selling_price_f()}'
+
 # Modular JobItems, non slot-specific
     def num_unassigned(self):
         # For child JobItems. Are any "left" to assign to other slots?

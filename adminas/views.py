@@ -7,11 +7,12 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
+from django.db.models import Sum, Count
 
 from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm
 from adminas.constants import ADDRESS_DROPDOWN
-from adminas.util import anonymous_user, error_page, add_jobitem, debug
+from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money
 
 # Create your views here.
 def login_view(request):
@@ -162,7 +163,7 @@ def job(request, job_id):
     return render(request, 'adminas/job.html', {
         'job': my_job,
         'po_form': POForm(initial={'job': my_job.id}),
-        'po_list': po_list,
+        'po_list': my_job.po.all(),#po_list,
         'item_formset': item_formset,
         'item_list': item_list
     })
@@ -474,7 +475,12 @@ def status(request):
     return render(request, 'adminas/status.html')
 
 def records(request):
-    data = Job.objects.all()
+    all_jobs = Job.objects.all()
+    data = all_jobs.annotate(total_po_value=Sum('po__value')).annotate(num_po=Count('po'))
+
+    for j in data:
+        j.total_po_value_f = format_money(j.total_po_value)
+
     return render(request, 'adminas/records.html', {
         'data': data
     })

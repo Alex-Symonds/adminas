@@ -6,6 +6,81 @@
 
 {% block body %}
     <h2>Records</h2>
+
+    <table>
+        <tr>
+            <th>View</th>
+            <th>Name</th>
+            <th>Agent</th>
+            <th>Customer</th>
+            <th>Country</th>
+            <th>Lang</th>
+            <th>Curr</th>
+
+            <th>Inv to</th>
+            <th>Quote</th>
+            <th>PO Num</th>
+            <th>PO Value</th>
+
+            <th>INCO</th>
+            <th>Deliver to</th>
+
+            <th>Products</th>
+        </tr>
+
+            
+    {% for job in data %}
+        <tr>
+            <td><a href="{% url 'job' job.id %}">Link</a></td>
+            <td>{{ job.name }}</td>
+            <td>{{ job.agent.name }}</td>
+            <td>{{ job.customer.name }}</td>
+            <td>{{ job.country.name }}</td>
+            <td>{{ job.language }}</td>
+            <td>{{ job.currency }}</td>
+            <td>{{ job.invoice_to.site.company.name }}</td>
+            <td>{{ job.quote_ref }}</td>
+            <td><span class="po{% if job.num_po > 1 %} multiple{% endif %}">
+                {{ job.po.all.0.reference }}
+                
+        {% if job.num_po > 1 %}
+            {% for po in job.po.all %}
+                {% if forloop.first %}
+                    <div class="hover_data">+
+                        <span class="data">
+                {% else %}
+                            {{ po.reference }}
+                {% endif %}
+                {% if forloop.last %}
+                         </span>
+                    </div>
+                {% else %}
+                    {% if not forloop.first %}
+                        , 
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+            </span></td>
+            <td>{{ job.total_po_value_f }}</td>
+            <td>{{ job.incoterm_code }}</td>
+            <td>{{ job.invoice_to.site.company.name }}</td>
+            <td>
+        {% for item in job.items.all %}
+            {% if forloop.first %}
+                <div class="hover_data">View
+                    <ul class="data">
+            {% endif %}
+                        <li>{{ item.display_str_money }}</li>
+            {% if forloop.last %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endfor %}
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
 {% endblock %}
 
 

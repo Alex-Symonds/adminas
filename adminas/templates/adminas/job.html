@@ -105,28 +105,12 @@
                 <div class="job-item-container">
                     <div class="what">
                         <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span>                       
-                        
-            {% if it.product.is_modular == True %}
-                        <div class="mod-req-status"><a href="{% url 'manage_modules' job.id %}">
-                            [spec: 
-                {% if it.all_required_modules_assigned == True %}
-                            ok
-                {% else %}
-                            INCOMPLETE
-                {% endif %}
-                        
-                {% if it.all_optional_modules_assigned == False %}
-                            <span class="mod-opt-status"> +? </span>
-                {% endif %}
-                            ]
-                        </a></div>
-            {% endif %}
                     </div>
                     <div class="desc">{% get_item_description it.product job.language %}</div>
                     <div class="std-accs-container">
             {% if it.includes.count > 0 %}
                         <div class="std-accs">
-                            <p>includes:</p>
+                            <p>Included items:</p>
                             <ul>
                 {% for acc in it.includes.all %}
                                 <li>{{ acc.quantity }} x {{ acc.product }}
@@ -134,6 +118,47 @@
                             </ul>
                         </div>
             {% endif %}
+
+
+            {% if it.product.is_modular == True %}
+                        <div class="mod-req-status">
+                            <p>Modules:<a href="{% url 'manage_modules' job.id %}" class="details-hider">
+                                [ 
+                {% if it.all_required_modules_assigned == True %}
+                                ok
+                {% else %}
+                                INCOMPLETE
+                {% endif %}
+                        
+                {% if it.all_optional_modules_assigned == False %}
+                                <span class="mod-opt-status"> +? </span>
+                {% endif %}
+                                ]
+                            </a></p>
+                            <ul class="details hidden">
+                {% for module in it.modules.all %}
+                                <li>{{ module.quantity }} x [{{ module.child.product.part_number }}] {{ module.child.product.name }}</li>
+                {% endfor %}
+                            </ul>
+                        </div>
+            {% endif %}
+            
+            {% if it.module_of.all.count != 0 %}
+                        <div>
+                            <p>Assigned to:</p>
+                            <ul>
+                {% for module in it.module_of.all %}
+                                <li>{{ module.quantity }} to [{{ module.parent.product.part_number }}] {{ module.parent.product.name }}</li>
+                    {% if forloop.last %}
+                                <li>{{ it.num_unassigned }} unassigned</li>
+                    {% endif %}
+                {% endfor %}
+                            </ul>
+
+                        </div>
+            {% endif %}
+
+
                     </div>
                     <div class="money"><span class="currency">{{ job.currency }}</span><span class="selling_price">{{ it.selling_price_f }}</span></div>
                     <div class="price-check">
