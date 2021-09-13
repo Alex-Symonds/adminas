@@ -64,6 +64,11 @@ PoFormSet = modelform_factory(
 )
 
 
+class JobItemPriceForm(ModelForm):
+    class Meta():
+        model = JobItem
+        fields = ['selling_price']
+
 class JobItemForm(ModelForm):
     class Meta():
         model = JobItem

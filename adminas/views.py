@@ -8,9 +8,10 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 from django.db.models import Sum, Count
+from decimal import Decimal
 
 from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule
-from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm
+from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm
 from adminas.constants import ADDRESS_DROPDOWN
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money
 
@@ -192,38 +193,50 @@ def items(request):
         return anonymous_user(request)
     
     if request.method == 'POST':
+        # Try processing the formset with a flexible number of items added at once
+        formset = JobItemFormSet(request.POST)
+        if formset.is_valid():
+            for form in formset:
+                add_jobitem(request.user, form)
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
 
-        try:
-            posted_data = json.loads(request.body)
-
-            if posted_data['source_page'] == 'module_management':
-                # Add a JobItem based on modular info, then return the JobItem ID
-                parent = JobItem.objects.get(id=posted_data['parent'])
-                my_product = Product.objects.get(id=posted_data['product'])
-                form = JobItemForm({
-                    'job': parent.job,
-                    'quantity': posted_data['quantity'],
-                    'product': my_product.id,
-                    'price_list': parent.price_list,
-                    'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
-                })
-                if form.is_valid():
-                    ji = add_jobitem(request.user, form)
-                    return JsonResponse({
-                        'id': ji.id
-                    }, status=200)
-                else:
-                    return error_page(request, 'Item form was invalid.', 400)
-                    
-        except:
-            formset = JobItemFormSet(request.POST)
-            if formset.is_valid():
-                for form in formset:
-                    add_jobitem(request.user, form)
-                return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
-            else:
-                return error_page(request, 'Item form was invalid.', 400)
+        # Try processing as a non-formset
+        else:
+            try:
+                posted_data = json.loads(request.body)
             
+                if posted_data['source_page'] == 'module_management':
+                    # Add a JobItem based on modular info, then return the JobItem ID
+                    parent = JobItem.objects.get(id=posted_data['parent'])
+                    my_product = Product.objects.get(id=posted_data['product'])
+                    form = JobItemForm({
+                        'job': parent.job,
+                        'quantity': posted_data['quantity'],
+                        'product': my_product.id,
+                        'price_list': parent.price_list,
+                        'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
+                    })
+                    if form.is_valid():
+                        ji = add_jobitem(request.user, form)
+                        return JsonResponse({
+                            'id': ji.id
+                        }, status=200)
+                    else:
+                        # There's a problem with the item form dictionary
+                        return error_page(request, 'Item form was invalid.', 400)
+
+            # There's something wrong with the data sent over
+            except:
+                return error_page(request, 'Invalid data.', 400)
+
+            
+
+
+
+
+
+
+
     elif request.method == 'PUT':
         ji_id = request.GET.get('id')
         ji = JobItem.objects.get(id=ji_id)
@@ -234,26 +247,38 @@ def items(request):
                 'message': 'Deleted record.'
             }, status=200)
 
-        put_data = json.loads(request.body)
-        form = JobItemEditForm(put_data)
+        if request.GET.get('edit'):
+            put_data = json.loads(request.body)
 
-        if form.is_valid():
-            previous_product = ji.product
-            previous_qty = ji.quantity
+            if request.GET.get('edit') == 'all':
+                form = JobItemEditForm(put_data)
+                if form.is_valid():
+                    previous_product = ji.product
+                    previous_qty = ji.quantity
 
-            ji.quantity = form.cleaned_data['quantity']
-            ji.product = form.cleaned_data['product']
-            ji.selling_price = form.cleaned_data['selling_price']
-            ji.price_list = form.cleaned_data['price_list']
-            ji.save()
+                    ji.quantity = form.cleaned_data['quantity']
+                    ji.product = form.cleaned_data['product']
+                    ji.selling_price = form.cleaned_data['selling_price']
+                    ji.price_list = form.cleaned_data['price_list']
+                    ji.save()
 
-            if previous_product != ji.product:
-                ji.reset_standard_accessories()
+                    if previous_product != ji.product:
+                        ji.reset_standard_accessories()
 
-            elif previous_qty != ji.quantity:
-                ji.update_standard_accessories_quantities()
+                    elif previous_qty != ji.quantity:
+                        ji.update_standard_accessories_quantities()
 
-            return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+                    return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+            
+            if request.GET.get('edit') == 'price_only':
+                put_data = json.loads(request.body)
+                form = JobItemPriceForm(put_data)
+
+                if form.is_valid():
+                    ji.selling_price = form.cleaned_data['selling_price']
+                    ji.save()
+
+                return JsonResponse(ji.get_post_edit_dictionary(), status=200)
 
         else:
             return error_page(request, 'Item has not been updated.', 400)

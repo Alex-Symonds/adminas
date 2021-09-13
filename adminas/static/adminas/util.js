@@ -1,8 +1,8 @@
 
 // Add comma for thousands separator
-function numberWithCommas(x) {
+function numberWithCommas(num) {
     // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
-    return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+    return num.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
 }
 
 
@@ -47,4 +47,17 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+
+function hide_all_by_class(classname){
+    document.querySelectorAll('.' + classname).forEach(ele => {
+        ele.classList.add('hide');
+    });
+}
+
+function unhide_all_by_class(classname){
+    document.querySelectorAll('.' + classname).forEach(ele => {
+        ele.classList.remove('hide');
+    });
 }

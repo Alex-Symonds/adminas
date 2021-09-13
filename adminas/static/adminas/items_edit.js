@@ -14,6 +14,7 @@ const EDIT_ITEM_CLONED_FORMSET_ID = '0-';
 const STD_ACC_CLASS = 'std-accs';
 const STD_ACC_CONTAINER_CLASS = 'std-accs-container';
 const ID_PREFIX_PRICE_CHECK_ROW = 'price_check_row_';
+const CLASS_PRICE_CHECKER_EDIT_WINDOW = 'price-checker-edit-window';
 
 // DOMContentLoaded eventListener additions
 document.addEventListener('DOMContentLoaded', function(e) {
@@ -28,6 +29,12 @@ document.addEventListener('DOMContentLoaded', function(e) {
         btn.addEventListener('click', function(e){
             edit_mode_job_item(e);
         });
+    });
+
+    document.querySelector('#price_check_table').querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function(e){
+            edit_mode_price_check(e);
+        })
     });
 
 });
@@ -254,7 +261,7 @@ function update_job_item(e){
     new_info['selling_price'] = edit_form.querySelector(prefix + 'selling_price').value.trim();
 
     // PUT it into the database and call functions to handle the DOM
-    fetch(`/items?id=${e.target.dataset.jiid}`, {
+    fetch(`/items?id=${e.target.dataset.jiid}&edit=all`, {
         method: 'PUT',
         //body: JSON.stringify(new_info),
         body: JSON.stringify({
@@ -287,7 +294,9 @@ function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id,
 
     // Update the display area to contain the values from the form
     for(let i = 0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
-        update_one_item_field_in_dom(result_div, edit_div, JOB_ITEM_INPUT_FIELDS[i]);
+        if(JOB_ITEM_INPUT_FIELDS[i] != 'selling_price'){
+            update_one_field_in_jobitem_panel_from_edit_all_form(result_div, edit_div, JOB_ITEM_INPUT_FIELDS[i]);
+        }
     }
 
     // Update the auto-description, unless it's blank
@@ -300,11 +309,11 @@ function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id,
     read_mode_job_item(result_div, edit_div);
 
     let price_check_div = get_price_check_tr(jobitem_id);
-    update_price_checks_in_dom(price_check_div, response_data, new_info);
+    update_price_checks_in_dom(price_check_div, response_data, new_info, jobitem_id, result_div.querySelector(`.selling_price`));
 }
 
 // Update a single piece of display text with the contents of an edit form field
-function update_one_item_field_in_dom(read_div, edit_div, field_name){
+function update_one_field_in_jobitem_panel_from_edit_all_form(read_div, edit_div, field_name){
     let result_ele = read_div.querySelector(`.${field_name}`);
     let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, field_name)}`);
 
@@ -344,29 +353,30 @@ function get_price_check_tr(jobitem_id){
 }
 
 // Price Checker: Update the DOM with a set of price check info
-function update_price_checks_in_dom(item_row, price_info, new_info){
+function update_price_checks_in_dom(item_row, price_info, new_info, jobitem_id, jobitem_selling_ele){
 
-    item_row.querySelector('.qty').innerHTML = new_info['quantity'];
-    item_row.querySelector('.selling-price').innerHTML = new_info['selling_price'];
+    // JobItem pane
+    jobitem_selling_ele.innerHTML = numberWithCommas(new_info['selling_price']);
 
+    // Price check tables
     let desc_td = item_row.querySelector('.description');
     desc_td.querySelector('.details-toggle').innerHTML = price_info['part_number'];
     desc_td.querySelector('.details').innerHTML = price_info['name'];
 
+    item_row.querySelector('.edit-btn').dataset.jiid = jobitem_id;
+    
+    item_row.querySelector('.selling-price').innerHTML = numberWithCommas(new_info['selling_price']);
+    item_row.querySelector('.qty').innerHTML = new_info['quantity'];
     item_row.querySelector('.list-price').innerHTML = price_info['list_price_f'];
     item_row.querySelector('.version').innerHTML = new_info['price_list'];
-
-    let diff_td = item_row.querySelector('.list-diff');
-    diff_td.querySelector('.diff-val').innerHTML = price_info['list_difference_value_f'];
-    diff_td.querySelector('.diff-perc').innerHTML = `${price_info['list_difference_perc_f']}%`;
-
+    item_row.querySelector('.list-diff-val').innerHTML = price_info['list_difference_value_f'];
+    item_row.querySelector('.list-diff-perc').innerHTML = `${price_info['list_difference_perc_f']}%`;
     item_row.querySelector('.resale-percentage').innerHTML = `${price_info['resale_percentage']}%`;
     item_row.querySelector('.resale-price').innerHTML = price_info['resale_price_f'];
+    item_row.querySelector('.resale-diff-val').innerHTML = price_info['resale_difference_value_f'];
+    item_row.querySelector('.resale-diff-perc').innerHTML = `${price_info['resale_difference_perc_f']}%`;
 
-    diff_td = item_row.querySelector('.resale-diff');
-    diff_td.querySelector('.diff-val').innerHTML = price_info['resale_difference_value_f'];
-    diff_td.querySelector('.diff-perc').innerHTML = `${price_info['resale_difference_perc_f']}%`;
-
+    // Price Check summary
     let summary_div = document.querySelector('#price_summary')
     summary_div.querySelector('.selling-price').innerHTML = price_info['total_sold_f'];
     summary_div.querySelector('.list-price').innerHTML = price_info['total_list_f'];
@@ -436,3 +446,150 @@ function get_ul_with_qty_name(item_list){
 
 
 
+
+
+
+
+
+
+
+
+function edit_mode_price_check(e){
+    let table_row = get_price_check_tr(e.target.dataset.jiid);
+    let price_check_edit_window = get_price_check_edit_window(table_row);
+    e.target.after(price_check_edit_window);
+    hide_all_by_class('edit-btn');
+}
+
+function get_price_check_edit_window(table_row_ele){
+    let div = document.createElement('div');
+    div.classList.add(CLASS_PRICE_CHECKER_EDIT_WINDOW);
+
+    let h = document.createElement('h5');
+    h.innerHTML = 'Edit Price';
+    div.append(h);
+
+    let close_btn = get_price_edit_close_btn();
+    div.append(close_btn);
+
+    let item_p = get_item_desc_from_price_checker(table_row_ele);
+    div.append(item_p);
+
+    let list_price = table_row_ele.querySelector('.list-price').innerHTML;
+    let list_btn = get_price_set_button('list', list_price);
+    div.append(list_btn);
+
+    let resale_price = table_row_ele.querySelector('.resale-price').innerHTML;
+    let resale_btn = get_price_set_button('resale', resale_price);
+    div.append(resale_btn);
+    
+    let enter_div = get_price_input_div();
+    div.append(enter_div);
+
+    return div;
+}
+
+function get_price_edit_close_btn(){
+    let btn = document.createElement('button');
+    btn.innerHTML = 'X';
+    btn.addEventListener('click', (e) => {
+        cancel_price_edit_mode()
+    });
+    return btn;
+}
+
+function get_item_desc_from_price_checker(table_row_ele){
+    let item_p = document.createElement('p');
+    let item_qty = table_row_ele.querySelector('.qty').innerHTML;
+    let item_partno = table_row_ele.querySelector('.details-toggle').innerHTML;
+    let item_name = table_row_ele.querySelector('.details').innerHTML;
+    item_p.innerHTML = `${item_qty} x [${item_partno}] ${item_name}`;
+    return item_p;
+}
+
+function get_price_set_button(price_type, value_as_str){
+    let btn = document.createElement('button');
+    btn.setAttribute('data-new_price', value_as_str.replace(',', ''));
+    btn.innerHTML = `set price to ${price_type} (${value_as_str})`; 
+    btn.addEventListener('click', (e) => {
+        edit_price_preset(e);
+    });
+    return btn;
+}
+
+function get_price_input_div(jiid){
+    let div = document.createElement('div');
+    let txt = document.createTextNode('enter');
+    div.append(txt);
+
+    let input = document.createElement('input');
+    input.type = 'number';
+    input.step = 0.01;
+    input.name = 'new_price';
+    div.append(input);
+
+    let btn = document.createElement('button');
+    btn.innerHTML = 'submit';
+    btn.addEventListener('click', (e) => {
+        edit_price_custom(e);
+    });
+    div.append(btn);
+
+    return div;
+}
+
+function cancel_price_edit_mode(){
+    let window = document.querySelector('.' + CLASS_PRICE_CHECKER_EDIT_WINDOW);
+    window.remove();
+    unhide_all_by_class('edit-btn');
+}
+
+
+
+
+function edit_price_preset(e){
+    let tr = e.target.closest('tr');
+    let jiid = extract_jiid_from_price_check_tr_id(tr.id);
+
+    let new_price = e.target.dataset.new_price;
+
+    edit_price_on_server(jiid, new_price);
+}
+
+function edit_price_custom(e){
+    let tr = e.target.closest('tr');
+    let jiid = extract_jiid_from_price_check_tr_id(tr.id);
+
+    let input = e.target.previousElementSibling;
+    let new_price = input.value.trim();
+
+    edit_price_on_server(jiid, new_price);
+}
+
+function extract_jiid_from_price_check_tr_id(tr_id){
+    return tr_id.trim().replace(ID_PREFIX_PRICE_CHECK_ROW, '');
+}
+
+function edit_price_on_server(jiid, new_price){
+    console.log(`TODO: edit JobItem #${jiid} to show a selling_price of ${new_price}`);
+    fetch(`/items?id=${jiid}&edit=price_only`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            'selling_price': new_price
+        }),
+        headers: getDjangoCsrfHeaders(),
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        update_price_on_page(jiid, new_price);
+    })
+    .catch(error => {
+        console.log('Error: ', error);
+    })
+
+}
+
+function update_price_on_page(jiid, new_price){
+    //update_price_checks_in_dom(item_row, price_info, new_info, jobitem_id)
+}

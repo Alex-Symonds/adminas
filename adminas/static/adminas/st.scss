@@ -541,6 +541,16 @@ nav {
 }
 
 
+#price_check_table{
+    .upper-h-row, .lower-h-row {
+        text-align: left;
+    }
+    .list-price, .list-diff-val, .list-diff-perc, .resale-percentage, .resale-price, .resale-diff-val, .resale-diff-perc{
+        text-align: right;
+    }
+
+}
+
 
 
 //.page_contents{ // this wraps around the non-navbar part of the page
