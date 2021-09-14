@@ -277,8 +277,9 @@ def items(request):
                 if form.is_valid():
                     ji.selling_price = form.cleaned_data['selling_price']
                     ji.save()
-
-                return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+                    return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+                else:
+                    return error_page(request, 'Item has not been updated.', 400)
 
         else:
             return error_page(request, 'Item has not been updated.', 400)

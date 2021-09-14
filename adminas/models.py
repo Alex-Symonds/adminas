@@ -494,6 +494,10 @@ class JobItem(AdminAuditTrail):
         return {
             'part_number': self.product.part_number,
             'name': self.product.name,
+            'quantity': self.quantity,
+            'selling_price': self.selling_price,
+            'selling_price_f': self. selling_price_f(),
+            'price_list': self.price_list.name,
             'list_price_f': self.list_price_f(),
             'list_difference_value_f': self.list_difference_value_f(),
             'list_difference_perc_f': self.list_difference_perc_f(),
