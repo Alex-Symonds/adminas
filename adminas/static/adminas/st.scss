@@ -553,4 +553,31 @@ nav {
 
 
 
+.hover-data{
+    display: inline-block;
+    position: relative;
+
+    .data{
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 18rem;
+        font-size: 0.8rem;
+        padding: 3px 5px 3px 0px;
+        background: white;
+        border: 1px solid grey;
+    }
+
+    &:hover{
+        background: yellow;
+    }
+
+    &:hover .data{
+        display: block;
+    }
+}
+
+
+
 //.page_contents{ // this wraps around the non-navbar part of the page

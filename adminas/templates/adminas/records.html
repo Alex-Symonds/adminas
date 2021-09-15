@@ -40,40 +40,37 @@
             <td>{{ job.currency }}</td>
             <td>{{ job.invoice_to.site.company.name }}</td>
             <td>{{ job.quote_ref }}</td>
-            <td><span class="po{% if job.num_po > 1 %} multiple{% endif %}">
-                {{ job.po.all.0.reference }}
-                
+            <td>
+                <span class="po">
         {% if job.num_po > 1 %}
+                    <div class="hover-data">Multiple [+]  
+                        <div class="data">
+                            <ul>  
             {% for po in job.po.all %}
-                {% if forloop.first %}
-                    <div class="hover_data">+
-                        <span class="data">
-                {% else %}
-                            {{ po.reference }}
-                {% endif %}
-                {% if forloop.last %}
-                         </span>
-                    </div>
-                {% else %}
-                    {% if not forloop.first %}
-                        , 
-                    {% endif %}
-                {% endif %}
+                                <li>{{ po.reference }}</li>
             {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+        {% else %}
+                    {{ job.po.all.0.reference }}
         {% endif %}
-            </span></td>
+                </span>
+            </td>
             <td>{{ job.total_po_value_f }}</td>
             <td>{{ job.incoterm_code }}</td>
             <td>{{ job.invoice_to.site.company.name }}</td>
             <td>
-        {% for item in job.items.all %}
+        {% for item in job.main_item_list %}
             {% if forloop.first %}
-                <div class="hover_data">View
-                    <ul class="data">
+                <div class="hover-data">View
+                    <div class="data">
+                        <ul>
             {% endif %}
-                        <li>{{ item.display_str_money }}</li>
+                            <li>{{ item.display_str_with_money|safe }}</li>
             {% if forloop.last %}
-                    </ul>
+                        </ul>
+                    </div>
                 </div>
             {% endif %}
         {% endfor %}

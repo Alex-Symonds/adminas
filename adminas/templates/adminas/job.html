@@ -73,10 +73,10 @@
     <div id="job_po_section">
         <h3>Purchase Order</h3>
         <div class="job-po-container">
-    {% for po in po_list %}
+    {% for po in job.po.all %}
                 <div class="po-row">
                     <div class="details">
-                        <span class="reference">{{ po.reference }}</span> dated <span class="date">{{ po.date_on_po }}</span> for <span class="currency">{{ po.currency }}</span> <span class="value">{{ po.value_f }}</span> (received <span class="received">{{ po.date_received }}</span>)
+                        <span class="reference">{{ po.reference }}</span> dated <span class="date_on_po">{{ po.date_on_po }}</span> for <span class="currency">{{ po.currency }}</span> <span class="value">{{ po.value_f }}</span> (received <span class="date_received">{{ po.date_received }}</span>)
                         <button class="po-edit" data-po="{{ po.id }}">edit</button>
                     </div>
                 </div>
@@ -96,10 +96,10 @@
         <h3>Items</h3>
         <div class="job-items-container">
 
-    {% if item_list != None %}
+    {% if job.main_item_list != None %}
             <div class="existing-items-container">
 
-        {% for it in item_list %}
+        {% for it in job.main_item_list %}
                 <div class="job-item-container">
                     <div class="what">
                         <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span>                       
@@ -192,7 +192,7 @@
     <div id="price_check_section">
         <h3>Price Check</h3>
 
-    {% if item_list == None %}
+    {% if job.main_item_list == None %}
         <p>Activates upon entering items.</p>
     {% else %}
         <div id="price_summary">
@@ -223,7 +223,7 @@
                 <th colspan=2>diff</th>
             </tr>
 
-        {% for item in item_list %}
+        {% for item in job.main_item_list %}
             {% if item.included_with == None %}
             <tr id="price_check_row_{{ item.id }}">
                 <td class="qty">{{ item.quantity }}</td>

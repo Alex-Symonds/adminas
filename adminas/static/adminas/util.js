@@ -61,3 +61,18 @@ function unhide_all_by_class(classname){
         ele.classList.remove('hide');
     });
 }
+
+
+// Wipe data from a form row
+function wipe_data_from_form(form_ele){
+    let targets = form_ele.children;
+    for(var i=0; i < targets.length; i++){
+        if(targets[i].tagName === 'INPUT' && (targets[i].type === 'number' || targets[i].type === 'text')){
+            targets[i].value = '';
+        }
+        if(targets[i].tagName === 'SELECT'){
+            targets[i].selectedIndex = 0;
+        }
+    }
+    return false;
+}

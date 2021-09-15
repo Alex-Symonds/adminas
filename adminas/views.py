@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 from django.db.models import Sum, Count
+
 from decimal import Decimal
 
 from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule
@@ -157,16 +158,10 @@ def job(request, job_id):
     po_list = PurchaseOrder.objects.filter(job=my_job)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
 
-    item_list = JobItem.objects.filter(job=my_job).filter(included_with=None)
-    if item_list.count() == 0:
-        item_list = None
-
     return render(request, 'adminas/job.html', {
         'job': my_job,
         'po_form': POForm(initial={'job': my_job.id}),
-        'po_list': my_job.po.all(),#po_list,
-        'item_formset': item_formset,
-        'item_list': item_list
+        'item_formset': item_formset
     })
 
 def purchase_order(request):
@@ -174,19 +169,39 @@ def purchase_order(request):
         return anonymous_user(request)
     
     if request.method == 'POST':
+
         posted_form = POForm(request.POST)
         if posted_form.is_valid():
-            po = PurchaseOrder(
-                created_by = request.user,
-                job = posted_form.cleaned_data['job'],
-                reference = posted_form.cleaned_data['reference'],
-                date_on_po = posted_form.cleaned_data['date_on_po'],
-                date_received = posted_form.cleaned_data['date_received'],
-                currency = posted_form.cleaned_data['currency'],
-                value = posted_form.cleaned_data['value']
-            )
-            po.save()
+
+            if request.GET.get('id'):
+                po_to_edit = PurchaseOrder.objects.get(id=request.GET.get('id'))
+                po_to_edit.reference = posted_form.cleaned_data['reference']
+                po_to_edit.date_on_po = posted_form.cleaned_data['date_on_po']
+                po_to_edit.date_received = posted_form.cleaned_data['date_received']
+                po_to_edit.currency = posted_form.cleaned_data['currency']
+                po_to_edit.value = posted_form.cleaned_data['value']
+                po_to_edit.save()
+
+            else:
+                po = PurchaseOrder(
+                    created_by = request.user,
+                    job = posted_form.cleaned_data['job'],
+                    reference = posted_form.cleaned_data['reference'],
+                    date_on_po = posted_form.cleaned_data['date_on_po'],
+                    date_received = posted_form.cleaned_data['date_received'],
+                    currency = posted_form.cleaned_data['currency'],
+                    value = posted_form.cleaned_data['value']
+                )
+                po.save()
+            
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
+
+        else:
+            debug(posted_form.errors)
+            return error_page(request, 'PO form was invalid', 400)
+
+
+
 
 def items(request):
     if not request.user.is_authenticated:
@@ -228,14 +243,7 @@ def items(request):
             # There's something wrong with the data sent over
             except:
                 return error_page(request, 'Invalid data.', 400)
-
-            
-
-
-
-
-
-
+      
 
     elif request.method == 'PUT':
         ji_id = request.GET.get('id')
@@ -270,6 +278,8 @@ def items(request):
 
                     return JsonResponse(ji.get_post_edit_dictionary(), status=200)
             
+
+
             if request.GET.get('edit') == 'price_only':
                 put_data = json.loads(request.body)
                 form = JobItemPriceForm(put_data)
@@ -509,6 +519,7 @@ def records(request):
 
     for j in data:
         j.total_po_value_f = format_money(j.total_po_value)
+
 
     return render(request, 'adminas/records.html', {
         'data': data

@@ -354,6 +354,12 @@ class Job(AdminAuditTrail):
             return 0
         return round( self.total_list_diff_value() / self.total_value() * 100, 2)
 
+    def main_item_list(self):
+        item_list = JobItem.objects.filter(job=self).filter(included_with=None)
+        if item_list.count() == 0:
+            return None
+        return item_list
+
     def __str__(self):
         return f'{self.name} {self.created_on}'
 
@@ -381,8 +387,8 @@ class JobItem(AdminAuditTrail):
     def display_str(self):
         return f'{self.quantity} x [{self.product.part_number}] {self.product.name}'
 
-    def display_str_money(self):
-        return f'{self.display_str()} @ {self.job.currency} {self.selling_price_f()}'
+    def display_str_with_money(self):
+        return f'{self.display_str()} @ {self.job.currency}&nbsp;{self.selling_price_f()}'
 
 # Modular JobItems, non slot-specific
     def num_unassigned(self):
