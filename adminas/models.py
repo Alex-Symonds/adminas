@@ -785,6 +785,7 @@ class AccountingEvent(AdminAuditTrail):
 class AccEventOE(AccountingEvent):
     """ Store data about a single change to OE, whether it's a new order or a modification to an existing order """
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='oe_events')
+    po = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='oe_adjustments', blank=True, null=True)
 
     def __str__(self):
         return self.value + ' ' + self.currency + ', ' + self.job + ' @ ' + self.created_on

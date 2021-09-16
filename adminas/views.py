@@ -1,4 +1,5 @@
 from django.core.exceptions import RequestDataTooBig
+from django.db.models.fields import NullBooleanField
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect
@@ -11,7 +12,7 @@ from django.db.models import Sum, Count
 
 from decimal import Decimal
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm
 from adminas.constants import ADDRESS_DROPDOWN
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money
@@ -164,6 +165,8 @@ def job(request, job_id):
         'item_formset': item_formset
     })
 
+
+
 def purchase_order(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
@@ -175,6 +178,9 @@ def purchase_order(request):
 
             if request.GET.get('id'):
                 po_to_edit = PurchaseOrder.objects.get(id=request.GET.get('id'))
+                previous_currency = po_to_edit.currency
+                previous_value = po_to_edit.value
+
                 po_to_edit.reference = posted_form.cleaned_data['reference']
                 po_to_edit.date_on_po = posted_form.cleaned_data['date_on_po']
                 po_to_edit.date_received = posted_form.cleaned_data['date_received']
@@ -182,7 +188,29 @@ def purchase_order(request):
                 po_to_edit.value = posted_form.cleaned_data['value']
                 po_to_edit.save()
 
+                # Update OE records to reflect the change to the PO
+                if previous_currency != po_to_edit.currency:
+                    # Goal: Adjust the OE value while avoiding hassle with exchange rates
+                    # Add an OE event to reduce the value in the old currency to 0
+                    oe_event = AccEventOE(
+                        created_by = request.user,
+                        currency =  previous_currency,
+                        value = -previous_value,
+                        job = posted_form.cleaned_data['job'],
+                        po = po_to_edit,
+                        reason = f"Currency changed from {previous_currency} to {po_to_edit.currency}"
+                    )
+                    oe_event.save()
+
+                    # Add an OE event to add the new currency and its full value
+                    oe_event.pk = None
+                    oe_event.currency = po_to_edit.currency
+                    oe_event.value = po_to_edit.value
+                    oe_event.save()
+
+
             else:
+                # Add the new PO to the system
                 po = PurchaseOrder(
                     created_by = request.user,
                     job = posted_form.cleaned_data['job'],
@@ -193,6 +221,18 @@ def purchase_order(request):
                     value = posted_form.cleaned_data['value']
                 )
                 po.save()
+
+                # Adding a PO causes an OE event, so add that too
+                oe_event = AccEventOE(
+                    created_by = request.user,
+                    currency = posted_form.cleaned_data['currency'],
+                    value = posted_form.cleaned_data['value'],
+                    job = posted_form.cleaned_data['job'],
+                    po = po,
+                    reason = f"New PO"
+                )
+                oe_event.save()
+
             
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
 
