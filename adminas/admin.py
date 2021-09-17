@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import JobItem, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder
+from .models import JobItem, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder, AccEventOE
 
 # Register your models here.
 
@@ -121,4 +121,6 @@ admin.site.register(SlotChoiceList)
 #admin.site.register(StandardAccessory)
 admin.site.register(ResaleCategory, ResaleCategoryAdmin)
 admin.site.register(AgentResaleGroup, AgentResaleAdmin)
+admin.site.register(AccEventOE)
+admin.site.register(PurchaseOrder)
 

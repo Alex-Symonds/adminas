@@ -10,10 +10,10 @@ def format_money(value):
 def get_plusminus_prefix(value):
     if value > 0:
         return '+'
-    else:
-        return ''
     #elif value < 0:
     #    return '-'
+    else:
+        return ''
 
 def anonymous_user(request):
     return error_page(request, 'You must be logged in to view this page.', 401)
@@ -36,6 +36,21 @@ def add_jobitem(admin_user, form):
     ji.add_standard_accessories()
 
     return ji
+
+
+
+def create_oe_event(admin_user, po, reason, value):
+    oe_event = adminas.models.AccEventOE(
+        created_by = admin_user,
+        currency = po.currency,
+        value = value,
+        job = po.job,
+        po = po,
+        reason = reason
+    )
+    oe_event.save()
+
+    return oe_event
 
 
 def debug(print_this):

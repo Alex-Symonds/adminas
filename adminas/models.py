@@ -785,16 +785,27 @@ class AccountingEvent(AdminAuditTrail):
 class AccEventOE(AccountingEvent):
     """ Store data about a single change to OE, whether it's a new order or a modification to an existing order """
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='oe_events')
-    po = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='oe_adjustments', blank=True, null=True)
+    po = models.ForeignKey(PurchaseOrder, on_delete=models.SET_NULL, related_name='oe_adjustments', blank=True, null=True)
+
+    def create_oe_event(self, admin_user, po, reason, value):
+        oe_event = AccEventOE(
+            created_by = admin_user,
+            currency = po.currency,
+            value = value,
+            job = po.job,
+            po = po,
+            reason = reason
+        )
+        oe_event.save()
 
     def __str__(self):
-        return self.value + ' ' + self.currency + ', ' + self.job + ' @ ' + self.created_on
+        return f'{get_plusminus_prefix(self.value)}{format_money(self.value)} {self.currency}. Job {self.job.name} @ {self.created_on.strftime("%Y-%m-%d %H:%M:%S")}'
 
 class AccEventTO(AccountingEvent):
     fin_group = models.ForeignKey(FinGroup, on_delete=models.PROTECT, related_name='to_events')
 
     def __str__(self):
-        return self.value + ' ' + self.currency + ' ' + self.fin_group + ' @ ' + self.created_on
+        return str(self.value) + ' ' + self.currency + ' ' + self.fin_group.name + ' @ ' + str(self.created_on)
 
 
 

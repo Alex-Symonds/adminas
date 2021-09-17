@@ -15,7 +15,7 @@ from decimal import Decimal
 from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm
 from adminas.constants import ADDRESS_DROPDOWN
-from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money
+from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
 # Create your views here.
 def login_view(request):
@@ -168,77 +168,75 @@ def job(request, job_id):
 
 
 def purchase_order(request):
+# View to handle PO C_UD
+
     if not request.user.is_authenticated:
         return anonymous_user(request)
     
     if request.method == 'POST':
 
-        posted_form = POForm(request.POST)
-        if posted_form.is_valid():
-
-            if request.GET.get('id'):
-                po_to_edit = PurchaseOrder.objects.get(id=request.GET.get('id'))
-                previous_currency = po_to_edit.currency
-                previous_value = po_to_edit.value
-
-                po_to_edit.reference = posted_form.cleaned_data['reference']
-                po_to_edit.date_on_po = posted_form.cleaned_data['date_on_po']
-                po_to_edit.date_received = posted_form.cleaned_data['date_received']
-                po_to_edit.currency = posted_form.cleaned_data['currency']
-                po_to_edit.value = posted_form.cleaned_data['value']
-                po_to_edit.save()
-
-                # Update OE records to reflect the change to the PO
-                if previous_currency != po_to_edit.currency:
-                    # Goal: Adjust the OE value while avoiding hassle with exchange rates
-                    # Add an OE event to reduce the value in the old currency to 0
-                    oe_event = AccEventOE(
-                        created_by = request.user,
-                        currency =  previous_currency,
-                        value = -previous_value,
-                        job = posted_form.cleaned_data['job'],
-                        po = po_to_edit,
-                        reason = f"Currency changed from {previous_currency} to {po_to_edit.currency}"
-                    )
-                    oe_event.save()
-
-                    # Add an OE event to add the new currency and its full value
-                    oe_event.pk = None
-                    oe_event.currency = po_to_edit.currency
-                    oe_event.value = po_to_edit.value
-                    oe_event.save()
-
-
-            else:
-                # Add the new PO to the system
-                po = PurchaseOrder(
-                    created_by = request.user,
-                    job = posted_form.cleaned_data['job'],
-                    reference = posted_form.cleaned_data['reference'],
-                    date_on_po = posted_form.cleaned_data['date_on_po'],
-                    date_received = posted_form.cleaned_data['date_received'],
-                    currency = posted_form.cleaned_data['currency'],
-                    value = posted_form.cleaned_data['value']
-                )
-                po.save()
-
-                # Adding a PO causes an OE event, so add that too
-                oe_event = AccEventOE(
-                    created_by = request.user,
-                    currency = posted_form.cleaned_data['currency'],
-                    value = posted_form.cleaned_data['value'],
-                    job = posted_form.cleaned_data['job'],
-                    po = po,
-                    reason = f"New PO"
-                )
-                oe_event.save()
-
-            
-            return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
+        # Handle Delete case
+        if request.GET.get('delete'):
+            po_to_delete = PurchaseOrder.objects.get(id=request.GET.get('id'))
+            create_oe_event(request.user, po_to_delete, f'Deleted PO {po_to_delete.reference}', -po_to_delete.value)
+            job_id = po_to_delete.job.pk
+            po_to_delete.delete()
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': job_id }))
 
         else:
-            debug(posted_form.errors)
-            return error_page(request, 'PO form was invalid', 400)
+            # Create and Update should both submit a JSONed POForm, so handle/check that
+            posted_form = POForm(request.POST)
+            if posted_form.is_valid():
+
+                # Update PO
+                if request.GET.get('id'):
+                    po_to_update = PurchaseOrder.objects.get(id=request.GET.get('id'))
+
+                    # Updating a PO can cause 0-2 OE events (to report the difference in value, if any), so prepare for that before changing anything.
+                    has_same_currency = po_to_update.currency == posted_form.cleaned_data['currency']
+                    if has_same_currency:
+                        # Same currency makes it easy to calculate the difference.
+                        reason = 'PO amendment altered the value'
+                        difference = posted_form.cleaned_data['value'] - po_to_update.value
+                    else:
+                        # We still need to know the difference, but now currency exchange rates rear their ugly heads.
+                        # To avoid "baking in" FX rates to the OE data, we will have two separate OE events.
+                        # The first will set the value in the old currency to 0.
+                        reason = f"Currency changed from {po_to_update.currency} to {posted_form.cleaned_data['currency']}"
+                        create_oe_event(request.user, po_to_update, reason, -po_to_update.value)
+                        difference = posted_form.cleaned_data['value']
+
+                    # Update the PO
+                    po_to_update.reference = posted_form.cleaned_data['reference']
+                    po_to_update.date_on_po = posted_form.cleaned_data['date_on_po']
+                    po_to_update.date_received = posted_form.cleaned_data['date_received']
+                    po_to_update.currency = posted_form.cleaned_data['currency']
+                    po_to_update.value = posted_form.cleaned_data['value']
+                    po_to_update.save()
+
+                    # Update OE to reflect changes to the PO, but only if the value changed
+                    if difference != 0:
+                        create_oe_event(request.user, po_to_update, reason, difference)
+
+                # Create PO
+                else:
+                    new_po = PurchaseOrder(
+                        created_by = request.user,
+                        job = posted_form.cleaned_data['job'],
+                        reference = posted_form.cleaned_data['reference'],
+                        date_on_po = posted_form.cleaned_data['date_on_po'],
+                        date_received = posted_form.cleaned_data['date_received'],
+                        currency = posted_form.cleaned_data['currency'],
+                        value = posted_form.cleaned_data['value']
+                    )
+                    new_po.save()
+                    create_oe_event(request.user, new_po, 'New PO', new_po.value)
+
+                return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
+
+            else:
+                debug(posted_form.errors)
+                return error_page(request, 'PO form was invalid', 400)
 
 
 
