@@ -16,6 +16,8 @@ const STD_ACC_CONTAINER_CLASS = 'std-accs-container';
 const ID_PREFIX_PRICE_CHECK_ROW = 'price_check_row_';
 const CLASS_PRICE_CHECKER_EDIT_WINDOW = 'price-checker-edit-window';
 const CLASS_JOBITEM_DIV = 'job-item-container';
+const CLASS_PO_CHECK_DIV = 'job-po-check';
+
 
 // DOMContentLoaded eventListener additions
 document.addEventListener('DOMContentLoaded', function(e) {
@@ -302,6 +304,7 @@ function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id,
     // Activate read-mode and update price checks
     read_mode_job_item(result_div, edit_div);
     update_price_check_section_in_dom(response_data, jobitem_id);
+    update_po_check_in_dom(response_data);
 }
 
 // Edit JobItem (after): Update a single piece of display text with the contents of an edit form field
@@ -409,8 +412,8 @@ function update_price_check_section_in_dom(server_data, jobitem_id){
     let summary_div = document.querySelector('#price_summary')
     summary_div.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
     summary_div.querySelector('.list-price').innerHTML = server_data['total_list_f'];
-    summary_div.querySelector('.diff-val').innerHTML = server_data['total_list_diff_val_f'];
-    summary_div.querySelector('.diff-perc').innerHTML = server_data['total_list_diff_perc'];
+    summary_div.querySelector('.diff-val').innerHTML = server_data['total_list_difference_value_f'];
+    summary_div.querySelector('.diff-perc').innerHTML = server_data['total_list_difference_perc'];
 
     // Update the Price Check table
     let item_row = find_price_check_tr(jobitem_id);
@@ -432,6 +435,99 @@ function update_price_check_section_in_dom(server_data, jobitem_id){
     item_row.querySelector('.resale-diff-perc').innerHTML = `${server_data['resale_difference_perc_f']}%`;
 }
 
+
+function update_po_check_in_dom(response_data){
+
+    let want_po_check = 0 != response_data['total_po_difference_value'];
+    let have_po_check = null != document.querySelector('.' + CLASS_PO_CHECK_DIV);
+
+    if(have_po_check){
+        remove_po_check_div();
+    }
+
+    if(want_po_check){
+        document.querySelector('#job_po_section').append(create_po_check_div(response_data));
+    }
+
+    return;
+}
+
+function create_po_check_div(response_data){
+    const div = document.createElement('div');
+    div.classList.add(CLASS_PO_CHECK_DIV);
+
+    const heading = document.createElement('h4');
+    heading.append(document.createTextNode('Discrepancy'));
+    div.append(heading);
+
+    const p = document.createElement('p');
+    p.innerHTML = 'Sum of PO values does not match sum of line item selling prices.';
+    div.append(p);
+
+    div.append(get_po_check_table(response_data));
+
+    return div;
+}
+
+function get_po_check_table(response_data){
+    currency = response_data['currency'];
+    po_total_value = response_data['total_po_f'];
+    selling_total_value = response_data['selling_price'];
+    difference_value_f = response_data['total_po_difference_value_f'];
+    difference_perc = response_data['total_po_difference_perc'];
+
+    const table = document.createElement('table');
+    table.append(get_po_check_table_row('PO Total', currency, 'po-total-price-f', po_total_value, '', ''));
+    table.append(get_po_check_table_row('Line Items Sum', currency, 'selling-price', selling_total_value, '', ''));
+    table.append(get_po_check_table_row('Difference', currency, 'diff-val', difference_value_f, 'diff-perc', difference_perc));
+    return table;
+}
+
+
+function get_po_check_table_row(str_th, str_currency, class_main_value_td, main_value, class_perc_span, str_perc){
+    const tr = document.createElement('tr');
+
+    const th = document.createElement('th');
+    th.innerHTML = str_th;
+    tr.append(th);
+
+    const td_currency = document.createElement('td');
+    td_currency.innerHTML = str_currency;
+    tr.append(td_currency);
+
+    const td_main_value = document.createElement('td');
+    td_main_value.classList.add(class_main_value_td);
+    td_main_value.innerHTML = main_value;
+    tr.append(td_main_value);
+
+    const td_percent = get_po_check_difference_td(str_perc, class_perc_span);
+    tr.append(td_percent);
+
+    return tr;
+}
+
+function get_po_check_difference_td(str_perc, class_perc_span){
+    const td_percent = document.createElement('td');
+    if(str_perc != ''){
+        let pre_txt = document.createTextNode('(');
+        td_percent.append(pre_txt);
+
+        let span = document.createElement('span');
+        span.classList.add(class_perc_span);
+        span.innerHTML = str_perc;
+        td_percent.append(span);
+
+        let post_txt = document.createTextNode('%)');
+        td_percent.append(post_txt);
+    }
+    return td_percent; 
+}
+
+
+function remove_po_check_div(){
+    document.querySelector('.' + CLASS_PO_CHECK_DIV).remove();
+    return;
+}
 
 
 

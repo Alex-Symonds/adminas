@@ -90,6 +90,17 @@
                 <input type='submit' action='submit' id='po_submit_button' value='submit'>
             </form>
         </div>
+    {% if job.total_difference_value_po_vs_line != 0 %}
+        <div class="job-po-check">
+            <h4>Discrepancy</h4>
+            <p>Sum of PO values does not match sum of line item selling prices.</p>
+            <table>
+                <tr><th>PO Total</th><td>{{ job.currency }}</td><td class="po-total-price-f">{{ job.total_po_value_f }}</td><td></td></tr>
+                <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price">{{ job.total_line_value_f }}</td><td></td></tr>
+                <tr><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
+            </table>
+        </div>
+    {% endif %}
     </div>
 
     <div id="job_items_section">
@@ -190,7 +201,7 @@
         </div>
     </div>
     <div id="price_check_section">
-        <h3>Price Check</h3>
+        <h3>Price List Check</h3>
 
     {% if job.main_item_list == None %}
         <p>Activates upon entering items.</p>
@@ -198,9 +209,27 @@
         <div id="price_summary">
             <h4>Overall</h4>
             <table>
-                <tr><th>Sold @</th><td>{{ job.currency }}</td><td class="selling-price">{{ job.total_value_f }}</td><td></td></tr>
-                <tr><th>List price</th><td>{{ job.currency }}</td><td class="list-price">{{ job.total_list_price_f }}</td><td></td></tr>
-                <tr><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val">{{ job.total_list_diff_value_f }}</td><td>(<span class="diff-perc">{{ job.total_list_diff_perc }}</span>%)</td></tr>
+                <tr>
+                    <th>Line Item Sum</th>
+                    <td>{{ job.currency }}</td>
+                    <td class="selling-price">{{ job.total_line_value_f }}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>List Price Sum</th>
+                    <td>{{ job.currency }}</td>
+                    <td class="list-price">{{ job.total_list_price_f }}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Difference</th>
+                    <td>{{ job.currency }}</td>
+                    <td class="diff-val">{{ job.total_list_difference_value_f }}</td>
+                    <td>(
+                        <span class="diff-perc">{{ job.total_list_difference_perc }}</span>
+                        %)
+                    </td>
+                </tr>
             </table>
         </div>
 

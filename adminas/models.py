@@ -322,14 +322,12 @@ class Job(AdminAuditTrail):
     incoterm_location = models.CharField(max_length=30)
 
     def total_value(self):
-        order_value = self.items.aggregate(order_value=Sum('selling_price'))['order_value']
-        if order_value == None:
-            return 0
-        else:
-            return order_value
+        # Change this to whatever is going to be the "main" value for the order
+        return self.total_po_value()
 
     def total_value_f(self):
         return format_money(self.total_value())
+
 
     def total_list_price(self):
         try:
@@ -340,21 +338,60 @@ class Job(AdminAuditTrail):
     def total_list_price_f(self):
         return format_money(self.total_list_price())
 
+
+    def total_line_value(self):
+        order_value = self.items.aggregate(order_value=Sum('selling_price'))['order_value']
+        if order_value == None:
+            return 0
+        else:
+            return order_value
+
+    def total_line_value_f(self):
+        return format_money(self.total_line_value())
+
+
+    def total_po_value(self):
+        try:
+            return sum([po.value for po in self.po.all()])
+        except:
+            return 0
+
+    def total_po_value_f(self):
+        return format_money(self.total_po_value())
+
+
+
+    def total_difference_value_po_vs_line(self):
+        return self.total_po_value() - self.total_line_value()
+
+    def total_difference_value_line_vs_list(self):
+        return self.total_line_value() - self.total_list_price()
+
+
+
     def total_resale_price_f(self):
         return format_money(sum([item.resale_price() for item in self.items.all()]))
 
-    def total_list_diff_value(self):
-        return self.total_value() - self.total_list_price()
+    def total_list_difference_value_f(self):
+        return format_money(self.total_difference_value_line_vs_list())
 
-    def total_list_diff_value_f(self):
-        return format_money(self.total_list_diff_value())
-
-    def total_list_diff_perc(self):
+    def total_list_difference_perc(self):
         if self.total_list_price() == 0 or self.total_list_price() == None:
             return 0
-        return round( self.total_list_diff_value() / self.total_value() * 100, 2)
+        return round( self.total_difference_value_line_vs_list() / self.total_list_price() * 100, 2)
+
+    def total_po_difference_value_f(self):
+        return format_money(self.total_difference_value_po_vs_line())
+
+    def total_po_difference_perc(self):
+        if self.total_po_value() == 0 or self.total_po_value() == None:
+            return 0
+        return round( self.total_difference_value_po_vs_line() / self.total_po_value() * 100 , 2)
+
+
 
     def main_item_list(self):
+        # List of only the JobItems which were entered by the user (i.e. excluding stdAccs)
         item_list = JobItem.objects.filter(job=self).filter(included_with=None)
         if item_list.count() == 0:
             return None
@@ -501,8 +538,9 @@ class JobItem(AdminAuditTrail):
             'part_number': self.product.part_number,
             'name': self.product.name,
             'quantity': self.quantity,
+            'currency': self.job.currency,
             'selling_price': self.selling_price,
-            'selling_price_f': self. selling_price_f(),
+            'selling_price_f': self.selling_price_f(),
             'price_list': self.price_list.name,
             'list_price_f': self.list_price_f(),
             'list_difference_value_f': self.list_difference_value_f(),
@@ -513,8 +551,12 @@ class JobItem(AdminAuditTrail):
             'resale_difference_perc_f': self.resale_difference_perc_f(),
             'total_sold_f': self.job.total_value_f(),
             'total_list_f': self.job.total_list_price_f(),
-            'total_list_diff_val_f': self.job.total_list_diff_value_f(),
-            'total_list_diff_perc': str(self.job.total_list_diff_perc()),
+            'total_list_difference_value_f': self.job.total_list_difference_value_f(),
+            'total_list_difference_perc': str(self.job.total_list_difference_perc()),
+            'total_po_f': self.job.total_po_value_f(),
+            'total_po_difference_value': self.job.total_difference_value_po_vs_line(),
+            'total_po_difference_value_f': self.job.total_po_difference_value_f(),
+            'total_po_difference_perc': self.job.total_po_difference_perc(),
             'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()]
         }
 
@@ -786,17 +828,6 @@ class AccEventOE(AccountingEvent):
     """ Store data about a single change to OE, whether it's a new order or a modification to an existing order """
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='oe_events')
     po = models.ForeignKey(PurchaseOrder, on_delete=models.SET_NULL, related_name='oe_adjustments', blank=True, null=True)
-
-    def create_oe_event(self, admin_user, po, reason, value):
-        oe_event = AccEventOE(
-            created_by = admin_user,
-            currency = po.currency,
-            value = value,
-            job = po.job,
-            po = po,
-            reason = reason
-        )
-        oe_event.save()
 
     def __str__(self):
         return f'{get_plusminus_prefix(self.value)}{format_money(self.value)} {self.currency}. Job {self.job.name} @ {self.created_on.strftime("%Y-%m-%d %H:%M:%S")}'
