@@ -11,10 +11,11 @@ from django.http import JsonResponse
 from django.db.models import Sum, Count
 
 from decimal import Decimal
+import datetime
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData
 from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm
-from adminas.constants import ADDRESS_DROPDOWN
+from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
 # Create your views here.
@@ -539,18 +540,6 @@ def get_data(request):
                 'country': req_addr.country.name
             }, status=200)
 
-    
-
-
-
-
-    
-
-
-
-def status(request):
-    return render(request, 'adminas/status.html')
-
 def records(request):
     all_jobs = Job.objects.all()
     data = all_jobs.annotate(total_po_value=Sum('po__value')).annotate(num_po=Count('po'))
@@ -562,6 +551,53 @@ def records(request):
     return render(request, 'adminas/records.html', {
         'data': data
     })
+
+
+def doc_builder(request, job_id):
+
+    if request.method == 'GET':
+        doc_code = request.GET.get('type')
+        doc_display = dict(DOCUMENT_TYPES).get(doc_code)
+
+        if request.GET.get('id'):
+            doc_obj = DocumentData.objects.get(id=request.GET.get('id'))
+            included = doc_obj.get_items()
+            available = doc_obj.get_available_items()
+            unavailable = doc_obj.get_unavailable_items()
+            excluded = available + unavailable
+
+        else:
+            doc_obj = DocumentData(
+                created_by = request.user,
+                reference = '',
+                job = Job.objects.get(id=job_id),
+                doc_type = doc_code
+            )
+            debug(doc_obj.doc_type)
+            included = doc_obj.get_available_items()
+            excluded = None
+
+        return render(request, 'adminas/document_builder.html', {
+            'doc_code': doc_code,
+            'doc_type': doc_display,
+            'job': Job.objects.get(id=job_id),
+            'date_today': datetime.date.today().strftime("%d/%m/%Y"),
+            'included': included,
+            'excluded': excluded
+        })
+
+
+
+
+
+
+    
+
+
+
+def status(request):
+    return render(request, 'adminas/status.html')
+
 
 
 

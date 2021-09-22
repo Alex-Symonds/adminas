@@ -6,7 +6,6 @@ ADDRESS_DROPDOWN = [
 ]
 
 
-
 # Supported currencies
 GBP = 'GBP'
 EUR = 'EUR'
@@ -48,4 +47,13 @@ INCOTERMS = [
     ('DDP', 'DDP')
 ]
 
+
+# Documents
+DOC_CODE_MAX_LENGTH = 2
+WO_CARD_CODE = 'WO'
+OC_CODE = 'OC'
+DOCUMENT_TYPES = [
+    (WO_CARD_CODE, 'Works Order Card'),
+    (OC_CODE, 'Order Confirmation')
+]
 

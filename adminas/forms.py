@@ -1,5 +1,5 @@
 from django.forms import ModelForm, modelformset_factory, modelform_factory, ModelChoiceField, Textarea, HiddenInput
-from adminas.models import Job, JobItem, JobModule, PurchaseOrder, Company, Address, Site, Product
+from adminas.models import Job, JobItem, JobModule, PurchaseOrder, Company, Address, Site, Product, DocumentData
 
 
 class CompanyForm(ModelForm):
@@ -111,6 +111,7 @@ class POForm(ModelForm):
         widgets = {
             'job': HiddenInput()
         }
+
 
 
 

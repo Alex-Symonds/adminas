@@ -8,7 +8,7 @@ from django.db.models import Sum
 from django_countries.fields import CountryField
 
 from decimal import Decimal
-from adminas.constants import SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS
+from adminas.constants import DOCUMENT_TYPES, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
 from adminas.util import format_money, get_plusminus_prefix
 import datetime
 
@@ -18,7 +18,7 @@ PART_NUM_LENGTH = 10
 DOCS_ONE_LINER = 300 # <- placeholder value until I check how many 'M's and how many 'i's fit on a single line, then pick something sorta in the middle
 SYSTEM_NAME_LENGTH = 50
 LENGTH_SERIAL_NUMBER = 6
-MAX_DIGITS_PRICE = 15
+MAX_DIGITS_PRICE = 20
 F_PRICE_LENGTH = MAX_DIGITS_PRICE + 1 + (MAX_DIGITS_PRICE / 3) # <- + 1 for the decimal symbol; MAX/3 as a rough approximation for the thousands separator
 
 COMPANY_NAME_LENGTH = 100
@@ -690,6 +690,8 @@ class JobModule(models.Model):
     def __str__(self):
         return f"{self.parent.product.name}'s {self.slot.name} slot filled by {self.child.product.name}"
 
+
+
 class ProdGroup(AdminAuditTrail):
     date_wanted = models.DateTimeField()
     date_scheduled = models.DateTimeField(blank=True)
@@ -712,9 +714,9 @@ class ItemPrAssignment(models.Model):
 class ProdDetails(AdminAuditTrail):
     """ 
         Details which arise during/after production and apply to MULTIPLE instances of the same product.
-        (e.g. "250 widgets from $JOB finished on $DATE")
+        (e.g. "5 widgets from $JOB finished on $DATE")
         
-        Note: This record is created for every completed JobItem.
+        Note: This record would be created for every completed JobItem.
     """
     item = models.ForeignKey(JobItem, on_delete=models.PROTECT, related_name = 'details')
     quantity = models.IntegerField(blank=True)
@@ -727,16 +729,20 @@ class ProdDetails(AdminAuditTrail):
 class SpecificDetails(AdminAuditTrail):
     """ 
         Details which arise during/after production and apply to a SINGLE instance of a product.
+        (e.g. serial numbers)
 
-        Note: This record is only created when unique data exists for specific instances of a product.
+        Note: Only created when unique data exists for specific instances of a product.
 
-        Note: Definition of "an instance" is flexible. Suppose the product is sold by tens/hundreds/thousands at a time,
-        but each set of 100 is a specific, traceable batch. You can consider the entire batch to be "an instance". If the program
-        sees ProdDetails quantity = 500, a flag on the product for "MANY" on the serial number and a single SpecificDetails, it'll know what's up.
+        Notes about usage:
+            Case: JobItem quantity = 3 and Product id_type is "per item".
+            Expectation: 1 x ProdDetails record showing quantity = 3; 3 x SpecificDetails records, each containing a serial number for a specific item.
 
-        Edge-case note: Suppose the JobItem is for 150 widgets, so you supply 100 from Batch A and 50 from Batch B.
-        2 x SpecificDetails connecting "A" and "B" to a JobItem for 150 widgets would result in uncertainty over how many came from each batch.
-        Best procedure = create 2 x ProdDetails, one for 100/A and one for 50/B.
+            Case: JobItem quantity = 150 and Product id_type is "per batch". All products supplied are from the same batch.
+            Expectation: 1 x ProdDetails record showing quantity = 150; 1 x SpecificDetails record shows the batch serial number.
+
+            Case: JobItem quantity = 150 and Product id_type is "per batch". 100 will be supplied from Batch A and 50 from Batch B.
+            Expectation: 2 x ProdDetails records, one showing a quantity of 100 and one showing a quantity of 50; 2 x SpecificDetails, one showing 
+            Batch A's serial number and linking to the 100; one showing Batch B's serial number and linking to the 50.
     """
     prod_details = models.ForeignKey(ProdDetails, on_delete=models.PROTECT, related_name = 'specifics', null=True)
     reference = models.CharField(max_length=LENGTH_SERIAL_NUMBER)
@@ -841,9 +847,94 @@ class AccEventTO(AccountingEvent):
 
 
 
+
 class DocumentData(AdminAuditTrail):
+    reference = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
+    issue_date = models.DateField(null=True)
+    doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)
+
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='documents')
     invoice_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='financial_documents')
     delivery_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_documents')
-    # Store these independently in case the addresses change partway through the order.
-    # The general idea is that Job.invoice_to and Job.delivery_to will contain the most recent, default addresses.
-    pass
+
+    items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
+    
+    def get_items(self):
+        # List of items assigned to this particular document.
+        # Use for creating documents and to populate the "included" list in the builder page.
+        if self.items.all().count() == 0:
+            return None
+        else:
+            assignments = DocAssignment.objects.filter(document=self)
+            result = []
+            for a in assignments:
+                this_dict = {}
+                this_dict['id'] = a.pk
+                this_dict['jiid'] = a.item.pk
+                this_dict['display'] = a.item.display_str()
+                result.append(this_dict)
+            return result
+
+
+    def get_available_items(self):
+        # List of items available for assignment to this particular document.
+        # When creating a new document, default assumption = the user is creating this document to cover all the unassigned items, so
+        # this is used to populate the default "included" list.
+        # When updating an existing document, this will form the top half of the "excluded" list.
+        possible_items = self.job.main_item_list()
+
+        if possible_items.count() == 0:
+            return None
+
+        else:
+            result = []
+            for poss_item in possible_items:
+                qty = poss_item.quantity
+                assignments = DocAssignment.objects.filter(document__doc_type=self.doc_type).filter(item=poss_item)
+
+                for assignment in assignments:
+                    qty = qty - assignment.quantity
+                
+                if qty > 0:
+                    this_dict = {}
+                    this_dict['jiid'] = poss_item.pk
+                    this_dict['display'] = poss_item.display_str().replace(str(poss_item.quantity), str(qty))
+                    this_dict['is_available'] = True
+                    result.append(this_dict)      
+
+            if len(result) == 0:
+                return None
+            else:
+                return result
+
+
+
+    def get_unavailable_items(self):
+        # List of items already assigned to another document of this type.
+        # Used to populate the "excluded" list.
+        assigned_elsewhere = DocAssignment.objects.filter(document__job=self.job).filter(document__doc_type=self.doc_type)
+        if assigned_elsewhere.all().count() == 0:
+            return None
+        else:
+            result = []
+            for ae in assigned_elsewhere.all():
+                this_dict = {}
+                this_dict['id'] = ae.pk
+                this_dict['jiid'] = ae.item.pk
+                this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
+                this_dict['is_available'] = False
+                result.append(this_dict)                
+            return result
+
+    def __str__(self):
+        return f'{self.doc_type} {self.reference} dated {self.issue_date}'
+
+
+class DocAssignment(models.Model):
+    document = models.ForeignKey(DocumentData, on_delete=models.CASCADE)
+    item = models.ForeignKey(JobItem, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return f'{self.quantity} x {self.item.name} assigned to {self.document.type} {self.document.reference}'
+

@@ -1,0 +1,67 @@
+{% extends "adminas/layout.html" %}
+
+{% block javascript%}
+
+{% endblock %}
+
+{% block title %}
+    - Document Builder
+{% endblock %}
+
+{% block body %}
+
+    <h2>Document Builder</h2>
+    <h2>{{ doc_type }}</h2>
+
+    <a href="{% url 'job' job.id %}">Return to Job</a>
+
+    <div>
+        <label for="id_doc_reference">Reference</label>
+        <input type="text" id="id_doc_reference">
+
+    {% if doc_code == 'WO' %}
+        <label for="id_req_prod_date">Requested Completion Date</label>
+        <input type="datetime" id="id_req_prod_date">
+    {% endif %}
+    </div>
+
+    <div>
+        Items
+        <div>
+            Include
+            <ul class="included">
+                {% for inc in included %}
+                <li data-jiid="{{ inc.jiid }}">
+                    {{ inc.display }}
+                    <button class="edit-docitem-btn">edit</button>
+                    <button class="delete-docitem-btn">x</button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% if excluded %}
+        <div>
+            Exclude
+            <ul class="excluded">
+        {% for excl in excluded %}
+                <li data-jiid="{{ excl.jiid }}" {% if excl.is_available != True %}data-daid="{{ excl.id }}" class="unavailable"{% endif %}>
+                    {{ excl.display }}
+                </li>
+        {% endfor %}                
+            </ul>
+        </div>
+    {% endif %}
+    </div>
+
+    <div>
+        Display Groups <button id="id_display_groups_view">view</button>
+    </div>
+
+    <div>
+        <button id="document_save_btn">save</button>
+        <button id="document_issue_btn">issue</button>
+    </div>
+
+
+
+{% endblock %}

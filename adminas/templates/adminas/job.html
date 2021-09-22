@@ -23,6 +23,13 @@
 {% block body %}
     <h2>Job {{ job.name }} for {{ job.customer.name }}</h2>
     <a href="{% url 'edit_job' %}?job={{job.id}}">Edit Job Details</a>
+
+    <div class="doc_status_container">
+        #TODO
+        <a href="{% url 'doc_builder' job.id %}?type=WO">WO</a>
+        <a href="{% url 'doc_builder' job.id %}?type=OC">OC</a>
+    </div>
+
     <h3>General Details</h3>
     <div id="job_general_section">
         <h4>Identification</h4>
