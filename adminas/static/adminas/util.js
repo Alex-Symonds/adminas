@@ -1,3 +1,5 @@
+const QTY_RE = /\d+(?=( x ))/g;
+
 
 // Add comma for thousands separator
 function numberWithCommas(num) {
@@ -76,3 +78,4 @@ function wipe_data_from_form(form_ele){
     }
     return false;
 }
+

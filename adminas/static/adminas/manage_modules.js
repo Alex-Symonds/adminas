@@ -481,7 +481,7 @@ function create_filled_slot(description, quantity, slot_id, parent_id, jobmod_id
 
 // Assignment: Creates a span containing "$N x [ABC123456] Thingummy Jigger", where $N is replaced by the second arg to the function
 function get_slot_filler_desc_span(description, quantity){
-    let re = /^\d+(?=( x ))/g;
+    let re = QTY_RE;
     let span = document.createElement('span');
     span.classList.add('child-desc');
     span.innerHTML = description.replace(re, quantity); 
@@ -586,7 +586,7 @@ function edit_mode_slot_filler_qty(e){
     // Prep values, then call a function to generate a suitable edit-mode form
     let jobmod_id = e.target.dataset.jobmod;
     let filler_text = desc_span.innerHTML;
-    let re = get_qty_re();
+    let re = QTY_RE;
     let qty_form = get_slot_filler_edit_field(jobmod_id, filler_text, re);
 
     // Add the qty form and a cancel button in front of the display text span, then edit the display text to remove the qty
@@ -766,16 +766,19 @@ function remove_module_qty_errors(){
 // --------------------------------------------------------------------------------
 // Slot Status: called during create, edit and delete, i.e. anything that can alter the slot status
 function update_slot_status(ele, data){
-    // Update the JobItem
-    let jobitem_ele = ele.closest('.modular-item-container');
-    update_excess_modules_css(jobitem_ele, data['jobitem_has_excess']);
 
-    // Update the indicators in the "spine"
-    let slot_ele = ele.closest('.' + CLASS_SLOT_ELEMENT);
-    update_excess_modules_css(slot_ele, parseInt(data['slot_num_excess']) > 0);
-    update_slot_status_indicator(slot_ele, 'required', data['required_str']);
-    update_slot_status_indicator(slot_ele, 'optional', data['optional_str']);
-    update_excess_slot_status_indicator(slot_ele, 'excess', data['slot_num_excess']);
+    if(data['message'] != 'No changes required.'){
+        // Update the JobItem
+        let jobitem_ele = ele.closest('.modular-item-container');
+        update_excess_modules_css(jobitem_ele, data['jobitem_has_excess']);
+
+        // Update the indicators in the "spine"
+        let slot_ele = ele.closest('.' + CLASS_SLOT_ELEMENT);
+        update_excess_modules_css(slot_ele, parseInt(data['slot_num_excess']) > 0);
+        update_slot_status_indicator(slot_ele, 'required', data['required_str']);
+        update_slot_status_indicator(slot_ele, 'optional', data['optional_str']);
+        update_excess_slot_status_indicator(slot_ele, 'excess', data['slot_num_excess']);
+    }
 
     return;
 }

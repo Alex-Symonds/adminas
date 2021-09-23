@@ -480,6 +480,7 @@ def module_assignments(request):
 
             # Maybe the new qty is the same as the old qty, so there's nothing to be done
             if int(put_data['prev_qty']) == new_qty:
+                
                 return JsonResponse({
                     'message': 'No changes required.'
                 }, status=200)
@@ -511,7 +512,6 @@ def module_assignments(request):
             # Edit the quantity
             jm.quantity = new_qty
             jm.save()
-            dict = jm.parent.get_slot_status_dictionary(jm.slot)
             return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
 
                         
@@ -573,7 +573,6 @@ def doc_builder(request, job_id):
                 job = Job.objects.get(id=job_id),
                 doc_type = doc_code
             )
-            debug(doc_obj.doc_type)
             included = doc_obj.get_available_items()
             excluded = None
 

@@ -1,7 +1,8 @@
 {% extends "adminas/layout.html" %}
+{% load static %}
 
-{% block javascript%}
-
+{% block javascript %}
+    <script src="{% static 'adminas/document_items.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block title %}
@@ -27,30 +28,33 @@
 
     <div>
         Items
-        <div>
+        <div class="included-container">
             Include
             <ul class="included">
-                {% for inc in included %}
+    {% for inc in included %}
                 <li data-jiid="{{ inc.jiid }}">
                     {{ inc.display }}
                     <button class="edit-docitem-btn">edit</button>
-                    <button class="delete-docitem-btn">x</button>
+                    <button class="toggle-docitem-btn">x</button>
                 </li>
-                {% endfor %}
+    {% empty %}
+                <li class="none">None</li>
+    {% endfor %}
             </ul>
         </div>
-    {% if excluded %}
-        <div>
+        <div class="excluded-container">
             Exclude
             <ul class="excluded">
         {% for excl in excluded %}
                 <li data-jiid="{{ excl.jiid }}" {% if excl.is_available != True %}data-daid="{{ excl.id }}" class="unavailable"{% endif %}>
                     {{ excl.display }}
+                    <button class="toggle-docitem-btn">x</button>
                 </li>
+        {% empty %}
+                <li class="none">None</li>
         {% endfor %}                
             </ul>
         </div>
-    {% endif %}
     </div>
 
     <div>
