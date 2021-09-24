@@ -79,3 +79,15 @@ function wipe_data_from_form(form_ele){
     return false;
 }
 
+
+// New JI Form, Edit Filled Slot: create a quantity field
+function get_jobitem_qty_field(){
+    let fld = document.createElement('input');
+    fld.type = 'number';
+    fld.name = 'qty';
+    fld.id = 'id_qty';
+    fld.required = true;
+    fld.min = 1;
+
+    return fld;
+}

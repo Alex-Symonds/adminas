@@ -33,8 +33,8 @@
             <ul class="included">
     {% for inc in included %}
                 <li data-jiid="{{ inc.jiid }}">
-                    {{ inc.display }}
-                    <button class="edit-docitem-btn">edit</button>
+                    <span class="display">{{ inc.display }}</span>
+                    <button class="split-docitem-btn">split</button>
                     <button class="toggle-docitem-btn">x</button>
                 </li>
     {% empty %}
@@ -47,7 +47,8 @@
             <ul class="excluded">
         {% for excl in excluded %}
                 <li data-jiid="{{ excl.jiid }}" {% if excl.is_available != True %}data-daid="{{ excl.id }}" class="unavailable"{% endif %}>
-                    {{ excl.display }}
+                    <span class="display">{{ excl.display }}</span>
+                    <button class="split-docitem-btn">split</button>
                     <button class="toggle-docitem-btn">x</button>
                 </li>
         {% empty %}

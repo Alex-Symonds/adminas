@@ -1,9 +1,13 @@
 const CLASS_INCLUDES_UL = 'included';
 const CLASS_EXCLUDES_UL = 'excluded';
 const CLASS_NONE_LI = 'none';
-const CLASS_EDIT_BTN = 'edit-docitem-btn';
+const CLASS_SPLIT_BTN = 'split-docitem-btn';
 const CLASS_TOGGLE_BTN = 'toggle-docitem-btn';
 const CLASS_DISPLAY_SPAN = 'display';
+const CLASS_SPLIT_WINDOW = 'split-docitem-window';
+const ID_SPLIT_WINDOW_INCLUDES_ARROWS = 'id_split_includes_arrows';
+const ID_SPLIT_WINDOW_EXCLUDES_ARROWS = 'id_split_excludes_arrows';
+const ID_SPLIT_WINDOW_DIRECTION = 'id_split_controls';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -13,9 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
         })
     });
 
-    document.querySelectorAll('.' + CLASS_EDIT_BTN).forEach(btn => {
+    document.querySelectorAll('.' + CLASS_SPLIT_BTN).forEach(btn => {
         btn.addEventListener('click', (e) => {
-            edit_doc_item(e);
+            split_doc_item(e);
         })
     });
 
@@ -37,7 +41,7 @@ function toggle_doc_item(e){
     if(dst_ul == null){
         return;
     }
-    toggle_edit_btn(dst_ul, docitem_ele);
+    //toggle_edit_btn(dst_ul, docitem_ele);
     move_docitem_li(dst_ul, docitem_ele);
     update_none_li(src_ul, dst_ul);
     return;
@@ -58,6 +62,7 @@ function get_dest_docitem_ul(src_ul){
 }
 
 
+// This is a relic of my previous plan to only have edit buttons on the "included" ul
 function toggle_edit_btn(dst_ul, src_li){
     if(dst_ul.classList.contains(CLASS_INCLUDES_UL)){
         const toggle_btn = src_li.querySelector('.' + CLASS_TOGGLE_BTN);
@@ -68,13 +73,13 @@ function toggle_edit_btn(dst_ul, src_li){
     }
     return;
 }
-
+// This is a relic of my previous plan to only have edit buttons on the "included" ul
 function get_docitem_edit_btn(){
     let btn = document.createElement('button');
     btn.classList.add(CLASS_EDIT_BTN);
     btn.innerHTML = 'edit';
     btn.addEventListener('click', (e) => {
-        edit_doc_item(e);
+        split_doc_item(e);
     });
     return btn;
 }
@@ -128,11 +133,11 @@ function get_none_li(){
 }
 
 // Toggle docitems: if there is a li with a particular JobItem ID inside a ul, return it
-function get_li_with_same_jiid(dst_ul, jiid){
-    for(i = 0; i < dst_ul.children.length; i++){
-        if(dst_ul.children[i].dataset.jiid){
-            if(jiid == dst_ul.children[i].dataset.jiid){
-                return dst_ul.children[i];
+function get_li_with_same_jiid(target_ul, jiid){
+    for(i = 0; i < target_ul.children.length; i++){
+        if(target_ul.children[i].dataset.jiid){
+            if(jiid == target_ul.children[i].dataset.jiid){
+                return target_ul.children[i];
             }
         }
     }
@@ -163,11 +168,14 @@ function get_combined_docitem_text(src_text, dst_text){
 
 
 
+
+
+
 // ---------------------------------------------------------
-// Edit docitems
+// Split docitems
 // ---------------------------------------------------------
 
-function edit_doc_item(e){
+function split_doc_item(e){
     let jobitem_id = e.target.parentElement.dataset.jiid;
     let max_quantity = get_total_qty(jobitem_id);
 
@@ -176,7 +184,7 @@ function edit_doc_item(e){
         toggle_doc_item(e);
 
     } else if (max_quantity > 1){
-        enter_edit_mode(e.target);
+        enter_split_mode(e.target);
 
     } else {
         // Something's gone wrong. Do nothing.
@@ -184,60 +192,217 @@ function edit_doc_item(e){
     }
 }
 
-function get_total_qty(jiid){
-    let result = 0;
 
-    let includes_ul = document.querySelector('.' + CLASS_INCLUDES_UL);
-    let includes_qty = get_docitem_qty(includes_ul, jiid);
-    if(includes_qty != null){
-        result += includes_qty;
+function enter_split_mode(split_btn){
+    let existing_window = document.querySelector('.' + CLASS_SPLIT_WINDOW);
+    if(existing_window){
+        existing_window.remove();
     }
 
-    let excludes_ul = document.querySelector('.' + CLASS_EXCLUDES_UL);
-    let excludes_qty = get_docitem_qty(excludes_ul, jiid);
-    if(excludes_qty != null){
-        result += excludes_qty;
+    const li_ele = split_btn.parentElement;
+    const calling_ul_class = li_ele.parentElement.classList[0];
+    li_ele.append(get_docitem_split_window(li_ele.dataset.jiid, calling_ul_class));
+}
+
+function get_docitem_split_window(jobitem_id, calling_ul_class){
+    let div = document.createElement('div');
+    div.classList.add(CLASS_SPLIT_WINDOW);
+
+    div.append(get_docitem_split_heading());
+    div.append(get_docitem_desc(jobitem_id));
+    div.append(get_docitem_split_controls(jobitem_id, calling_ul_class));
+    div.append(get_docitem_container(jobitem_id));
+    div.append(get_docitem_split_submit_btn());
+    return div;
+}
+
+function get_docitem_split_heading(){
+    let heading = document.createElement('h4');
+    heading.innerHTML = 'Edit Split';
+    return heading;
+}
+
+function get_docitem_desc(jobitem_id){
+    let desc = document.createElement('p');
+    desc.innerHTML = 'Splitting ' + get_combined_docitem_text_from_jobitem_id(jobitem_id);
+    return desc;
+}
+
+function get_combined_docitem_text_from_jobitem_id(jobitem_id){
+    let inc_text = get_individual_docitem_text_from_jobitem_id(CLASS_INCLUDES_UL, jobitem_id);
+    let exc_text = get_individual_docitem_text_from_jobitem_id(CLASS_EXCLUDES_UL, jobitem_id);
+
+    if(inc_text == ''){
+        return exc_text;
+    } else if(exc_text == ''){
+        return inc_text;
+    } else {
+        return get_combined_docitem_text(inc_text, exc_text);
     }
-    return result;
 }
 
-function get_docitem_qty(ul_div, jiid){
-    const docitem_ele = get_li_with_same_jiid(ul_div, jiid);
-    if(docitem_ele != null){
-        return parseInt(docitem_ele.innerHTML.match(QTY_RE)[0])
+function get_individual_docitem_text_from_jobitem_id(class_name, jobitem_id){
+    let ul = document.querySelector('.' + class_name);
+    let li = get_li_with_same_jiid(ul, jobitem_id);
+    if(li){
+        return li.querySelector('.' + CLASS_DISPLAY_SPAN).innerHTML;
+    } else {
+        return '';
+    } 
+}
+
+function get_docitem_split_controls(jobitem_id, calling_ul_class){
+    const div = document.createElement('div');
+    div.append(get_docitem_split_direction_div(calling_ul_class));
+
+    let default_qty = get_docitem_qty(calling_ul_class, jobitem_id);
+    const input_fld = get_docitem_edit_field(default_qty);
+    div.append(input_fld);
+
+    return div;
+}
+
+
+
+
+
+function get_docitem_split_direction_div(called_from){
+    const direction_div = document.createElement('div');
+
+    const includes_div = document.createElement('div');
+    includes_div.id = ID_SPLIT_WINDOW_INCLUDES_ARROWS;
+    if(called_from = CLASS_INCLUDES_UL){
+        includes_div.innerHTML = '<<<';
     }
-    return null;
+    direction_div.append(includes_div);
+
+    const middle_div = document.createElement('div');
+    middle_div.id = ID_SPLIT_WINDOW_DIRECTION;
+    middle_div.innerHTML = called_from;
+    middle_div.addEventListener('click', (e) => {
+        toggle_docitem_split_controls(e);
+    });
+    direction_div.append(middle_div);
+
+    const excludes_div = document.createElement('div');
+    excludes_div.id = ID_SPLIT_WINDOW_EXCLUDES_ARROWS;
+    if(called_from = CLASS_EXCLUDES_UL){
+        excludes_div.innerHTML = '';
+    }
+    direction_div.append(excludes_div);
+
+    return direction_div;
+}
+
+function toggle_docitem_split_controls(e){
+    let original_class = e.target.innerHTML;
+    let includes_div = document.querySelector('#' + ID_SPLIT_WINDOW_INCLUDES_ARROWS);
+    let excludes_div = document.querySelector('#' + ID_SPLIT_WINDOW_EXCLUDES_ARROWS);
+    let direction_div = document.querySelector('#' + ID_SPLIT_WINDOW_DIRECTION);
+
+    if(original_class === CLASS_INCLUDES_UL){
+        includes_div.innerHTML = '';
+        excludes_div.innerHTML = '>>>';
+        direction_div.innerHTML = CLASS_EXCLUDES_UL;
+
+    } else if (original_class === CLASS_EXCLUDES_UL){
+        includes_div.innerHTML = '<<<';
+        excludes_div.innerHTML = '';
+        direction_div.innerHTML = CLASS_INCLUDES_UL;
+    }
 }
 
 
-function enter_edit_mode(edit_btn){
 
-    // Replace the qty with an input field
-    const li_ele = edit_btn.parentElement;
-    const display_span = li_ele.querySelector('.' + CLASS_DISPLAY_SPAN);
-    const original_display_text = display_span.innerHTML;
 
-    display_span.innerHTML = display_span.innerHTML.replace(QTY_RE, '');
-    li_ele.prepend(get_docitem_edit_submit_btn());
-    li_ele.prepend(get_qty_input_field(original_display_text));
-    
 
-    // Replace the qty text with an input field
-    // Add a "go" button after the input field
-    // Preserve the rest of the display text
+function get_docitem_container(jobitem_id){
+    let container = document.createElement('div');
+    // Probably some CSS stuff here, to setup a flexbox.
+    container.append(get_docitem_split_category_div(CLASS_INCLUDES_UL, jobitem_id));
+    container.append(get_docitem_split_category_div(CLASS_EXCLUDES_UL, jobitem_id));
+    return container;
+}
+
+function get_docitem_split_category_div(ul_class, jobitem_id){
+    const div = document.createElement('div');
+    const max_qty = 2;
+    div.classList.add(ul_class + '-window');
+
+    const heading = document.createElement('h5');
+    heading.innerHTML = ul_class[0].toUpperCase() + ul_class.substring(1);
+    div.append(heading);
+
+    let default_qty = get_docitem_qty(ul_class, jobitem_id);
+    let result_span = document.createElement('span');
+    //result_span.classList.add();
+    result_span.innerHTML = default_qty;
+    div.append(result_span);
+
+    return div;
 }
 
 
-
-function get_docitem_edit_field(filler_text){
+function get_docitem_edit_field(){
     let fld = get_jobitem_qty_field();
-    fld.value = filler_text.match(QTY_RE);
-
+    fld.addEventListener('change', (e) => {
+        update_split_numbers(e.target);
+    });
     fld.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-            // whatever the edit does
+            process_split_request();
         }
     });
 
     return fld;
 }
+
+function get_docitem_split_submit_btn(){
+    let btn = document.createElement('button');
+    btn.innerHTML = 'ok';
+    btn.addEventListener('click', () => {
+        process_split_request();
+    });
+    return btn;
+}
+
+function update_split_numbers(input_fld){
+    let val = input_fld.value;
+    let div = input_fld.parentElement;
+    let li = input_fld.closest('li');
+
+    let total_qty = get_total_qty(li.dataset.jiid);
+    console.log('todo: update the split window on the frontend')
+}
+
+
+
+
+function get_total_qty(jiid){
+    let result = 0;
+
+    let includes_qty = get_docitem_qty(CLASS_INCLUDES_UL, jiid);
+    result += includes_qty;
+
+    let excludes_qty = get_docitem_qty(CLASS_EXCLUDES_UL, jiid);
+    result += excludes_qty;
+
+    return result;
+}
+
+function get_docitem_qty(class_name, jiid){
+    let ul = document.querySelector('.' + class_name);
+    const docitem_ele = get_li_with_same_jiid(ul, jiid);
+    if(docitem_ele != null){
+        return parseInt(docitem_ele.querySelector('.display').innerHTML.match(QTY_RE)[0])
+    }
+    return 0;
+}
+
+
+function process_split_request(){
+    console.log('todo: process split request on the frontend');
+}
+
+
+

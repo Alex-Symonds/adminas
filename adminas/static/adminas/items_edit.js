@@ -118,14 +118,14 @@ function edit_mode_job_item(e){
 // Edit JobItem (before): Create a form element for editing an existing JobItem
 function edit_mode_form(display_div, edit_btn){
     // Here's the form
-    let edit_mode_form = document.createElement('form');
-    edit_mode_form.id = EDIT_ITEM_CONTAINER_ID;
+    let edit_mode_ele = document.createElement('div');
+    edit_mode_ele.id = EDIT_ITEM_CONTAINER_ID;
 
     // Here's the inputs
     for(let i=0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
         // Add a label to the new_item div
         let label = edit_item_label(JOB_ITEM_INPUT_FIELDS[i]);
-        edit_mode_form.append(label);
+        edit_mode_ele.append(label);
 
         // Clone the field, adjust the ID/name and populate it with the value from the display div
         var field = edit_item_field_ele(JOB_ITEM_INPUT_FIELDS[i]);
@@ -136,20 +136,20 @@ function edit_mode_form(display_div, edit_btn){
         } else if (field.tagName === 'SELECT'){
             field.selectedIndex = index_from_display_text(field, preset_value);
         }         
-        edit_mode_form.append(field);
+        edit_mode_ele.append(field);
 
         // Product dropdown is special: it should have an auto-updating full description underneath
         if('product' === JOB_ITEM_INPUT_FIELDS[i]){
             auto_item_desc_listener(field);
-            edit_mode_form.append(get_auto_desc_element());
+            edit_mode_ele.append(get_auto_desc_element());
         }
     }
     
     // Open the doors and here's all the... people? P-imputs?
     // Buttons. Here are the buttons.
-    edit_mode_form.append(edit_item_cancel_btn(edit_btn))
-    edit_mode_form.append(edit_item_submit_btn(edit_btn));
-    return edit_mode_form;
+    edit_mode_ele.append(edit_item_cancel_btn(edit_btn))
+    edit_mode_ele.append(edit_item_submit_btn(edit_btn));
+    return edit_mode_ele;
 }
 
 // Edit JobItem (before): Create a label element for the edit form
@@ -247,21 +247,20 @@ function update_job_item(e){
     e.preventDefault();
 
     // Find the div with the "form" and the div where the results should be displayed
-    let edit_form = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
-    let result_div = edit_form.previousElementSibling;
+    let edit_ele = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
+    let result_div = edit_ele.previousElementSibling;
 
     let prefix = '#id_' + EDIT_ITEM_ID_PREFIX;
-    let prl_sel = edit_form.querySelector(prefix + 'price_list')
+    let prl_sel = edit_ele.querySelector(prefix + 'price_list')
     let new_info = {};
-    new_info['quantity'] = parseInt(edit_form.querySelector(prefix + 'quantity').value.trim());
-    new_info['product_id'] = edit_form.querySelector(prefix + 'product').value.trim();
+    new_info['quantity'] = parseInt(edit_ele.querySelector(prefix + 'quantity').value.trim());
+    new_info['product_id'] = edit_ele.querySelector(prefix + 'product').value.trim();
     new_info['price_list'] = prl_sel[prl_sel.selectedIndex].text;
-    new_info['selling_price'] = edit_form.querySelector(prefix + 'selling_price').value.trim();
+    new_info['selling_price'] = edit_ele.querySelector(prefix + 'selling_price').value.trim();
 
     // PUT it into the database and call functions to handle the DOM
     fetch(`/items?id=${e.target.dataset.jiid}&edit=all`, {
         method: 'PUT',
-        //body: JSON.stringify(new_info),
         body: JSON.stringify({
             'quantity': new_info['quantity'],
             'product': new_info['product_id'],
@@ -273,7 +272,7 @@ function update_job_item(e){
     })
     .then(response => response.json())
     .then(data => {
-        update_job_item_in_dom(result_div, edit_form, data, e.target.dataset.jiid, new_info);
+        update_job_item_in_dom(result_div, edit_ele, data, e.target.dataset.jiid);
     })
     .catch(error =>{
         console.log('Error: ', error);
@@ -282,7 +281,7 @@ function update_job_item(e){
 
 
 // Edit JobItem (after): Updates one JobItem element in DOM to reflect any/all edits
-function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id, edit_inputs){
+function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id){
     // Check if the product changed and, if so, update the standard accessories
     // Note: Conditional because of vague plans to make standard accessories individually delete-able. Don't want to undo the user's deleting.
     // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
