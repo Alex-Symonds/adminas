@@ -850,7 +850,7 @@ class AccEventTO(AccountingEvent):
 
 class DocumentData(AdminAuditTrail):
     reference = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
-    issue_date = models.DateField(null=True)
+    issue_date = models.DateField(null=True, blank=True)
     doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)
 
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='documents')

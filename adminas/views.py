@@ -13,8 +13,8 @@ from django.db.models import Sum, Count
 from decimal import Decimal
 import datetime
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData
-from adminas.forms import JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment
+from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
@@ -560,13 +560,16 @@ def doc_builder(request, job_id):
         doc_display = dict(DOCUMENT_TYPES).get(doc_code)
 
         if request.GET.get('id'):
-            doc_obj = DocumentData.objects.get(id=request.GET.get('id'))
+            doc_id = request.GET.get('id')
+            doc_obj = DocumentData.objects.get(id=doc_id)
             included = doc_obj.get_items()
             available = doc_obj.get_available_items()
             unavailable = doc_obj.get_unavailable_items()
             excluded = available + unavailable
 
+
         else:
+            doc_id = 0
             doc_obj = DocumentData(
                 created_by = request.user,
                 reference = '',
@@ -579,12 +582,65 @@ def doc_builder(request, job_id):
         return render(request, 'adminas/document_builder.html', {
             'doc_code': doc_code,
             'doc_type': doc_display,
+            'doc_id': doc_id,
             'job': Job.objects.get(id=job_id),
             'date_today': datetime.date.today().strftime("%d/%m/%Y"),
             'included': included,
             'excluded': excluded
         })
 
+    elif request.method == 'POST':
+        posted_data = json.loads(request.body)
+        test = {}
+        test['reference'] = posted_data['reference']
+        test['issue_date'] = posted_data['issue_date']
+        form = DocumentDataForm(test)
+
+        if form.is_valid():
+            job = Job.objects.get(id=job_id)
+
+            if(request.GET.get('id') == '0'):
+                doc_obj = DocumentData(
+                    created_by = request.user,
+                    reference = form.cleaned_data['reference'],
+                    issue_date = form.cleaned_data['issue_date'],
+                    doc_type = request.GET.get('type'),
+                    job = job,
+                    invoice_to = job.invoice_to,
+                    delivery_to = job.delivery_to
+                )
+                doc_obj.save()
+            else:
+                doc_obj = DocumentData.objects.get(id=request.GET.get('id'))
+                doc_obj.reference = form.cleaned_data['reference']
+                doc_obj.issue_date = form.cleaned_data['issue_date']
+                doc_obj.doc_type = request.GET.get('type')
+                doc_obj.job = job
+                doc_obj.invoice_to = job.invoice_to
+                doc_obj.delivery_to = job.delivery_to
+                doc_obj.save()
+
+            for jobitem in posted_data['assigned_items']:
+                assignment = DocAssignment(
+                    document = doc_obj,
+                    item = JobItem.objects.get(id=jobitem['id']),
+                    quantity = jobitem['quantity']
+                )
+                assignment.save()
+
+
+
+        else:
+            debug(form.errors)
+            return JsonResponse({
+                'error': 'Invalid data.'
+            }, status=500)   
+            
+
+
+        return JsonResponse({
+            'data': 'hai'
+        }, status=200)   
 
 
 
