@@ -3,10 +3,10 @@
 
 {% block javascript %}
     <script>
-        const DOC_CODE = '{{ doc_code }}';
-        const DOC_ID = '{{ doc_id }}';
+        const DOC_CODE = '{{ doc.doc_type }}';
+        const DOC_ID = '{{ doc.id }}';
         const JOB_ID = '{{ job.id }}';
-        const TODAY = '{{ date_today }}';
+        //const TODAY
         const URL_DOCBUILDER = "{% url 'doc_builder' job.id %}";
     </script>
     <script src="{% static 'adminas/document_items.js' %}" type="text/javascript"></script>
@@ -23,11 +23,15 @@
 
     <a href="{% url 'job' job.id %}">Return to Job</a>
 
-    <div>
+    <div class="document-fields-container">
         <label for="id_doc_reference">Reference</label>
-        <input type="text" id="id_doc_reference">
+        <input type="text" id="id_doc_reference" value="{{doc.reference}}">
 
-    {% if doc_code == 'WO' %}
+    {% if doc.issue_date %}
+        Issue date: {{ doc.issue_date }}
+    {% endif %}
+
+    {% if doc.doc_type == 'WO' %}
         <label for="id_req_prod_date">Requested Completion Date</label>
         <input type="datetime" id="id_req_prod_date">
     {% endif %}
@@ -53,10 +57,24 @@
             Exclude
             <ul class="excluded">
         {% for excl in excluded %}
-                <li data-jiid="{{ excl.jiid }}" {% if excl.is_available != True %}data-daid="{{ excl.id }}" class="unavailable"{% endif %}>
-                    <span class="display">{{ excl.display }}</span>
+                <li data-jiid="{{ excl.jiid }}" {% if excl.is_available == False %}class="unavailable"{% endif %}>
+                    <span class="display">
+                        {{ excl.display }}
+            {% if excl.is_available %}
+                    </span>
                     <button class="split-docitem-btn">split</button>
                     <button class="toggle-docitem-btn">x</button>
+            {% else %}
+                        <span><a href="{% url 'doc_builder' job.id %}?type=doc_code&id={{excl.doc_id}}">
+                            (on  
+                {% if excl.used_by %}
+                                {{ excl.used_by }})
+                {% else %}
+                            unnamed)
+                {% endif %}
+                        </a></span>
+                    </span>
+            {% endif %}
                 </li>
         {% empty %}
                 <li class="none">None</li>

@@ -1,6 +1,7 @@
 from django.core.exceptions import NON_FIELD_ERRORS
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db.models.aggregates import Max
 from django.db.models.deletion import SET_NULL
 from django.db.models.fields import CharField
 from django.db.models import Sum
@@ -692,6 +693,17 @@ class JobModule(models.Model):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 class ProdGroup(AdminAuditTrail):
     date_wanted = models.DateTimeField()
     date_scheduled = models.DateTimeField(blank=True)
@@ -702,6 +714,7 @@ class ProdGroup(AdminAuditTrail):
     def __str__(self):
         return '(' + self.job.name + ') ' + self.name
 
+# I don't think I need this anymore.
 class ItemPrAssignment(models.Model):
     group = models.ForeignKey(ProdGroup, on_delete=models.CASCADE, related_name='assigned')
     item = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='assignments')
@@ -820,7 +833,7 @@ class InvoiceWording(DisplayLineItem):
 
 
 
-
+# If I don't need TO anymore, this can just go in the OE class
 class AccountingEvent(AdminAuditTrail):
     """ Abstract class for the system's accounting data """
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
@@ -838,6 +851,7 @@ class AccEventOE(AccountingEvent):
     def __str__(self):
         return f'{get_plusminus_prefix(self.value)}{format_money(self.value)} {self.currency}. Job {self.job.name} @ {self.created_on.strftime("%Y-%m-%d %H:%M:%S")}'
 
+# I don't think I need this one anymore
 class AccEventTO(AccountingEvent):
     fin_group = models.ForeignKey(FinGroup, on_delete=models.PROTECT, related_name='to_events')
 
@@ -871,7 +885,7 @@ class DocumentData(AdminAuditTrail):
                 this_dict = {}
                 this_dict['id'] = a.pk
                 this_dict['jiid'] = a.item.pk
-                this_dict['display'] = a.item.display_str()
+                this_dict['display'] = a.item.display_str().replace(str(a.item.quantity), str(a.quantity))
                 result.append(this_dict)
             return result
 
@@ -912,7 +926,7 @@ class DocumentData(AdminAuditTrail):
     def get_unavailable_items(self):
         # List of items already assigned to another document of this type.
         # Used to populate the "excluded" list.
-        assigned_elsewhere = DocAssignment.objects.filter(document__job=self.job).filter(document__doc_type=self.doc_type)
+        assigned_elsewhere = DocAssignment.objects.filter(document__job=self.job).filter(document__doc_type=self.doc_type).exclude(document=self)
         if assigned_elsewhere.all().count() == 0:
             return None
         else:
@@ -923,6 +937,8 @@ class DocumentData(AdminAuditTrail):
                 this_dict['jiid'] = ae.item.pk
                 this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
                 this_dict['is_available'] = False
+                this_dict['used_by'] = ae.document.reference
+                this_dict['doc_id'] = ae.document.id
                 result.append(this_dict)                
             return result
 
@@ -935,6 +951,20 @@ class DocAssignment(models.Model):
     item = models.ForeignKey(JobItem, on_delete=models.CASCADE)
     quantity = models.IntegerField()
 
+    def max_quantity(self):
+        total = self.item.quantity
+        assigned = DocAssignment.objects.filter(item=self.item).aggregate(Sum('quantity'))['quantity__sum']
+        return total - assigned + self.quantity
+
     def __str__(self):
-        return f'{self.quantity} x {self.item.name} assigned to {self.document.type} {self.document.reference}'
+        return f'{self.quantity} x {self.item.product.name} assigned to {self.document.doc_type} {self.document.reference}'
+
+
+class ProductionData(models.Model):
+    document = models.ForeignKey(DocumentData, on_delete=models.CASCADE)
+    date_requested = models.DateField()
+    date_scheduled = models.DateField(blank=True)
+
+    def __str__(self):
+        return f'Production of {self.document.doc_type} {self.document.reference}. Req = {self.date_requested}, Sch = {self.date_scheduled}'
 

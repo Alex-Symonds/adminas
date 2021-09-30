@@ -1,6 +1,6 @@
 from django.core.exceptions import RequestDataTooBig
 from django.db.models.fields import NullBooleanField
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect
 from django.db import IntegrityError
@@ -13,8 +13,8 @@ from django.db.models import Sum, Count
 from decimal import Decimal
 import datetime
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment
-from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm
+from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData
+from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
@@ -69,8 +69,30 @@ def register(request):
     else:
         return render(request, 'adminas/register.html')
 
+
+
+
+
+
+
+
+
+
+
+
+
 def index(request):
     return render(request, 'adminas/index.html')
+
+
+
+
+
+
+
+
+
+
 
 def edit_job(request):
     if not request.user.is_authenticated:
@@ -152,12 +174,16 @@ def edit_job(request):
     
     return render(request, 'adminas/edit.html')
 
+
+
+
+
+
 def job(request, job_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
     my_job = Job.objects.get(id=job_id)
-    po_list = PurchaseOrder.objects.filter(job=my_job)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
 
     return render(request, 'adminas/job.html', {
@@ -165,6 +191,10 @@ def job(request, job_id):
         'po_form': POForm(initial={'job': my_job.id}),
         'item_formset': item_formset
     })
+
+
+
+
 
 
 
@@ -238,6 +268,9 @@ def purchase_order(request):
             else:
                 debug(posted_form.errors)
                 return error_page(request, 'PO form was invalid', 400)
+
+
+
 
 
 
@@ -343,6 +376,14 @@ def items(request):
         return JsonResponse({
             'desc': description
         }, status=200)        
+
+
+
+
+
+
+
+
 
 
 def manage_modules(request, job_id):
@@ -514,7 +555,12 @@ def module_assignments(request):
             jm.save()
             return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
 
-                        
+
+
+
+
+
+
 def get_data(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
@@ -540,6 +586,16 @@ def get_data(request):
                 'country': req_addr.country.name
             }, status=200)
 
+
+
+
+
+
+
+
+
+
+
 def records(request):
     all_jobs = Job.objects.all()
     data = all_jobs.annotate(total_po_value=Sum('po__value')).annotate(num_po=Count('po'))
@@ -553,96 +609,177 @@ def records(request):
     })
 
 
+
+
+
+
+
+
+
+
+
+
 def doc_builder(request, job_id):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
 
-    if request.method == 'GET':
-        doc_code = request.GET.get('type')
-        doc_display = dict(DOCUMENT_TYPES).get(doc_code)
+    # We're going to use id=0 as a means of indicating the creation of a new document (vs. update/read of an existing document).
+    # id=0 can be conveyed by either the absence of an id parameter or literally including "&id=0".
+    if request.GET.get('id'):
+        doc_id = int(request.GET.get('id'))
+    else:
+        doc_id = 0
 
-        if request.GET.get('id'):
-            doc_id = request.GET.get('id')
-            doc_obj = DocumentData.objects.get(id=doc_id)
-            included = doc_obj.get_items()
-            available = doc_obj.get_available_items()
-            unavailable = doc_obj.get_unavailable_items()
-            excluded = available + unavailable
+    doc_code = request.GET.get('type')
 
-
-        else:
-            doc_id = 0
-            doc_obj = DocumentData(
-                created_by = request.user,
-                reference = '',
-                job = Job.objects.get(id=job_id),
-                doc_type = doc_code
-            )
-            included = doc_obj.get_available_items()
-            excluded = None
-
-        return render(request, 'adminas/document_builder.html', {
-            'doc_code': doc_code,
-            'doc_type': doc_display,
-            'doc_id': doc_id,
-            'job': Job.objects.get(id=job_id),
-            'date_today': datetime.date.today().strftime("%d/%m/%Y"),
-            'included': included,
-            'excluded': excluded
-        })
-
-    elif request.method == 'POST':
+    # Handle adjustments to the database
+    if request.method == 'POST':
         posted_data = json.loads(request.body)
         test = {}
         test['reference'] = posted_data['reference']
         test['issue_date'] = posted_data['issue_date']
         form = DocumentDataForm(test)
 
-        if form.is_valid():
+        if posted_data['req_prod_date']:
+            prod_data_form = ProductionReqForm({
+                'date_requested': posted_data['req_prod_date']
+                })
+
+        if form.is_valid() and (prod_data_form.is_valid() or posted_data['req_prod_date'] == None):
             job = Job.objects.get(id=job_id)
 
-            if(request.GET.get('id') == '0'):
+            if(doc_id == 0):
+                # The user is creating a new document. Create it, then update doc_id accordingly.
                 doc_obj = DocumentData(
                     created_by = request.user,
                     reference = form.cleaned_data['reference'],
                     issue_date = form.cleaned_data['issue_date'],
-                    doc_type = request.GET.get('type'),
+                    doc_type = doc_code,
                     job = job,
                     invoice_to = job.invoice_to,
                     delivery_to = job.delivery_to
                 )
                 doc_obj.save()
+                doc_id = doc_obj.pk
+
+                # All "assigned_items" will require the creation of a new DocAssignment.
+                new_assignments = posted_data['assigned_items']
+                message = 'Document created and saved'
+
             else:
-                doc_obj = DocumentData.objects.get(id=request.GET.get('id'))
+                # ID != 0 means the user is updating an existing document.
+                doc_obj = DocumentData.objects.get(id=doc_id)
                 doc_obj.reference = form.cleaned_data['reference']
                 doc_obj.issue_date = form.cleaned_data['issue_date']
-                doc_obj.doc_type = request.GET.get('type')
+                doc_obj.doc_type = doc_code
                 doc_obj.job = job
                 doc_obj.invoice_to = job.invoice_to
                 doc_obj.delivery_to = job.delivery_to
                 doc_obj.save()
 
-            for jobitem in posted_data['assigned_items']:
+                # Assignments on the server must be created/deleted/updated to match the list the user has specified.
+                existing_assignments = DocAssignment.objects.filter(document=doc_obj)
+                required_assignments = posted_data['assigned_items']
+
+                for ea in existing_assignments:
+                    found = False
+                    for req in required_assignments:
+                        if int(req['id']) == ea.item.id:
+                            # Case = UPDATE: assignment already exists. Update the quantity, if you must, then check this off the to-do list.
+                            found = True
+                            if int(req['quantity']) != ea.quantity:
+                                ea.quantity = min(int(req['quantity']), ea.max_quantity())
+                                ea.save()
+                            required_assignments.remove(req)
+                            break
+                    if not found:
+                        # Case = DELETE: existing assignment doesn't appear in the required list.
+                        ea.delete()
+   
+                # Case = CREATE for whatever's left in the required list
+                new_assignments = required_assignments
+                message = 'Document saved'
+
+
+            # Update document-specific fields. For now, that's only the WO requested date.
+            if posted_data['req_prod_date']:
+                try:
+                    prod_req = ProductionData.objects.get(document=doc_obj)
+
+                    if prod_data_form.cleaned_data('req_prod_date') == '':
+                        prod_req.delete()
+
+                    elif prod_req.requested_date != prod_data_form.cleaned_data('req_prod_date'):
+                        prod_req.requested_date = prod_data_form.cleaned_data('req_prod_date')
+                        prod_req.save()
+
+                except:
+                    prod_req = ProductionData(
+                        date_requested = prod_data_form.cleaned_data('req_prod_date'),
+                        date_scheduled = ''
+                    )
+                    prod_req.save()
+
+     
+
+
+            # Assign JobItems to the document.
+            for jobitem in new_assignments:
                 assignment = DocAssignment(
                     document = doc_obj,
                     item = JobItem.objects.get(id=jobitem['id']),
                     quantity = jobitem['quantity']
                 )
-                assignment.save()
+                assignment.save()          
 
-
+            return JsonResponse({
+                'message': message
+            }, status=200)
 
         else:
             debug(form.errors)
             return JsonResponse({
                 'error': 'Invalid data.'
             }, status=500)   
-            
+    
+
+    # This concludes the GET/POST specific stuff. Proceed with generic display activities.
+    doc_display = dict(DOCUMENT_TYPES).get(doc_code)
+
+    if doc_id != 0:
+        # Load an existing document.
+        doc_obj = DocumentData.objects.get(id=doc_id)
+        included = doc_obj.get_items()
+
+        available = doc_obj.get_available_items()
+        unavailable = doc_obj.get_unavailable_items()
+        if available == None:
+            excluded = unavailable
+        elif unavailable == None:
+            excluded = available
+        else:
+            excluded = available + unavailable
+
+    else:
+        # Make a temporary document object to pass data to render and obtain access to the two get_(un)available_items() methods
+        doc_obj = DocumentData(
+            created_by = request.user,
+            reference = '',
+            job = Job.objects.get(id=job_id),
+            doc_type = doc_code
+        )
+        included = doc_obj.get_available_items()
+        excluded = doc_obj.get_unavailable_items()
 
 
-        return JsonResponse({
-            'data': 'hai'
-        }, status=200)   
 
-
+    return render(request, 'adminas/document_builder.html', {
+        'doc_type': doc_display,
+        'doc': doc_obj,
+        'job': Job.objects.get(id=job_id),
+        'included': included,
+        'excluded': excluded
+    })
 
 
 

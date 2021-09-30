@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
         save_document();
     });
 
-    document.querySelector('#document_issue_btn').addEventListener('click', () => {
-        issue_document();
+    document.querySelector('#document_issue_btn').addEventListener('click', (e) => {
+        open_issue_document_window(e);
     });
 
 
@@ -558,43 +558,68 @@ function create_docitem_li(jobitem_id, description){
 
 
 
+function open_issue_document_window(e){
+    let window = get_issue_document_window_element();
+    e.target.after(window);
+}
+
+
+function get_issue_document_window_element(){
+    let div = document.createElement('div');
+
+    let heading = document.createElement('h4');
+    heading.innerHTML = 'Issue Date';
+    div.append(heading);
+
+    let input = document.createElement('input');
+    const today = new Date();
+    default_value = today.getDate() + '/' + (today.getMonth() + 1) + '/' + today.getFullYear();
+    input.value = default_value;
+    div.append(input);
+
+    let issue_btn = document.createElement('button');
+    issue_btn.innerHTML = 'issue';
+    issue_btn.addEventListener('click', (e) => {
+        issue_document(e.target);
+    });
+    div.append(issue_btn);
+
+    let cancel_btn = document.createElement('button');
+    cancel_btn.innerHTML = 'cancel';
+    cancel_btn.addEventListener('click', (e) => {
+        close_issue_document_window(e.target);
+    });
+    div.append(cancel_btn);
+
+    return div;
+
+}
+
+function close_issue_document_window(btn){
+    btn.parentElement.remove();
+    return;
+}
+
+
+
+
+
+
+
+function issue_document(btn){
+    let input = btn.parentElement.querySelector('input');
+    let issue_date = input.value;
+    update_document_on_server(issue_date);
+}
 
 function save_document(){
     update_document_on_server(null);
 }
 
-
 function update_document_on_server(issue_date){
-    let reference = document.querySelector('#id_doc_reference').value;
     let doc_type = DOC_CODE;
-
-    let req_prod_date_ele = document.querySelector('#id_req_prod_date');
-    if(req_prod_date_ele){
-        var req_prod_date = req_prod_date_ele.value;
-    }
-    else {
-        var req_prod_date = null;
-    }
-
     let doc_id = DOC_ID;
-
-    let assigned_items = [];
-    let assigned_ul = document.querySelector('.' + CLASS_INCLUDES_UL);
-
-    Array.from(assigned_ul.children).forEach(ele => {
-        if(ele.tagName == 'LI'){
-            let d = {}
-            d['quantity'] = ele.querySelector('.display').innerHTML.match(QTY_RE)[0];
-            d['id'] = ele.dataset.jiid;
-            assigned_items.push(d);
-        }
-    });
-
-    let dict = {};
-    dict['reference'] = reference;
-    dict['issue_date'] = issue_date;
-    dict['req_prod_date'] = req_prod_date;
-    dict['assigned_items'] = assigned_items;
+    let dict = get_document_data_as_dict(issue_date);
 
     fetch(`${URL_DOCBUILDER}?type=${doc_type}&id=${doc_id}`, {
         method: 'POST',
@@ -603,26 +628,74 @@ function update_document_on_server(issue_date){
         credentials: 'include'
     })
     .then(response => response.json())
-    .then(console.log(data))
+    .then(data => {
+        display_document_response_message(data);
+    })
     .catch(error => {
         console.log('Error: ', error)
     });
+}
 
+const CLASS_MESSAGE_BOX = 'system-message-box';
 
+function display_document_response_message(data){
+    let message_ele = document.querySelector('.' + CLASS_MESSAGE_BOX);
 
+    if(message_ele == null){
+        let anchor_ele = document.querySelector('.document-fields-container');
+        message_ele = create_message_ele();
+        anchor_ele.before(message_ele);
+    }
 
-    /*
-    reference = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
-    issue_date = models.DateField(null=True)
-    doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)
+    message_ele.innerHTML = `${data['message']} @ ${get_date_time()}`;
+}
 
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='documents')
-    invoice_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='financial_documents')
-    delivery_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_documents')
+function get_date_time(){
+    let dt = new Date();
+    let display_dt = dt.toLocaleString();
+    return display_dt;
+}
 
-    items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
-    */
+function create_message_ele(){
+    let message_ele = document.createElement('div');
+    message_ele.classList.add(CLASS_MESSAGE_BOX);
+    return message_ele;
 }
 
 
+function get_document_data_as_dict(issue_date){
+    // There's only one document-type-specific field at present, so just bung it in
+    let req_prod_date_ele = document.querySelector('#id_req_prod_date');
+    if(req_prod_date_ele){
+        var req_prod_date = req_prod_date_ele.value;
+        if(req_prod_date == null){
+            req_prod_date = '';
+        }
+    }
+    else {
+        var req_prod_date = null;
+    }
+
+    let dict = {};
+    dict['reference'] = document.querySelector('#id_doc_reference').value;
+    dict['issue_date'] = issue_date;
+    dict['req_prod_date'] = req_prod_date;
+    dict['assigned_items'] = get_assigned_items_as_list();
+
+    return dict;
+}
+
+function get_assigned_items_as_list(){
+    let assigned_items = [];
+    let assigned_ul = document.querySelector('.' + CLASS_INCLUDES_UL);
+    Array.from(assigned_ul.children).forEach(ele => {
+        if(ele.tagName == 'LI'){
+            let d = {}
+            d['quantity'] = ele.querySelector('.display').innerHTML.match(QTY_RE)[0];
+            d['id'] = ele.dataset.jiid;
+            assigned_items.push(d);
+        }
+    });
+    return assigned_items;
+}
 

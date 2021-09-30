@@ -277,17 +277,7 @@ async function get_module_slot_with_new_item_form(slot_id, parent_id){
     return div;
 }
 
-// New JI Form, Edit Filled Slot: create a quantity field
-function get_jobitem_qty_field(){
-    let fld = document.createElement('input');
-    fld.type = 'number';
-    fld.name = 'qty';
-    fld.id = 'id_qty';
-    fld.required = true;
-    fld.min = 1;
 
-    return fld;
-}
 
 // New JI Form: get a select element with options from the server (list of products suitable for this slot, in asc price order)
 async function get_jobitem_module_dropdown(slot_id, parent_id){

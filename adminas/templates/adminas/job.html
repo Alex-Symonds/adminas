@@ -26,8 +26,9 @@
 
     <div class="doc_status_container">
         #TODO
-        <a href="{% url 'doc_builder' job.id %}?type=WO">WO</a>
-        <a href="{% url 'doc_builder' job.id %}?type=OC">OC</a>
+        <a href="{% url 'doc_builder' job.id %}?type=WO">New WO</a>
+        <a href="{% url 'doc_builder' job.id %}?type=OC">New OC</a>
+        <a href="{% url 'doc_builder' job.id %}?type=WO&id=3">WO #3</a>
     </div>
 
     <h3>General Details</h3>
