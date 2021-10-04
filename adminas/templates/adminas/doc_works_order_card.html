@@ -1,0 +1,66 @@
+{% extends 'adminas/layout.html' %}
+
+{% block title %}
+    - Works Order Card
+{% endblock %}
+
+{% block body %}
+    <h2>{{ title }}</h2>
+
+    <div class="section-invoice-to">
+        {{ data.invoice_to_full }}
+    </div>
+
+    <div class="section-delivery-to">
+        {{ data.delivery_to_full }}
+    </div>
+
+    <div class="section-language">
+        {{ data.language }}
+    </div>
+
+    <div class="section-notes">
+        NOTES: TODO
+    </div>
+
+    <div class="section-fields">
+    {% for h, body in data.fields %}
+        <div class="one-field">
+            <h4>{{ h }}</h4>
+            <span>{{ body }}</span>
+        </div>
+    {% endfor %}
+    </div>
+
+    <div class="section-item-list">
+        <table>
+            <tr>
+                <th>Qty</th>
+                <th>Part #</th>
+                <th>Description</th>
+                <th>+</th>
+                <th>Packed</th>
+            </tr>
+    {% for item in data.item_list %}
+            <tr>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.part_number }}</td>
+                <td>{{ item.description }}</td>
+                <td>TODO</td>
+                <td></td>
+            </tr>
+    {% endfor %}
+    {% for empty_row in data.empty_row_range %}
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+    {% endfor %}
+        </table>
+    </div>
+
+    <div class="section_authorisation">
+        <div class="one-field">
+            <h4>Created</h4>
+            <span>{{ data.doc.created_by }}, {{ data.doc.issued_on }}</span>            
+        </div>
+    </div>
+
+{% endblock %}
