@@ -624,8 +624,8 @@ def doc_builder(request, job_id):
         return anonymous_user(request)
 
     # We're going to use id=0 as a means of indicating the creation of a new document (vs. update/read of an existing document).
-    # id=0 can be conveyed by either the absence of an id parameter or literally including "&id=0".
-    if request.GET.get('id'):
+    # id=0 can be conveyed either by the absence of an id parameter or by literally including "&id=0" in the GET params.
+    if request.GET.get('id') != None:
         doc_id = int(request.GET.get('id'))
     else:
         doc_id = 0
@@ -640,12 +640,17 @@ def doc_builder(request, job_id):
         test['issue_date'] = posted_data['issue_date']
         form = DocumentDataForm(test)
 
-        if posted_data['req_prod_date']:
+        doctype_specific_fields_exist = False
+        doctype_specific_fields_are_ok = True
+        if 'req_prod_date' in posted_data:
+            doctype_specific_fields_exist = True
             prod_data_form = ProductionReqForm({
                 'date_requested': posted_data['req_prod_date']
                 })
+            doctype_specific_fields_are_ok = prod_data_form.is_valid()
 
-        if form.is_valid() and (prod_data_form.is_valid() or posted_data['req_prod_date'] == None):
+
+        if form.is_valid() and (not doctype_specific_fields_exist or doctype_specific_fields_are_ok):
             job = Job.objects.get(id=job_id)
 
             if(doc_id == 0):
@@ -702,25 +707,27 @@ def doc_builder(request, job_id):
 
 
             # Update document-specific fields. For now, that's only the WO requested date.
-            if posted_data['req_prod_date']:
-                try:
-                    prod_req = ProductionData.objects.get(document=doc_obj)
+            if 'req_prod_date' in posted_data:
+                proddata_qs = ProductionData.objects.filter(document=doc_obj)
 
-                    if prod_data_form.cleaned_data('req_prod_date') == '':
-                        prod_req.delete()
-
-                    elif prod_req.requested_date != prod_data_form.cleaned_data('req_prod_date'):
-                        prod_req.requested_date = prod_data_form.cleaned_data('req_prod_date')
+                if proddata_qs.count() == 0:
+                    if '' != prod_data_form.cleaned_data['date_requested']:
+                        prod_req = ProductionData(
+                            document = doc_obj,
+                            date_requested = prod_data_form.cleaned_data['date_requested'],
+                            date_scheduled = None
+                        )
                         prod_req.save()
 
-                except:
-                    prod_req = ProductionData(
-                        date_requested = prod_data_form.cleaned_data('req_prod_date'),
-                        date_scheduled = ''
-                    )
-                    prod_req.save()
+                elif proddata_qs.count() == 1:
+                    prod_req = proddata_qs[0]
 
-     
+                    if '' == prod_data_form.cleaned_data['date_requested']:
+                        prod_req.delete()
+
+                    elif prod_req.date_requested != prod_data_form.cleaned_data['date_requested']:
+                        prod_req.date_requested = prod_data_form.cleaned_data['date_requested']
+                        prod_req.save()
 
 
             # Assign JobItems to the document.
@@ -738,13 +745,15 @@ def doc_builder(request, job_id):
 
         else:
             debug(form.errors)
+            debug(prod_data_form.errors)
             return JsonResponse({
-                'error': 'Invalid data.'
+                'message': 'Invalid data.'
             }, status=500)   
     
 
     # This concludes the GET/POST specific stuff. Proceed with generic display activities.
     doc_display = dict(DOCUMENT_TYPES).get(doc_code)
+    doc_specific_obj = None
 
     if doc_id != 0:
         # Load an existing document.
@@ -760,6 +769,12 @@ def doc_builder(request, job_id):
         else:
             excluded = available + unavailable
 
+        if doc_obj.doc_type == 'WO':
+            try:
+                doc_specific_obj = ProductionData.objects.filter(document=doc_obj)[0]
+            except:
+                doc_specific_obj = None
+
     else:
         # Make a temporary document object to pass data to render and obtain access to the two get_(un)available_items() methods
         doc_obj = DocumentData(
@@ -772,16 +787,25 @@ def doc_builder(request, job_id):
         excluded = doc_obj.get_unavailable_items()
 
 
-
     return render(request, 'adminas/document_builder.html', {
-        'doc_type': doc_display,
+        'doc_display': doc_display,
+        'doc_id': doc_id,
         'doc': doc_obj,
         'job': Job.objects.get(id=job_id),
         'included': included,
-        'excluded': excluded
+        'excluded': excluded,
+        'doc_specific': doc_specific_obj
     })
 
 
+
+
+def document_display(request, doc_id):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+
+    my_doc = DocumentData.objects.get(id=doc_id)
+    
 
     
 

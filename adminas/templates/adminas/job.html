@@ -23,14 +23,7 @@
 {% block body %}
     <h2>Job {{ job.name }} for {{ job.customer.name }}</h2>
     <a href="{% url 'edit_job' %}?job={{job.id}}">Edit Job Details</a>
-
-    <div class="doc_status_container">
-        #TODO
-        <a href="{% url 'doc_builder' job.id %}?type=WO">New WO</a>
-        <a href="{% url 'doc_builder' job.id %}?type=OC">New OC</a>
-        <a href="{% url 'doc_builder' job.id %}?type=WO&id=3">WO #3</a>
-    </div>
-
+   
     <h3>General Details</h3>
     <div id="job_general_section">
         <h4>Identification</h4>
@@ -109,6 +102,53 @@
             </table>
         </div>
     {% endif %}
+    </div>
+
+    <div class="job_doc_section">
+        <h3>Documents</h3>
+        <h4>Works Order</h4>
+        <ul>
+    {% for doc in job.related_documents %}
+        {% if doc.doc_type == 'WO' %}
+            <li>
+                <a href="{% url 'doc_builder' job.id %}?type={{doc.doc_type}}&id={{doc.id}}"
+                    {% if doc.issue_date != None %}
+                        class="issued-document">
+                        <span class="issue-icon">(i)</span>
+                    {% else %}
+                        class="saved-document">
+                        <span class="saved-icon">(s)</span>
+                    {% endif %}{{ doc.doc_type }} {{ doc.reference }} dtd {% if doc.issue_date != None %} {{ doc.issue_date|date:'Y-m-d' }} {% else %} {{ doc.created_on|date:'Y-m-d' }} {% endif %}
+                </a>
+            </li>
+        {% endif %}
+    {% endfor %}
+            <li>
+                <a href="{% url 'doc_builder' job.id %}?type=WO">New WO</a>
+            </li>
+        </ul>
+
+        <h4>Order Confirmation</h4>
+        <ul>
+    {% for doc in job.related_documents %}
+        {% if doc.doc_type == 'OC' %}
+            <li>
+                <a href="{% url 'doc_builder' job.id %}?type={{doc.doc_type}}&id={{doc.id}}"
+                    {% if doc.issue_date != None %}
+                        class="issued-document">
+                        <span class="issue-icon">(i)</span>
+                    {% else %}
+                        class="saved-document">
+                        <span class="saved-icon">(s)</span>
+                    {% endif %}{{ doc.doc_type }} {{ doc.reference }} dtd {% if doc.issue_date != None %} {{ doc.issue_date|date:'Y-m-d' }} {% else %} {{ doc.created_on|date:'Y-m-d' }} {% endif %}
+                </a>
+            </li>
+        {% endif %}
+    {% endfor %}
+            <li>
+                <a href="{% url 'doc_builder' job.id %}?type=OC">New OC</a>
+            </li>
+        </ul>
     </div>
 
     <div id="job_items_section">

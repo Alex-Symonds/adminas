@@ -389,14 +389,17 @@ class Job(AdminAuditTrail):
             return 0
         return round( self.total_difference_value_po_vs_line() / self.total_po_value() * 100 , 2)
 
-
-
     def main_item_list(self):
         # List of only the JobItems which were entered by the user (i.e. excluding stdAccs)
         item_list = JobItem.objects.filter(job=self).filter(included_with=None)
         if item_list.count() == 0:
             return None
         return item_list
+
+    def related_documents(self):
+        qs = DocumentData.objects.filter(job=self)
+        return qs.order_by('issue_date').order_by('doc_type')
+
 
     def __str__(self):
         return f'{self.name} {self.created_on}'
@@ -962,8 +965,8 @@ class DocAssignment(models.Model):
 
 class ProductionData(models.Model):
     document = models.ForeignKey(DocumentData, on_delete=models.CASCADE)
-    date_requested = models.DateField()
-    date_scheduled = models.DateField(blank=True)
+    date_requested = models.DateField(blank=True, null=True)
+    date_scheduled = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return f'Production of {self.document.doc_type} {self.document.reference}. Req = {self.date_requested}, Sch = {self.date_scheduled}'

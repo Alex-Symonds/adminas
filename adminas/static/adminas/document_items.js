@@ -8,6 +8,7 @@ const CLASS_SPLIT_WINDOW = 'split-docitem-window';
 const ID_SPLIT_WINDOW_INCLUDES_ARROWS = 'id_split_includes_arrows';
 const ID_SPLIT_WINDOW_EXCLUDES_ARROWS = 'id_split_excludes_arrows';
 const ID_SPLIT_WINDOW_DIRECTION = 'id_split_controls';
+const CLASS_MESSAGE_BOX = 'system-message-box';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -636,7 +637,7 @@ function update_document_on_server(issue_date){
     });
 }
 
-const CLASS_MESSAGE_BOX = 'system-message-box';
+
 
 function display_document_response_message(data){
     let message_ele = document.querySelector('.' + CLASS_MESSAGE_BOX);
@@ -664,23 +665,22 @@ function create_message_ele(){
 
 
 function get_document_data_as_dict(issue_date){
-    // There's only one document-type-specific field at present, so just bung it in
-    let req_prod_date_ele = document.querySelector('#id_req_prod_date');
-    if(req_prod_date_ele){
-        var req_prod_date = req_prod_date_ele.value;
-        if(req_prod_date == null){
-            req_prod_date = '';
-        }
-    }
-    else {
-        var req_prod_date = null;
-    }
-
     let dict = {};
     dict['reference'] = document.querySelector('#id_doc_reference').value;
     dict['issue_date'] = issue_date;
-    dict['req_prod_date'] = req_prod_date;
     dict['assigned_items'] = get_assigned_items_as_list();
+
+    // Document-type-specific fields. Only one at present, so handle it here.
+    let req_prod_date_ele = document.querySelector('#id_req_prod_date');
+    if(req_prod_date_ele){
+        var req_prod_date = req_prod_date_ele.value;
+        if(req_prod_date == ''){
+            dict['req_prod_date'] = '';
+        }
+        else {
+            dict['req_prod_date'] = req_prod_date;
+        }
+    }
 
     return dict;
 }

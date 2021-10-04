@@ -15,5 +15,6 @@ urlpatterns = [
     path('job/<int:job_id>/manage_modules', views.manage_modules, name='manage_modules'),
     path('job/<int:job_id>/doc_builder', views.doc_builder, name='doc_builder'),
     path('job/module_assignments', views.module_assignments, name='module_assignments'),
+    path('document/<int:doc_id>', views.document_display, name='doc_display'),
     path('get_data', views.get_data, name='get_data')
 ]

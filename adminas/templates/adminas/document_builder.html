@@ -4,7 +4,7 @@
 {% block javascript %}
     <script>
         const DOC_CODE = '{{ doc.doc_type }}';
-        const DOC_ID = '{{ doc.id }}';
+        const DOC_ID = '{{ doc_id }}';
         const JOB_ID = '{{ job.id }}';
         //const TODAY
         const URL_DOCBUILDER = "{% url 'doc_builder' job.id %}";
@@ -19,21 +19,23 @@
 {% block body %}
 
     <h2>Document Builder</h2>
-    <h2>{{ doc_type }}</h2>
+    <h2>{{ doc_display }}</h2>
 
     <a href="{% url 'job' job.id %}">Return to Job</a>
 
     <div class="document-fields-container">
-        <label for="id_doc_reference">Reference</label>
-        <input type="text" id="id_doc_reference" value="{{doc.reference}}">
-
     {% if doc.issue_date %}
         Issue date: {{ doc.issue_date }}
     {% endif %}
 
+        <label for="id_doc_reference">Reference</label>
+        <input type="text" id="id_doc_reference" value="{{doc.reference}}">
+
+
+
     {% if doc.doc_type == 'WO' %}
         <label for="id_req_prod_date">Requested Completion Date</label>
-        <input type="datetime" id="id_req_prod_date">
+        <input type="datetime" id="id_req_prod_date" value="{{doc_specific.date_requested|date:'d/m/Y'}}">
     {% endif %}
     </div>
 
@@ -81,10 +83,6 @@
         {% endfor %}                
             </ul>
         </div>
-    </div>
-
-    <div>
-        Display Groups <button id="id_display_groups_view">view</button>
     </div>
 
     <div>

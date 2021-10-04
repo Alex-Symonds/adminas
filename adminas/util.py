@@ -56,4 +56,4 @@ def create_oe_event(admin_user, po, reason, value):
 def debug(print_this):
     print("------------- here comes something you're checking on! --------------------")
     print(print_this)
-    print('-----------------------------------------')
+    print('---------------------------------------------------------------------------')
