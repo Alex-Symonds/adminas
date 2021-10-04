@@ -86,6 +86,18 @@ class Address(AdminAuditTrail):
 
     valid_until = models.DateField(blank=True, null=True)
 
+    def display_str_newlines(self):
+        return f'{self.address}\n{self.region}\n{self.postcode}\n{self.country.name}'
+
+    def as_dict(self):
+        return {
+            'address': self.address,
+            'region': self.region,
+            'postcode': self.postcode,
+            'country': self.country.name        
+        }
+
+
     def __str__(self):
         return f'({self.site.company.name}) {self.site.name} @ {self.created_on - datetime.timedelta(microseconds=self.created_on.microsecond)}'
 
@@ -404,6 +416,13 @@ class Job(AdminAuditTrail):
     def __str__(self):
         return f'{self.name} {self.created_on}'
 
+
+
+
+
+
+
+
 class JobComment(AdminAuditTrail):
     contents = models.TextField()
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='comments')
@@ -411,6 +430,14 @@ class JobComment(AdminAuditTrail):
 
     def __str__(self):
         return f'{self.created_by} on Job {self.job.name}'
+
+
+
+
+
+
+
+
 
 class JobItem(AdminAuditTrail):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='items')
@@ -421,8 +448,9 @@ class JobItem(AdminAuditTrail):
     quantity = models.IntegerField(blank=True)
     selling_price = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
 
-    # Support for "nested" Products, e.g. Pez dispenser prices includes one packet of Pez; you also sell additional packets of Pez separately
-    # The packet included with the dispenser would get its own JobItem where the dispenser JobItem would go in "included_with"
+    # Support for "nested" Products. e.g. a Pez dispenser includes one "free" packet of Pez; you also sell additional packets of Pez separately;
+    # customer has ordered one dispenser and 3 spare packets. There would be two JobItem records: one to cover the packet included with the dispenser
+    # (where "included_with" would refer to the JobItem for the dispenser) and one to cover the three spares (where "included_with" would be blank).
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
 
     def display_str(self):
@@ -530,12 +558,6 @@ class JobItem(AdminAuditTrail):
             'required_str': self.get_slot_details_string_required(slot),
             'optional_str': self.get_slot_details_string_optional(slot)
         }
-
-
-
-
-
-
 
     def get_post_edit_dictionary(self):
         return {
@@ -871,6 +893,10 @@ class DocumentData(AdminAuditTrail):
     doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)
 
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='documents')
+
+    # Suppose a customer places an order, then moves premises prior to delivery. The Job record would be updated with their new address,
+    # but some documents may have already been issued and the addresses on those should not be retroactively updated.
+    # These two fields are intended to record the addresses as they were at the time the document was issued. 
     invoice_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='financial_documents')
     delivery_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_documents')
 
@@ -886,9 +912,43 @@ class DocumentData(AdminAuditTrail):
             result = []
             for a in assignments:
                 this_dict = {}
+                # Portion needed by DocBuilder
                 this_dict['id'] = a.pk
                 this_dict['jiid'] = a.item.pk
                 this_dict['display'] = a.item.display_str().replace(str(a.item.quantity), str(a.quantity))
+
+                # portion needed by DocDisplay
+                # this_dict['quantity'] = a.quantity
+                # this_dict['part_number'] = a.item.product.part_number
+                # this_dict['product_description'] = a.item.product.get_description(self.job.language)
+                # this_dict['origin'] = a.item.product.origin_country
+                # this_dict['list_price_f'] = format_money(a.item.list_price() / a.item.quantity)
+                # this_dict['unit_price_f'] = format_money(a.item.selling_price / a.item.quantity)
+                # this_dict['total_price'] = a.quantity * (a.item.selling_price / a.item.quantity)
+                # this_dict['total_price_f'] = format_money(a.quantity * (a.item.selling_price / a.item.quantity))
+                # this_dict['std_accs'] = a.item.includes.all()
+
+                result.append(this_dict)
+            return result
+
+    def get_display_items(self):
+        # List of items assigned to this particular document.
+        if self.items.all().count() == 0:
+            return None
+        else:
+            assignments = DocAssignment.objects.filter(document=self)
+            result = []
+            for a in assignments:
+                this_dict = {}
+                this_dict['quantity'] = a.quantity
+                this_dict['part_number'] = a.item.product.part_number
+                this_dict['product_description'] = a.item.product.get_description(self.job.language)
+                this_dict['origin'] = a.item.product.origin_country
+                this_dict['list_price_f'] = format_money(a.item.list_price() / a.item.quantity)
+                this_dict['unit_price_f'] = format_money(a.item.selling_price / a.item.quantity)
+                this_dict['total_price'] = a.quantity * (a.item.selling_price / a.item.quantity)
+                this_dict['total_price_f'] = format_money(a.quantity * (a.item.selling_price / a.item.quantity))
+                this_dict['std_accs'] = a.item.includes.all()
                 result.append(this_dict)
             return result
 
@@ -944,6 +1004,12 @@ class DocumentData(AdminAuditTrail):
                 this_dict['doc_id'] = ae.document.id
                 result.append(this_dict)                
             return result
+
+    def total_value(self):
+        return sum(item['total_price'] for item in self.get_display_items())
+
+    def total_value_f(self):
+        return format_money(self.total_value())
 
     def __str__(self):
         return f'{self.doc_type} {self.reference} dated {self.issue_date}'

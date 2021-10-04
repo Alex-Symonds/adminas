@@ -578,13 +578,8 @@ def get_data(request):
                     'message': 'Invalid address ID.'
                 }, status=400)
             
-            company = req_addr.site.company
-            return JsonResponse({
-                'address': req_addr.address,
-                'region': req_addr.region,
-                'postcode': req_addr.postcode,
-                'country': req_addr.country.name
-            }, status=200)
+            return JsonResponse(req_addr.as_dict(), status=200)
+
 
 
 
@@ -805,7 +800,62 @@ def document_display(request, doc_id):
         return anonymous_user(request)
 
     my_doc = DocumentData.objects.get(id=doc_id)
-    
+    data = {}
+
+    data['title'] = 'Order Confirmation'
+
+    fields = []
+
+    fields.append({
+        'h': 'Confirmation No.',
+        'body': my_doc.reference
+    })
+
+    fields.append({
+        'h': 'Issue Date',
+        'body': my_doc.issue_date
+    })
+
+    po_iterable = my_doc.job.po.all()
+    str = ''
+    for po in po_iterable:
+        str += f', {po.reference}'
+    fields.append({
+        'h': 'PO No.',
+        'body': str[2:]
+    })
+
+    try:
+        prod_data = ProductionData.objects.filter(document=my_doc)[0]
+        date_sched = prod_data.date_scheduled
+    except:
+        date_sched = 'TBC'
+    fields.append({
+        'h': 'Estimated Date',
+        'body': date_sched
+    })
+
+    str = ''
+    for i in my_doc.items.all(): 
+        if i.product.origin_country.name not in str:
+            if str != '':
+                str += ', '
+            str += i.product.origin_country.name
+    fields.append({
+        'h': 'Country of Origin',
+        'body': str
+    })
+
+    data['fields'] = fields
+
+    # TODO: each page should have the same number of body rows, with empty ones used to fill the space.
+    num_empty_rows = 10
+    data['empty_row_range'] = range(1, num_empty_rows)
+
+    return render(request, 'adminas/doc_order_confirmation.html', {
+        'doc': my_doc,
+        'data': data
+    })
 
     
 

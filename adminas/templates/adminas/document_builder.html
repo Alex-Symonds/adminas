@@ -21,7 +21,8 @@
     <h2>Document Builder</h2>
     <h2>{{ doc_display }}</h2>
 
-    <a href="{% url 'job' job.id %}">Return to Job</a>
+    <a href="{% url 'job' job.id %}">Return to Job</a><br />
+    <a href="{% url 'doc_display' doc_id %}">View document (TODO: MAKE THIS CONDITIONAL)</a>
 
     <div class="document-fields-container">
     {% if doc.issue_date %}
