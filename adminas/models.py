@@ -902,9 +902,9 @@ class DocumentData(AdminAuditTrail):
 
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
     
-    def get_items(self):
+    def get_included_items(self):
         # List of items assigned to this particular document.
-        # Use for creating documents and to populate the "included" list in the builder page.
+        # Use for populating the "included" list in the builder page.
         if self.items.all().count() == 0:
             return None
         else:
@@ -912,24 +912,12 @@ class DocumentData(AdminAuditTrail):
             result = []
             for a in assignments:
                 this_dict = {}
-                # Portion needed by DocBuilder
                 this_dict['id'] = a.pk
                 this_dict['jiid'] = a.item.pk
                 this_dict['display'] = a.item.display_str().replace(str(a.item.quantity), str(a.quantity))
-
-                # portion needed by DocDisplay
-                # this_dict['quantity'] = a.quantity
-                # this_dict['part_number'] = a.item.product.part_number
-                # this_dict['product_description'] = a.item.product.get_description(self.job.language)
-                # this_dict['origin'] = a.item.product.origin_country
-                # this_dict['list_price_f'] = format_money(a.item.list_price() / a.item.quantity)
-                # this_dict['unit_price_f'] = format_money(a.item.selling_price / a.item.quantity)
-                # this_dict['total_price'] = a.quantity * (a.item.selling_price / a.item.quantity)
-                # this_dict['total_price_f'] = format_money(a.quantity * (a.item.selling_price / a.item.quantity))
-                # this_dict['std_accs'] = a.item.includes.all()
-
                 result.append(this_dict)
             return result
+
 
     def get_display_items(self):
         # List of items assigned to this particular document.
@@ -1037,3 +1025,9 @@ class ProductionData(models.Model):
     def __str__(self):
         return f'Production of {self.document.doc_type} {self.document.reference}. Req = {self.date_requested}, Sch = {self.date_scheduled}'
 
+class SpecialInstruction(AdminAuditTrail):
+    document = models.ForeignKey(DocumentData, on_delete=models.CASCADE, related_name='instructions')
+    instruction = models.TextField(blank=True)
+
+    def __str__(self):
+        return f'Note on {self.document.doc_type} {self.document.reference} by {self.created_by.name} on {self.created_on}'

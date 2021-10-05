@@ -13,7 +13,7 @@ from django.db.models import Sum, Count
 from decimal import Decimal
 import datetime
 
-from adminas.models import User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData
+from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData
 from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
@@ -664,6 +664,8 @@ def doc_builder(request, job_id):
 
                 # All "assigned_items" will require the creation of a new DocAssignment.
                 new_assignments = posted_data['assigned_items']
+                new_special_instructions = posted_data['special_instructions']
+
                 message = 'Document created and saved'
 
             else:
@@ -696,8 +698,25 @@ def doc_builder(request, job_id):
                         # Case = DELETE: existing assignment doesn't appear in the required list.
                         ea.delete()
    
+                # Similar again, but for special instructions
+                existing_instructions = SpecialInstruction.objects.filter(document=doc_obj)
+                required_instructions = posted_data['special_instructions']
+
+                for ei in existing_instructions:
+                    found = False
+                    for req in required_instructions:
+                        if int(req['id']) == ei.id:
+                            found = True
+                            ei.instruction = req['contents']
+                            ei.save()
+                            required_instructions.remove(req)
+                            break
+                    if not found:
+                        ei.delete()
+
                 # Case = CREATE for whatever's left in the required list
                 new_assignments = required_assignments
+                new_special_instructions = required_instructions
                 message = 'Document saved'
 
 
@@ -734,6 +753,14 @@ def doc_builder(request, job_id):
                 )
                 assignment.save()          
 
+            for spec_instr in new_special_instructions:
+                instr = SpecialInstruction(
+                    document = doc_obj,
+                    instruction = spec_instr['contents'],
+                    created_by = request.user
+                )
+                instr.save()
+
             return JsonResponse({
                 'message': message
             }, status=200)
@@ -753,7 +780,7 @@ def doc_builder(request, job_id):
     if doc_id != 0:
         # Load an existing document.
         doc_obj = DocumentData.objects.get(id=doc_id)
-        included = doc_obj.get_items()
+        included = doc_obj.get_included_items()
 
         available = doc_obj.get_available_items()
         unavailable = doc_obj.get_unavailable_items()
@@ -781,7 +808,7 @@ def doc_builder(request, job_id):
         included = doc_obj.get_available_items()
         excluded = doc_obj.get_unavailable_items()
 
-
+    
     return render(request, 'adminas/document_builder.html', {
         'doc_display': doc_display,
         'doc_id': doc_id,
