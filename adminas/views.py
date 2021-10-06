@@ -9,13 +9,14 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.http import JsonResponse
 from django.db.models import Sum, Count
+from django.core.paginator import Paginator
 
 from decimal import Decimal
 import datetime
 
 from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData
 from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm
-from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES
+from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, MAX_ROWS_OC
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
 # Create your views here.
@@ -614,7 +615,7 @@ def records(request):
 
 
 
-def doc_builder(request, job_id):
+def doc_builder(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -622,8 +623,12 @@ def doc_builder(request, job_id):
     # id=0 can be conveyed either by the absence of an id parameter or by literally including "&id=0" in the GET params.
     if request.GET.get('id') != None:
         doc_id = int(request.GET.get('id'))
-    else:
+        job_id = DocumentData.objects.get(id=doc_id).job.id
+    elif request.GET.get('job') != None:
         doc_id = 0
+        job_id = int(request.GET.get('job'))
+    else:
+        return error_page(request, "Can't find document.", 400)
 
     doc_code = request.GET.get('type')
 
@@ -686,7 +691,7 @@ def doc_builder(request, job_id):
                 for ea in existing_assignments:
                     found = False
                     for req in required_assignments:
-                        if int(req['id']) == ea.item.id:
+                        if 'id' in req and int(req['id']) == ea.item.id:
                             # Case = UPDATE: assignment already exists. Update the quantity, if you must, then check this off the to-do list.
                             found = True
                             if int(req['quantity']) != ea.quantity:
@@ -705,7 +710,7 @@ def doc_builder(request, job_id):
                 for ei in existing_instructions:
                     found = False
                     for req in required_instructions:
-                        if int(req['id']) == ei.id:
+                        if 'id' in req and int(req['id']) == ei.id:
                             found = True
                             ei.instruction = req['contents']
                             ei.save()
@@ -816,8 +821,11 @@ def doc_builder(request, job_id):
         'job': Job.objects.get(id=job_id),
         'included': included,
         'excluded': excluded,
-        'doc_specific': doc_specific_obj
+        'doc_specific': doc_specific_obj,
+        'special_instructions': doc_obj.instructions.all().order_by('-created_on')
     })
+
+
 
 
 
@@ -832,7 +840,6 @@ def document_display(request, doc_id):
     data['title'] = 'Order Confirmation'
 
     fields = []
-
     fields.append({
         'h': 'Confirmation No.',
         'body': my_doc.reference
@@ -875,13 +882,20 @@ def document_display(request, doc_id):
 
     data['fields'] = fields
 
-    # TODO: each page should have the same number of body rows, with empty ones used to fill the space.
-    num_empty_rows = 10
+    
+    if request.GET.get("page"):
+        page_num = request.GET.get("page")
+    else:
+        page_num = 1
+    p = Paginator(my_doc.get_body_lines(), MAX_ROWS_OC)
+    req_page = p.get_page(page_num)
+    num_empty_rows = MAX_ROWS_OC - (req_page.end_index() - req_page.start_index() + 1)
     data['empty_row_range'] = range(1, num_empty_rows)
 
     return render(request, 'adminas/doc_order_confirmation.html', {
         'doc': my_doc,
-        'data': data
+        'data': data,
+        'page': req_page
     })
 
     

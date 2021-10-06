@@ -6,7 +6,7 @@
         const DOC_CODE = '{{ doc.doc_type }}';
         const DOC_ID = '{{ doc_id }}';
         const JOB_ID = '{{ job.id }}';
-        const URL_DOCBUILDER = "{% url 'doc_builder' job.id %}";
+        const URL_DOCBUILDER = "{% url 'doc_builder' %}";
     </script>
     <script src="{% static 'adminas/document_items.js' %}" type="text/javascript"></script>
 {% endblock %}
@@ -67,7 +67,7 @@
                     <button class="split-docitem-btn">split</button>
                     <button class="toggle-docitem-btn">x</button>
             {% else %}
-                        <span><a href="{% url 'doc_builder' job.id %}?type=doc_code&id={{excl.doc_id}}">
+                        <span><a href="{% url 'doc_builder' %}?id={{excl.doc_id}}">
                             (on  
                 {% if excl.used_by %}
                                 {{ excl.used_by }})
@@ -88,7 +88,7 @@
     <div class="section-special-instructions-builder">
         <h3>Special Instructions</h3>
         <div class="existing">
-    {% for sp_inst in doc.instructions.all %}
+    {% for sp_inst in special_instructions %}
             <div class="one-special-instruction" data-siid="{{ sp_inst.id }}">
                 <div class="contents">{{ sp_inst.instruction }}</div>
                 <button class="edit-special-instruction-btn">edit</button>

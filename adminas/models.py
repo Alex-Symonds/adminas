@@ -919,7 +919,7 @@ class DocumentData(AdminAuditTrail):
             return result
 
 
-    def get_display_items(self):
+    def get_body_lines(self):
         # List of items assigned to this particular document.
         if self.items.all().count() == 0:
             return None
@@ -927,17 +927,27 @@ class DocumentData(AdminAuditTrail):
             assignments = DocAssignment.objects.filter(document=self)
             result = []
             for a in assignments:
-                this_dict = {}
-                this_dict['quantity'] = a.quantity
-                this_dict['part_number'] = a.item.product.part_number
-                this_dict['product_description'] = a.item.product.get_description(self.job.language)
-                this_dict['origin'] = a.item.product.origin_country
-                this_dict['list_price_f'] = format_money(a.item.list_price() / a.item.quantity)
-                this_dict['unit_price_f'] = format_money(a.item.selling_price / a.item.quantity)
-                this_dict['total_price'] = a.quantity * (a.item.selling_price / a.item.quantity)
-                this_dict['total_price_f'] = format_money(a.quantity * (a.item.selling_price / a.item.quantity))
-                this_dict['std_accs'] = a.item.includes.all()
-                result.append(this_dict)
+                main_item = {}
+                main_item['quantity'] = a.quantity
+                main_item['part_number'] = a.item.product.part_number
+                main_item['product_description'] = a.item.product.get_description(self.job.language)
+                main_item['origin'] = a.item.product.origin_country
+                main_item['list_price_f'] = format_money(a.item.list_price() / a.item.quantity)
+                main_item['unit_price_f'] = format_money(a.item.selling_price / a.item.quantity)
+                main_item['total_price'] = a.quantity * (a.item.selling_price / a.item.quantity)
+                main_item['total_price_f'] = format_money(a.quantity * (a.item.selling_price / a.item.quantity))
+                result.append(main_item)
+
+                if a.item.includes.all().count() != 0:
+                    std_acc_intro = {}
+                    std_acc_intro['product_description'] = 'which includes the following:'
+                    result.append(std_acc_intro)
+
+                    for std_acc in a.item.includes.all():
+                        std_acc_dict = {}
+                        std_acc_dict['product_description'] = std_acc.display_str()
+                        result.append(std_acc_dict)
+
             return result
 
 
@@ -994,7 +1004,7 @@ class DocumentData(AdminAuditTrail):
             return result
 
     def total_value(self):
-        return sum(item['total_price'] for item in self.get_display_items())
+        return sum(item['total_price'] for item in self.get_body_lines() if 'total_price' in item)
 
     def total_value_f(self):
         return format_money(self.total_value())

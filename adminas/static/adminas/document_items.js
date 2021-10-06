@@ -638,11 +638,15 @@ function save_document(){
 }
 
 function update_document_on_server(issue_date){
-    let doc_type = DOC_CODE;
-    let doc_id = DOC_ID;
     let dict = get_document_data_as_dict(issue_date);
 
-    fetch(`${URL_DOCBUILDER}?type=${doc_type}&id=${doc_id}`, {
+    if(DOC_ID = '0'){
+        var URL = `${URL_DOCBUILDER}?job=${JOB_ID}&type=${DOC_CODE}`;
+    } else {
+        var URL = `${URL_DOCBUILDER}?id=${DOC_ID}`
+    }
+
+    fetch(URL, {
         method: 'POST',
         body: JSON.stringify(dict),
         headers: getDjangoCsrfHeaders(),

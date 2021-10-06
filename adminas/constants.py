@@ -57,3 +57,4 @@ DOCUMENT_TYPES = [
     (OC_CODE, 'Order Confirmation')
 ]
 
+MAX_ROWS_OC = 10
