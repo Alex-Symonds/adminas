@@ -10,7 +10,7 @@ from django_countries.fields import CountryField
 
 from decimal import Decimal
 from adminas.constants import DOCUMENT_TYPES, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
-from adminas.util import format_money, get_plusminus_prefix
+from adminas.util import format_money, get_plusminus_prefix, debug
 import datetime
 
 # Size fields
@@ -918,6 +918,16 @@ class DocumentData(AdminAuditTrail):
                 result.append(this_dict)
             return result
 
+    def get_excluded_items(self):
+        available = self.get_available_items()
+        unavailable = self.get_unavailable_items()
+        if available == None or self.id == None:
+            return unavailable
+        elif unavailable == None:
+            return available
+        else:
+            return available + unavailable
+
 
     def get_body_lines(self):
         # List of items assigned to this particular document.
@@ -1002,6 +1012,65 @@ class DocumentData(AdminAuditTrail):
                 this_dict['doc_id'] = ae.document.id
                 result.append(this_dict)                
             return result
+
+
+    def update_item_assignments_and_get_create_list(self, required):
+        for ea in DocAssignment.objects.filter(document=self):
+            found = False
+            for req in required:
+                if 'id' in req and int(req['id']) == ea.item.id:
+                    # Case = UPDATE: assignment already exists. Update the quantity, if you must, then check this off the to-do list.
+                    found = True
+                    if int(req['quantity']) != ea.quantity:
+                        ea.quantity = min(int(req['quantity']), ea.max_quantity())
+                        ea.save()
+                        debug(ea)
+                    required.remove(req)
+                    break
+            if not found:
+                # Case = DELETE: existing assignment doesn't appear in the required list.
+                ea.delete()
+        return required
+
+    def update_special_instructions_and_get_create_list(self, required):
+        for ei in SpecialInstruction.objects.filter(document=self):
+            found = False
+            for req in required:
+                if 'id' in req and int(req['id']) == ei.id:
+                    found = True
+                    ei.instruction = req['contents']
+                    ei.save()
+                    required.remove(req)
+                    break
+            if not found:
+                ei.delete()
+        return required
+
+    def update_requested_production_date(self, prod_data_form):
+        if self.doc_type == 'WO':
+            proddata_qs = ProductionData.objects.filter(document=self)
+
+            if proddata_qs.count() == 0:
+                if '' != prod_data_form.cleaned_data['date_requested']:
+                    prod_req = ProductionData(
+                        document = self,
+                        date_requested = prod_data_form.cleaned_data['date_requested'],
+                        date_scheduled = None
+                    )
+                    prod_req.save()
+
+            elif proddata_qs.count() == 1:
+                prod_req = proddata_qs[0]
+
+                if '' == prod_data_form.cleaned_data['date_requested']:
+                    prod_req.delete()
+
+                elif prod_req.date_requested != prod_data_form.cleaned_data['date_requested']:
+                    prod_req.date_requested = prod_data_form.cleaned_data['date_requested']
+                    prod_req.save()
+        else:
+            return
+
 
     def total_value(self):
         return sum(item['total_price'] for item in self.get_body_lines() if 'total_price' in item)

@@ -5,7 +5,7 @@
     <script>
         const DOC_CODE = '{{ doc.doc_type }}';
         const DOC_ID = '{{ doc_id }}';
-        const JOB_ID = '{{ job.id }}';
+        const JOB_ID = '{{ doc.job.id }}';
         const URL_DOCBUILDER = "{% url 'doc_builder' %}";
     </script>
     <script src="{% static 'adminas/document_items.js' %}" type="text/javascript"></script>
@@ -18,10 +18,19 @@
 {% block body %}
 
     <h2>Document Builder</h2>
-    <h2>{{ doc_display }}</h2>
+    <h2>{{ doc_title }}</h2>
 
-    <a href="{% url 'job' job.id %}">Return to Job</a><br />
-    <a href="{% url 'doc_display' doc_id %}">View document (TODO: MAKE THIS CONDITIONAL)</a>
+    <a href="{% url 'job' doc.job.id %}">Return to Job</a><br />
+    {% if doc_id == 0 %}
+        <p>View and preview are disabled until the document has been saved.</p>
+    {% else %}
+        <a href="{% url 'doc_main' doc.id %}">Exit edit mode</a><br />
+        {% if doc.issue_date %}
+        <a href="{% url 'doc_display' doc_id %}?mode=issued">View</a>
+        {% else %}
+        <a href="{% url 'doc_display' doc_id %}?mode=preview">Preview</a>
+        {% endif %}
+    {% endif %}
 
     <div class="document-fields-container">
     {% if doc.issue_date %}

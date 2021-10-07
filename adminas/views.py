@@ -619,27 +619,41 @@ def doc_builder(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
-    # We're going to use id=0 as a means of indicating the creation of a new document (vs. update/read of an existing document).
-    # id=0 can be conveyed either by the absence of an id parameter or by literally including "&id=0" in the GET params.
+    # DELETE = todo
+    # UPDATE = GET params will be the DocumentData ID.
+    # CREATE = GET params will be the Job ID and the doc_type.
     if request.GET.get('id') != None:
         doc_id = int(request.GET.get('id'))
-        job_id = DocumentData.objects.get(id=doc_id).job.id
+        doc_obj = DocumentData.objects.get(id=doc_id)
+
+        this_job = doc_obj.job
+        doc_code = doc_obj.doc_type
+        doc_title = dict(DOCUMENT_TYPES).get(doc_code)
+        doc_specific_obj = None
+
     elif request.GET.get('job') != None:
         doc_id = 0
-        job_id = int(request.GET.get('job'))
+
+        this_job = Job.objects.get(id=int(request.GET.get('job')))
+        doc_code = request.GET.get('type')
+        doc_title = f'Create New {dict(DOCUMENT_TYPES).get(doc_code)}'
+        doc_specific_obj = None
+
     else:
         return error_page(request, "Can't find document.", 400)
 
-    doc_code = request.GET.get('type')
 
-    # Handle adjustments to the database
+    # Handle adjustments to the database in the event of a POST
     if request.method == 'POST':
         posted_data = json.loads(request.body)
-        test = {}
-        test['reference'] = posted_data['reference']
-        test['issue_date'] = posted_data['issue_date']
-        form = DocumentDataForm(test)
 
+        # Handle fields common to all documents
+        doc_dict = {}
+        doc_dict['reference'] = posted_data['reference']
+        doc_dict['issue_date'] = posted_data['issue_date']
+        form = DocumentDataForm(doc_dict)
+
+        # Handle fields specific to certain document types. For now, that's only the WO card's requested date.
         doctype_specific_fields_exist = False
         doctype_specific_fields_are_ok = True
         if 'req_prod_date' in posted_data:
@@ -649,107 +663,45 @@ def doc_builder(request):
                 })
             doctype_specific_fields_are_ok = prod_data_form.is_valid()
 
-
+        # If the inputs are ok, proceed with the database updates.
         if form.is_valid() and (not doctype_specific_fields_exist or doctype_specific_fields_are_ok):
-            job = Job.objects.get(id=job_id)
 
             if(doc_id == 0):
-                # The user is creating a new document. Create it, then update doc_id accordingly.
+                # POST and doc_id == 0 means the user is creating a new document. Create it, then update doc_id accordingly.
                 doc_obj = DocumentData(
                     created_by = request.user,
                     reference = form.cleaned_data['reference'],
                     issue_date = form.cleaned_data['issue_date'],
                     doc_type = doc_code,
-                    job = job,
-                    invoice_to = job.invoice_to,
-                    delivery_to = job.delivery_to
+                    job = this_job,
+                    invoice_to = this_job.invoice_to,
+                    delivery_to = this_job.delivery_to
                 )
                 doc_obj.save()
                 doc_id = doc_obj.pk
 
-                # All "assigned_items" will require the creation of a new DocAssignment.
+                # If it's a new document, all the assigned_items and special_instructions must also be new and therefore require creation.
                 new_assignments = posted_data['assigned_items']
                 new_special_instructions = posted_data['special_instructions']
-
                 message = 'Document created and saved'
 
             else:
-                # ID != 0 means the user is updating an existing document.
-                doc_obj = DocumentData.objects.get(id=doc_id)
+                # POST and doc_id != 0 means the user is updating an existing document, which was assigned to doc_obj earlier.
                 doc_obj.reference = form.cleaned_data['reference']
                 doc_obj.issue_date = form.cleaned_data['issue_date']
                 doc_obj.doc_type = doc_code
-                doc_obj.job = job
-                doc_obj.invoice_to = job.invoice_to
-                doc_obj.delivery_to = job.delivery_to
+                doc_obj.job = this_job
+                doc_obj.invoice_to = this_job.invoice_to
+                doc_obj.delivery_to = this_job.delivery_to
                 doc_obj.save()
 
-                # Assignments on the server must be created/deleted/updated to match the list the user has specified.
-                existing_assignments = DocAssignment.objects.filter(document=doc_obj)
-                required_assignments = posted_data['assigned_items']
-
-                for ea in existing_assignments:
-                    found = False
-                    for req in required_assignments:
-                        if 'id' in req and int(req['id']) == ea.item.id:
-                            # Case = UPDATE: assignment already exists. Update the quantity, if you must, then check this off the to-do list.
-                            found = True
-                            if int(req['quantity']) != ea.quantity:
-                                ea.quantity = min(int(req['quantity']), ea.max_quantity())
-                                ea.save()
-                            required_assignments.remove(req)
-                            break
-                    if not found:
-                        # Case = DELETE: existing assignment doesn't appear in the required list.
-                        ea.delete()
-   
-                # Similar again, but for special instructions
-                existing_instructions = SpecialInstruction.objects.filter(document=doc_obj)
-                required_instructions = posted_data['special_instructions']
-
-                for ei in existing_instructions:
-                    found = False
-                    for req in required_instructions:
-                        if 'id' in req and int(req['id']) == ei.id:
-                            found = True
-                            ei.instruction = req['contents']
-                            ei.save()
-                            required_instructions.remove(req)
-                            break
-                    if not found:
-                        ei.delete()
-
-                # Case = CREATE for whatever's left in the required list
-                new_assignments = required_assignments
-                new_special_instructions = required_instructions
+                # If it's an existing document, assigned_items and special_instructions will need a mixture of creation, updating and/or deletion.
+                # Handle update and delete here. Create is also needed for new documents, so we'll handle that outside this if statement.
+                new_assignments = doc_obj.update_item_assignments_and_get_create_list(posted_data['assigned_items'])
+                new_special_instructions = doc_obj.update_special_instructions_and_get_create_list(posted_data['special_instructions'])
                 message = 'Document saved'
 
-
-            # Update document-specific fields. For now, that's only the WO requested date.
-            if 'req_prod_date' in posted_data:
-                proddata_qs = ProductionData.objects.filter(document=doc_obj)
-
-                if proddata_qs.count() == 0:
-                    if '' != prod_data_form.cleaned_data['date_requested']:
-                        prod_req = ProductionData(
-                            document = doc_obj,
-                            date_requested = prod_data_form.cleaned_data['date_requested'],
-                            date_scheduled = None
-                        )
-                        prod_req.save()
-
-                elif proddata_qs.count() == 1:
-                    prod_req = proddata_qs[0]
-
-                    if '' == prod_data_form.cleaned_data['date_requested']:
-                        prod_req.delete()
-
-                    elif prod_req.date_requested != prod_data_form.cleaned_data['date_requested']:
-                        prod_req.date_requested = prod_data_form.cleaned_data['date_requested']
-                        prod_req.save()
-
-
-            # Assign JobItems to the document.
+            # Create new JobItem assignments and special instructions.
             for jobitem in new_assignments:
                 assignment = DocAssignment(
                     document = doc_obj,
@@ -766,6 +718,10 @@ def doc_builder(request):
                 )
                 instr.save()
 
+            # Update document-specific fields. For now, that's only the WO requested date.
+            if 'req_prod_date' in posted_data:
+                doc_obj.update_requested_production_date(prod_data_form)
+
             return JsonResponse({
                 'message': message
             }, status=200)
@@ -778,49 +734,32 @@ def doc_builder(request):
             }, status=500)   
     
 
-    # This concludes the GET/POST specific stuff. Proceed with generic display activities.
-    doc_display = dict(DOCUMENT_TYPES).get(doc_code)
-    doc_specific_obj = None
-
+    # doc_id will only == 0 at this stage if this is a GET request for a "blank" new document, since POST>CREATE will have created a doc_id by now.
     if doc_id != 0:
-        # Load an existing document.
-        doc_obj = DocumentData.objects.get(id=doc_id)
+        # doc_obj is already set. Set included from it, then check for doc_specific fields.
         included = doc_obj.get_included_items()
-
-        available = doc_obj.get_available_items()
-        unavailable = doc_obj.get_unavailable_items()
-        if available == None:
-            excluded = unavailable
-        elif unavailable == None:
-            excluded = available
-        else:
-            excluded = available + unavailable
-
         if doc_obj.doc_type == 'WO':
             try:
                 doc_specific_obj = ProductionData.objects.filter(document=doc_obj)[0]
             except:
-                doc_specific_obj = None
+                pass
 
     else:
-        # Make a temporary document object to pass data to render and obtain access to the two get_(un)available_items() methods
+        # Make a temporary doc_obj to pass data to render and obtain access to useful methods.
         doc_obj = DocumentData(
             created_by = request.user,
             reference = '',
-            job = Job.objects.get(id=job_id),
+            job = this_job,
             doc_type = doc_code
         )
         included = doc_obj.get_available_items()
-        excluded = doc_obj.get_unavailable_items()
 
-    
     return render(request, 'adminas/document_builder.html', {
-        'doc_display': doc_display,
+        'doc_title': doc_title,
         'doc_id': doc_id,
         'doc': doc_obj,
-        'job': Job.objects.get(id=job_id),
         'included': included,
-        'excluded': excluded,
+        'excluded': doc_obj.get_excluded_items(),
         'doc_specific': doc_specific_obj,
         'special_instructions': doc_obj.instructions.all().order_by('-created_on')
     })
@@ -835,28 +774,34 @@ def document_display(request, doc_id):
         return anonymous_user(request)
 
     my_doc = DocumentData.objects.get(id=doc_id)
-    data = {}
 
-    data['title'] = 'Order Confirmation'
-
+    # Create a list of dicts where each has a display text label and a value for each piece of info needed for the document.
+    # In a "full" version of the program there'd be a model for each type of document with a method to return the necessary fields.
+    # Since this demo is only doing two documents, just bung it all in here.
     fields = []
-    fields.append({
-        'h': 'Confirmation No.',
-        'body': my_doc.reference
-    })
 
     fields.append({
         'h': 'Issue Date',
         'body': my_doc.issue_date
     })
 
-    po_iterable = my_doc.job.po.all()
-    str = ''
-    for po in po_iterable:
-        str += f', {po.reference}'
+    fields.append({
+        'h': 'Confirmation No.',
+        'body': my_doc.reference
+    })
+
+    # While most documents will relate to a single PO, some customers prefer to make additions via an additional PO rather than amending the first,
+    # so we're going to support making a list of POs.
+    str = f'{my_doc.job.po.all()[0].reference} dated {my_doc.job.po.all()[0].date_on_po}'
+    try:
+        for po in my_doc.job.po.all()[1:]:
+            str += f', {po.reference} dated {po.date_on_po}'
+    except:
+        pass
+
     fields.append({
         'h': 'PO No.',
-        'body': str[2:]
+        'body': str
     })
 
     try:
@@ -880,9 +825,20 @@ def document_display(request, doc_id):
         'body': str
     })
 
+    # Stick it all in a "data" dictionary
+    data = {}
     data['fields'] = fields
+    data['title'] = 'Order Confirmation'
 
-    
+    mode = request.GET.get('mode')
+    data['mode'] = mode
+    if mode == 'issued':
+        data['css_file'] = 'adminas/document_final.css'
+    else:
+        data['css_file'] = 'adminas/document_preview.css'
+
+
+    # Pagination of body text
     if request.GET.get("page"):
         page_num = request.GET.get("page")
     else:
@@ -899,6 +855,38 @@ def document_display(request, doc_id):
     })
 
     
+
+
+def document_main(request, doc_id):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+
+    try:
+        doc_obj = DocumentData.objects.get(id=doc_id)
+    except:
+        return error_page(request, "Can't find document.", 400) 
+
+    doc_title = dict(DOCUMENT_TYPES).get(doc_obj.doc_type)
+
+    doc_specific_obj = None
+    if doc_obj.doc_type == 'WO':
+        try:
+            doc_specific_obj = ProductionData.objects.filter(document=doc_obj)[0]
+        except:
+            pass
+
+    return render(request, 'adminas/document_main.html', {
+        'doc_title': doc_title,
+        'doc_id': doc_id,
+        'doc': doc_obj,
+        'doc_specific': doc_specific_obj,
+        'special_instructions': doc_obj.instructions.all().order_by('-created_on')
+    })
+
+
+
+
+
 
 
 

@@ -640,7 +640,7 @@ function save_document(){
 function update_document_on_server(issue_date){
     let dict = get_document_data_as_dict(issue_date);
 
-    if(DOC_ID = '0'){
+    if(DOC_ID == '0'){
         var URL = `${URL_DOCBUILDER}?job=${JOB_ID}&type=${DOC_CODE}`;
     } else {
         var URL = `${URL_DOCBUILDER}?id=${DOC_ID}`

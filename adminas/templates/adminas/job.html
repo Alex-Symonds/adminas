@@ -111,7 +111,7 @@
     {% for doc in job.related_documents %}
         {% if doc.doc_type == 'WO' %}
             <li>
-                <a href="{% url 'doc_builder' %}?id={{doc.id}}"
+                <a href="{% url 'doc_main' doc.id %}"
                     {% if doc.issue_date != None %}
                         class="issued-document">
                         <span class="issue-icon">(i)</span>
@@ -133,7 +133,7 @@
     {% for doc in job.related_documents %}
         {% if doc.doc_type == 'OC' %}
             <li>
-                <a href="{% url 'doc_builder' %}?id={{doc.id}}"
+                <a href="{% url 'doc_main' doc.id %}"
                     {% if doc.issue_date != None %}
                         class="issued-document">
                         <span class="issue-icon">(i)</span>
