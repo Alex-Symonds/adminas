@@ -1,0 +1,29 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Adminas{% block title %}{% endblock %}</title>
+
+        <link href="{% static 'adminas/document_styles.css' %}" rel="stylesheet">
+        <script src="{% static 'adminas/util.js' %}" type="text/javascript"></script>
+
+        {% block css %}
+        {% endblock %}
+
+        {% block javascript %}
+        {% endblock %}
+    </head>
+    <body>
+        <div class="document_header">
+            TODO: LOGO! Name! Shortform address!
+        </div>
+        <div class='document_contents'>
+            {% block body %}
+            {% endblock %}
+        </div>
+        <div class="document_footer">
+            TODO: Full address! Codes for stuff! Legal bumf!
+        </div>
+    </body>
+</html>

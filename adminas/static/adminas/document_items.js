@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
     });
 
+
     document.querySelector('#document_save_btn').addEventListener('click', () => {
         save_document();
     });
@@ -34,6 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
         open_issue_document_window(e);
     });
 
+    document.querySelector('#document_delete_btn').addEventListener('click', () => {
+        delete_document();
+    });
 
 
     document.querySelector('.add-special-instruction-btn').addEventListener('click', (e) => {
@@ -654,7 +658,11 @@ function update_document_on_server(issue_date){
     })
     .then(response => response.json())
     .then(data => {
-        display_document_response_message(data);
+        if ('redirect' in data){
+            window.location.href = data['redirect'];
+        } else {
+            display_document_response_message(data);
+        }
     })
     .catch(error => {
         console.log('Error: ', error)
@@ -667,9 +675,9 @@ function display_document_response_message(data){
     let message_ele = document.querySelector('.' + CLASS_MESSAGE_BOX);
 
     if(message_ele == null){
-        let anchor_ele = document.querySelector('.document-fields-container');
+        let anchor_ele = document.querySelector('#docbuilder_actions_buttons_container');
         message_ele = create_message_ele();
-        anchor_ele.before(message_ele);
+        anchor_ele.after(message_ele);
     }
 
     message_ele.innerHTML = `${data['message']} @ ${get_date_time()}`;
@@ -937,5 +945,30 @@ function remove_save_warning_ele(){
     let existing_unsaved_ele = document.querySelector('.unsaved-changes');
     if(existing_unsaved_ele != null){
         existing_unsaved_ele.remove();
+    }
+}
+
+
+
+function delete_document(){
+    let delete_confirmed = confirm('Deleting a document cannot be undone except by a system administrator. Are you sure?');
+
+    if(delete_confirmed){
+        fetch(`${URL_DOCBUILDER}?id=${DOC_ID}`,{
+            method: 'DELETE',
+            headers: getDjangoCsrfHeaders(),
+            credentials: 'include'         
+        })
+        .then(response => response.json())
+        .then(data => {
+            if ('redirect' in data){
+                window.location.href = data['redirect'];
+            } else {
+                display_document_response_message(data);
+            }
+        })
+        .catch(error => {
+            console.log('Error: ', error)
+        })
     }
 }

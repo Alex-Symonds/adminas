@@ -1,0 +1,100 @@
+{% extends "adminas/layout.html" %}
+
+{% block title %}
+    - Document
+{% endblock %}
+
+{% block body %}
+
+    <h2>Document</h2>
+    <h2>{{ doc_title }}</h2>
+    
+    <section class="status-controls">
+    {% if doc.issue_date %}
+        <span>Issued on {{ doc.issue_date }}</span><br />
+        <a href="{% url 'doc_display' doc.id %}?mode=issued">View</a><br />
+        Copy<br />
+    {% elif doc.active %}
+        <span>Working / draft</span><br />
+        <a href="{% url 'doc_builder' %}?id={{ doc.id }}">Enter edit mode</a><br />
+        <a href="{% url 'doc_display' doc.id %}?mode=preview">Preview</a><br />
+    {% else %}
+        <span>Deleted</span>
+        <p>To restore, contact an administrator.</p>
+    {% endif %}
+        <a href="{% url 'job' doc.job.id %}">Return to Job</a><br />
+    </section>
+
+    
+    <div class="document-fields-container">
+        <label for="id_doc_reference">Reference</label>
+        <div id="id_doc_reference">{{ doc.reference }}</div>
+
+    {% if doc.doc_type == 'WO' %}
+        <label for="id_req_prod_date">Requested Completion Date</label>
+        <div id="id_req_prod_date">{{ doc_specific.date_requested }}</div>
+    {% endif %}
+    </div>
+
+    <div>
+        Items
+        <div class="included-container">
+            Include
+            <ul class="included">
+    {% for inc in doc.get_included_items %}
+                <li>
+                    <span class="display">{{ inc.display }}</span>
+                </li>
+    {% empty %}
+                <li class="none">None</li>
+    {% endfor %}
+            </ul>
+        </div>
+    {% if doc.active %}
+        <div class="excluded-container">
+            Exclude
+            <ul class="excluded">
+        {% for excl in doc.get_excluded_items %}
+                <li {% if excl.is_available == False %}class="unavailable"{% endif %}>
+                    <span class="display">
+                        {{ excl.display }}
+            {% if excl.is_available %}
+                    </span>
+            {% else %}
+                        <span><a href="{% url 'doc_main' excl.doc_id %}">
+                            (on  
+                {% if excl.used_by %}
+                                {{ excl.used_by }})
+                {% else %}
+                            unnamed)
+                {% endif %}
+                        </a></span>
+                    </span>
+            {% endif %}
+                </li>
+        {% empty %}
+                <li class="none">None</li>
+        {% endfor %}                
+            </ul>
+        </div>
+    {% endif %}
+    </div>
+
+    <div class="section-special-instructions-builder">
+        <h3>Special Instructions</h3>
+        <div class="existing">
+    {% for sp_inst in special_instructions %}
+            <div class="one-special-instruction">
+                <div class="contents">{{ sp_inst.instruction }}</div>
+                <div class="who-and-when"><span class="username">{{ sp_inst.created_by }}</span> on <span class="when">{{ sp_inst.created_on }}</span></div>
+            </div>
+    {% empty %}
+            <p class="no_special_instructions">No special instructions on this document.</p>
+    {% endfor %}
+        </div>
+    </div>
+
+
+
+
+{% endblock %}

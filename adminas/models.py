@@ -308,6 +308,7 @@ class PurchaseOrder(AdminAuditTrail):
     date_received = models.DateField()
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
     value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
+    active = models.BooleanField(default=True)
 
     def value_f(self):
         return format_money(self.value)
@@ -333,6 +334,7 @@ class Job(AdminAuditTrail):
     
     incoterm_code = models.CharField(max_length=3, choices=INCOTERMS)
     incoterm_location = models.CharField(max_length=30)
+
 
     def total_value(self):
         # Change this to whatever is going to be the "main" value for the order
@@ -409,8 +411,11 @@ class Job(AdminAuditTrail):
         return item_list
 
     def related_documents(self):
-        qs = DocumentData.objects.filter(job=self)
+        qs = DocumentData.objects.filter(job=self).filter(active=True)
         return qs.order_by('issue_date').order_by('doc_type')
+
+    def related_po(self):
+        return PurchaseOrder.objects.filter(job=self).filter(active=True).order_by('date_received')
 
 
     def __str__(self):
@@ -871,7 +876,7 @@ class AccountingEvent(AdminAuditTrail):
 class AccEventOE(AccountingEvent):
     """ Store data about a single change to OE, whether it's a new order or a modification to an existing order """
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='oe_events')
-    po = models.ForeignKey(PurchaseOrder, on_delete=models.SET_NULL, related_name='oe_adjustments', blank=True, null=True)
+    po = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, related_name='oe_adjustments', blank=True, null=True)
 
     def __str__(self):
         return f'{get_plusminus_prefix(self.value)}{format_money(self.value)} {self.currency}. Job {self.job.name} @ {self.created_on.strftime("%Y-%m-%d %H:%M:%S")}'
@@ -892,21 +897,32 @@ class DocumentData(AdminAuditTrail):
     issue_date = models.DateField(null=True, blank=True)
     doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)
 
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='documents')
+    job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='documents')
+    active = models.BooleanField(default=True)
 
-    # Suppose a customer places an order, then moves premises prior to delivery. The Job record would be updated with their new address,
-    # but some documents may have already been issued and the addresses on those should not be retroactively updated.
-    # These two fields are intended to record the addresses as they were at the time the document was issued. 
-    invoice_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='financial_documents')
-    delivery_to = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_documents')
+    # Suppose a customer places an order, then moves premises prior to delivery. The Job record should be updated with their new address,
+    # but documents which have already been issued should preserve the address as it was when they were issued.
+    # These two fields are intended for that purpose. PROTECT because this could touch on financial documents: don't want to mess with those.
+    invoice_to = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, related_name='financial_documents')
+    delivery_to = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, related_name='delivery_documents')
 
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
     
+
+    def deactivate(self):
+        self.active = False
+
+
+
     def get_included_items(self):
         # List of items assigned to this particular document.
         # Use for populating the "included" list in the builder page.
-        if self.items.all().count() == 0:
+        if self.id == None:
+            return self.get_available_items()
+
+        elif self.items.all().count() == 0:
             return None
+
         else:
             assignments = DocAssignment.objects.filter(document=self)
             result = []
@@ -975,7 +991,7 @@ class DocumentData(AdminAuditTrail):
             result = []
             for poss_item in possible_items:
                 qty = poss_item.quantity
-                assignments = DocAssignment.objects.filter(document__doc_type=self.doc_type).filter(item=poss_item)
+                assignments = DocAssignment.objects.filter(document__doc_type=self.doc_type).filter(item=poss_item).filter(document__active=True)
 
                 for assignment in assignments:
                     qty = qty - assignment.quantity
@@ -997,40 +1013,46 @@ class DocumentData(AdminAuditTrail):
     def get_unavailable_items(self):
         # List of items already assigned to another document of this type.
         # Used to populate the "excluded" list.
-        assigned_elsewhere = DocAssignment.objects.filter(document__job=self.job).filter(document__doc_type=self.doc_type).exclude(document=self)
+        assigned_elsewhere = DocAssignment.objects.filter(document__job=self.job).filter(document__doc_type=self.doc_type).filter(document__active=True)
+        if self.id != None:
+            assigned_elsewhere = assigned_elsewhere.exclude(document=self)
+        
         if assigned_elsewhere.all().count() == 0:
             return None
-        else:
-            result = []
-            for ae in assigned_elsewhere.all():
-                this_dict = {}
-                this_dict['id'] = ae.pk
-                this_dict['jiid'] = ae.item.pk
-                this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
-                this_dict['is_available'] = False
-                this_dict['used_by'] = ae.document.reference
-                this_dict['doc_id'] = ae.document.id
-                result.append(this_dict)                
-            return result
+
+        result = []
+        for ae in assigned_elsewhere.all():
+            this_dict = {}
+            this_dict['id'] = ae.pk
+            this_dict['jiid'] = ae.item.pk
+            this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
+            this_dict['is_available'] = False
+            this_dict['used_by'] = ae.document.reference
+            this_dict['doc_id'] = ae.document.id
+            result.append(this_dict)                
+        return result
 
 
     def update_item_assignments_and_get_create_list(self, required):
+        # required = a list of dicts with two fields, JobItem id and quantity, which reflects the desired end state for DocAssignment records.
+        # Here we compare "required" to existing DocAssignments and handle cases of update, "no change" and delete.
+        # Creating new DocAssignments will be handled elsewhere, so return a list of everything that doesn't already have a record.
         for ea in DocAssignment.objects.filter(document=self):
             found = False
             for req in required:
                 if 'id' in req and int(req['id']) == ea.item.id:
-                    # Case = UPDATE: assignment already exists. Update the quantity, if you must, then check this off the to-do list.
+                    # Case = UPDATE: assignment already exists. Update the quantity, if necessary, then check this off the to-do list.
                     found = True
                     if int(req['quantity']) != ea.quantity:
                         ea.quantity = min(int(req['quantity']), ea.max_quantity())
                         ea.save()
-                        debug(ea)
                     required.remove(req)
                     break
             if not found:
                 # Case = DELETE: existing assignment doesn't appear in the required list.
                 ea.delete()
         return required
+
 
     def update_special_instructions_and_get_create_list(self, required):
         for ei in SpecialInstruction.objects.filter(document=self):
@@ -1045,6 +1067,7 @@ class DocumentData(AdminAuditTrail):
             if not found:
                 ei.delete()
         return required
+
 
     def update_requested_production_date(self, prod_data_form):
         if self.doc_type == 'WO':

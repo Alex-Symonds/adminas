@@ -20,27 +20,24 @@
     <h2>Document Builder</h2>
     <h2>{{ doc_title }}</h2>
 
-    <a href="{% url 'job' doc.job.id %}">Return to Job</a><br />
+    <section class="status-controls">
+        <span>Working on document.</span><br />
+
+
     {% if doc_id == 0 %}
-        <p>View and preview are disabled until the document has been saved.</p>
+        <p>Preview is disabled until the document has been saved.</p>
     {% else %}
         <a href="{% url 'doc_main' doc.id %}">Exit edit mode</a><br />
-        {% if doc.issue_date %}
-        <a href="{% url 'doc_display' doc_id %}?mode=issued">View</a>
-        {% else %}
-        <a href="{% url 'doc_display' doc_id %}?mode=preview">Preview</a>
-        {% endif %}
+        <a href="{% url 'doc_display' doc_id %}?mode=preview">Preview</a><br />
     {% endif %}
+        <a href="{% url 'job' doc.job.id %}">Return to Job</a>
+    </section>
+
 
     <div class="document-fields-container">
-    {% if doc.issue_date %}
-        Issue date: {{ doc.issue_date }}
-    {% endif %}
 
         <label for="id_doc_reference">Reference</label>
         <input type="text" id="id_doc_reference" value="{{doc.reference}}">
-
-
 
     {% if doc.doc_type == 'WO' %}
         <label for="id_req_prod_date">Requested Completion Date</label>
@@ -53,7 +50,7 @@
         <div class="included-container">
             Include
             <ul class="included">
-    {% for inc in included %}
+    {% for inc in doc.get_included_items %}
                 <li data-jiid="{{ inc.jiid }}">
                     <span class="display">{{ inc.display }}</span>
                     <button class="split-docitem-btn">split</button>
@@ -67,7 +64,7 @@
         <div class="excluded-container">
             Exclude
             <ul class="excluded">
-        {% for excl in excluded %}
+        {% for excl in doc.get_excluded_items %}
                 <li data-jiid="{{ excl.jiid }}" {% if excl.is_available == False %}class="unavailable"{% endif %}>
                     <span class="display">
                         {{ excl.display }}
@@ -115,10 +112,13 @@
         </form>
     </div>
 
-    <div>
+
+    <div id="docbuilder_actions_buttons_container">
         <button id="document_save_btn">save</button>
         <button id="document_issue_btn">issue</button>
+        <button id="document_delete_btn">delete</button>
     </div>
+
 
 
 

@@ -74,7 +74,7 @@
     <div id="job_po_section">
         <h3>Purchase Order</h3>
         <div class="job-po-container">
-    {% for po in job.po.all %}
+    {% for po in job.related_po %}
                 <div class="po-row">
                     <div class="details">
                         <span class="reference">{{ po.reference }}</span> dated <span class="date_on_po">{{ po.date_on_po }}</span> for <span class="currency">{{ po.currency }}</span> <span class="value">{{ po.value_f }}</span> (received <span class="date_received">{{ po.date_received }}</span>)
