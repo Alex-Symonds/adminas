@@ -4,33 +4,37 @@
     - Document
 {% endblock %}
 
+{% block javascript %}
+    
+{% endblock %}
+
 {% block body %}
 
     <h2>Document</h2>
     <h2>{{ doc_title }}</h2>
     
     <section class="status-controls">
-    {% if doc.issue_date %}
-        <span>Issued on {{ doc.issue_date }}</span><br />
-        <a href="{% url 'doc_display' doc.id %}?mode=issued">View</a><br />
-        Copy<br />
-    {% elif doc.active %}
+    {% if doc_version.issue_date %}
+        <span>Issued on {{ doc_version.issue_date }}</span><br />
+        <a href="{% url 'doc_display' doc_version.id %}?mode=issued">View</a><br />
+        <button class="replace-document" data-doc_id="{{ doc_version.id }}">Replace with new version</button><br />
+    {% elif doc_version.active %}
         <span>Working / draft</span><br />
-        <a href="{% url 'doc_builder' %}?id={{ doc.id }}">Enter edit mode</a><br />
-        <a href="{% url 'doc_display' doc.id %}?mode=preview">Preview</a><br />
+        <a href="{% url 'doc_builder' %}?id={{ doc_version.id }}">Enter edit mode</a><br />
+        <a href="{% url 'doc_display' doc_version.id %}?mode=preview">Preview</a><br />
     {% else %}
         <span>Deleted</span>
         <p>To restore, contact an administrator.</p>
     {% endif %}
-        <a href="{% url 'job' doc.job.id %}">Return to Job</a><br />
+        <a href="{% url 'job' doc_version.document.job.id %}">Return to Job</a><br />
     </section>
 
     
     <div class="document-fields-container">
         <label for="id_doc_reference">Reference</label>
-        <div id="id_doc_reference">{{ doc.reference }}</div>
+        <div id="id_doc_reference">{{ doc_version.document.reference }}</div>
 
-    {% if doc.doc_type == 'WO' %}
+    {% if doc_version.document.doc_type == 'WO' %}
         <label for="id_req_prod_date">Requested Completion Date</label>
         <div id="id_req_prod_date">{{ doc_specific.date_requested }}</div>
     {% endif %}
@@ -41,7 +45,7 @@
         <div class="included-container">
             Include
             <ul class="included">
-    {% for inc in doc.get_included_items %}
+    {% for inc in doc_version.get_included_items %}
                 <li>
                     <span class="display">{{ inc.display }}</span>
                 </li>
@@ -50,11 +54,11 @@
     {% endfor %}
             </ul>
         </div>
-    {% if doc.active %}
+    {% if doc_version.active %}
         <div class="excluded-container">
             Exclude
             <ul class="excluded">
-        {% for excl in doc.get_excluded_items %}
+        {% for excl in doc_version.get_excluded_items %}
                 <li {% if excl.is_available == False %}class="unavailable"{% endif %}>
                     <span class="display">
                         {{ excl.display }}

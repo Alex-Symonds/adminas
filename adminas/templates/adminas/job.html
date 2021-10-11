@@ -108,17 +108,17 @@
         <h3>Documents</h3>
         <h4>Works Order</h4>
         <ul>
-    {% for doc in job.related_documents %}
-        {% if doc.doc_type == 'WO' %}
+    {% for doc_version in job.related_documents %}
+        {% if doc_version.document.doc_type == 'WO' %}
             <li>
-                <a href="{% url 'doc_main' doc.id %}"
-                    {% if doc.issue_date != None %}
+                <a href="{% url 'doc_main' doc_version.id %}"
+                    {% if doc_version.issue_date != None %}
                         class="issued-document">
                         <span class="issue-icon">(i)</span>
                     {% else %}
                         class="saved-document">
                         <span class="saved-icon">(s)</span>
-                    {% endif %}{{ doc.doc_type }} {{ doc.reference }} dtd {% if doc.issue_date != None %} {{ doc.issue_date|date:'Y-m-d' }} {% else %} {{ doc.created_on|date:'Y-m-d' }} {% endif %}
+                    {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
                 </a>
             </li>
         {% endif %}
@@ -130,17 +130,17 @@
 
         <h4>Order Confirmation</h4>
         <ul>
-    {% for doc in job.related_documents %}
-        {% if doc.doc_type == 'OC' %}
+    {% for doc_version in job.related_documents %}
+        {% if doc_version.document.doc_type == 'OC' %}
             <li>
-                <a href="{% url 'doc_main' doc.id %}"
-                    {% if doc.issue_date != None %}
+                <a href="{% url 'doc_main' doc_version.id %}"
+                    {% if doc_version.issue_date != None %}
                         class="issued-document">
                         <span class="issue-icon">(i)</span>
                     {% else %}
                         class="saved-document">
                         <span class="saved-icon">(s)</span>
-                    {% endif %}{{ doc.doc_type }} {{ doc.reference }} dtd {% if doc.issue_date != None %} {{ doc.issue_date|date:'Y-m-d' }} {% else %} {{ doc.created_on|date:'Y-m-d' }} {% endif %}
+                    {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
                 </a>
             </li>
         {% endif %}

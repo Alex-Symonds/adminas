@@ -3,9 +3,9 @@
 
 {% block javascript %}
     <script>
-        const DOC_CODE = '{{ doc.doc_type }}';
+        const DOC_CODE = '{{ doc_type }}';
         const DOC_ID = '{{ doc_id }}';
-        const JOB_ID = '{{ doc.job.id }}';
+        const JOB_ID = '{{ job_id }}';
         const URL_DOCBUILDER = "{% url 'doc_builder' %}";
     </script>
     <script src="{% static 'adminas/document_items.js' %}" type="text/javascript"></script>
@@ -27,19 +27,19 @@
     {% if doc_id == 0 %}
         <p>Preview is disabled until the document has been saved.</p>
     {% else %}
-        <a href="{% url 'doc_main' doc.id %}">Exit edit mode</a><br />
+        <a href="{% url 'doc_main' doc_id %}">Exit edit mode</a><br />
         <a href="{% url 'doc_display' doc_id %}?mode=preview">Preview</a><br />
     {% endif %}
-        <a href="{% url 'job' doc.job.id %}">Return to Job</a>
+        <a href="{% url 'job' job_id %}">Return to Job</a>
     </section>
 
 
     <div class="document-fields-container">
 
         <label for="id_doc_reference">Reference</label>
-        <input type="text" id="id_doc_reference" value="{{doc.reference}}">
+        <input type="text" id="id_doc_reference" value="{{reference}}">
 
-    {% if doc.doc_type == 'WO' %}
+    {% if doc_type == 'WO' %}
         <label for="id_req_prod_date">Requested Completion Date</label>
         <input type="datetime" id="id_req_prod_date" value="{{doc_specific.date_requested|date:'d/m/Y'}}">
     {% endif %}
@@ -50,7 +50,7 @@
         <div class="included-container">
             Include
             <ul class="included">
-    {% for inc in doc.get_included_items %}
+    {% for inc in included_items %}
                 <li data-jiid="{{ inc.jiid }}">
                     <span class="display">{{ inc.display }}</span>
                     <button class="split-docitem-btn">split</button>
@@ -64,7 +64,7 @@
         <div class="excluded-container">
             Exclude
             <ul class="excluded">
-        {% for excl in doc.get_excluded_items %}
+        {% for excl in excluded_items %}
                 <li data-jiid="{{ excl.jiid }}" {% if excl.is_available == False %}class="unavailable"{% endif %}>
                     <span class="display">
                         {{ excl.display }}

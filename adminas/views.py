@@ -14,8 +14,8 @@ from django.core.paginator import Paginator
 from decimal import Decimal
 import datetime
 
-from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData
-from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm
+from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion
+from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, MAX_ROWS_OC
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
@@ -625,12 +625,13 @@ def doc_builder(request):
     #   UPDATE (at both ends of the process) will pass "id" (= the DocumentData PK).
     #   DELETE will pass "id" and "delete=true"
     if request.method == 'DELETE':
-        doc_obj = DocumentData.objects.get(id=int(request.GET.get('id')))
+        doc_obj = DocumentVersion.objects.get(id=int(request.GET.get('id')))
+
         if doc_obj.issue_date == None:
             doc_obj.deactivate()
             doc_obj.save()
             return JsonResponse({
-                'redirect': reverse('job', kwargs={'job_id': doc_obj.job.id})
+                'redirect': reverse('job', kwargs={'job_id': doc_obj.document.job.id})
             })
         else:
             return JsonResponse({
@@ -638,19 +639,23 @@ def doc_builder(request):
             }, status=200)
 
     elif request.GET.get('id') != None:
-        doc_obj = DocumentData.objects.get(id=int(request.GET.get('id')))
+        doc_obj = DocumentVersion.objects.get(id=int(request.GET.get('id')))
 
         if doc_obj.issue_date != None:
             return error_page(request, "Forbidden. You can't edit a document which has already been issued.", 403)
 
-        this_job = doc_obj.job
-        doc_code = doc_obj.doc_type
+        this_job = doc_obj.document.job
+        job_id = this_job.id
+        doc_code = doc_obj.document.doc_type
+        doc_ref = doc_obj.document.reference
         doc_title = dict(DOCUMENT_TYPES).get(doc_code)
 
     elif request.GET.get('job') != None:
         doc_obj = None
-        this_job = Job.objects.get(id=int(request.GET.get('job')))
+        job_id = int(request.GET.get('job'))
+        this_job = Job.objects.get(id=job_id)
         doc_code = request.GET.get('type')
+        doc_ref = ''
         doc_title = f'Create New {dict(DOCUMENT_TYPES).get(doc_code)} for {this_job.name}'
 
     else:
@@ -670,8 +675,11 @@ def doc_builder(request):
             posted_data = json.loads(request.body)
             doc_dict = {}
             doc_dict['reference'] = posted_data['reference']
-            doc_dict['issue_date'] = posted_data['issue_date']
             form = DocumentDataForm(doc_dict)
+
+            version_dict = {}
+            version_dict['issue_date'] = posted_data['issue_date']
+            version_form = DocumentVersionForm(version_dict)
 
             # Form specific to a certain document type.
             doctype_specific_fields_exist = False
@@ -684,16 +692,22 @@ def doc_builder(request):
                 doctype_specific_fields_are_ok = prod_data_form.is_valid()
 
             # If the inputs are ok, proceed with the database updates.
-            if form.is_valid() and (not doctype_specific_fields_exist or doctype_specific_fields_are_ok):
+            if form.is_valid() and version_form.is_valid() and (not doctype_specific_fields_exist or doctype_specific_fields_are_ok):
 
                 if(doc_obj == None):
                     # POST and doc_obj == None means the user is creating a new document. Create it now and save it.
-                    doc_obj = DocumentData(
-                        created_by = request.user,
+                    parent_doc = DocumentData(
                         reference = form.cleaned_data['reference'],
-                        issue_date = form.cleaned_data['issue_date'],
                         doc_type = doc_code,
-                        job = this_job,
+                        job = this_job
+                    )
+                    parent_doc.save()
+
+                    doc_obj = DocumentVersion(
+                        created_by = request.user,
+                        document = parent_doc,
+                        version_number = 1,
+                        issue_date = version_form.cleaned_data['issue_date'] if 'issue_date' in version_form.cleaned_data else None,
                         invoice_to = this_job.invoice_to,
                         delivery_to = this_job.delivery_to
                     )
@@ -706,10 +720,13 @@ def doc_builder(request):
 
                 else:
                     # POST and doc_id != None means the user is updating an existing document.
-                    doc_obj.reference = form.cleaned_data['reference']
-                    doc_obj.issue_date = form.cleaned_data['issue_date']
-                    doc_obj.doc_type = doc_code
-                    doc_obj.job = this_job
+                    parent = doc_obj.document
+                    parent.reference = form.cleaned_data['reference']
+                    parent.doc_type = doc_code
+                    parent.job = this_job
+                    parent.save()
+
+                    doc_obj.issue_date = version_form.cleaned_data['issue_date']
                     doc_obj.invoice_to = this_job.invoice_to
                     doc_obj.delivery_to = this_job.delivery_to
                     doc_obj.save()
@@ -723,7 +740,7 @@ def doc_builder(request):
                 # Create new JobItem assignments and special instructions.
                 for jobitem in new_assignments:
                     assignment = DocAssignment(
-                        document = doc_obj,
+                        version = doc_obj,
                         item = JobItem.objects.get(id=jobitem['id']),
                         quantity = jobitem['quantity']
                     )
@@ -731,7 +748,7 @@ def doc_builder(request):
 
                 for spec_instr in new_special_instructions:
                     instr = SpecialInstruction(
-                        document = doc_obj,
+                        version = doc_obj,
                         instruction = spec_instr['contents'],
                         created_by = request.user
                     )
@@ -753,6 +770,7 @@ def doc_builder(request):
 
             else:
                 debug(form.errors)
+                debug(version_form.errors)
                 debug(prod_data_form.errors)
                 return JsonResponse({
                     'message': 'Invalid data.'
@@ -762,8 +780,12 @@ def doc_builder(request):
     # doc_obj will only == None at this stage if this is a GET request for a "blank" new document, since POST>CREATE will have created a doc_obj by now.
     doc_specific_obj = None
     if doc_obj != None:
+        included_list = doc_obj.get_included_items()
+        excluded_list = doc_obj.get_excluded_items()
+        special_instructions = doc_obj.instructions.all().order_by('-created_on')
+
         # Check for doc_specific fields.
-        if doc_obj.doc_type == 'WO':
+        if doc_obj.document.doc_type == 'WO':
             try:
                 doc_specific_obj = ProductionData.objects.filter(document=doc_obj)[0]
             except:
@@ -771,19 +793,22 @@ def doc_builder(request):
 
     else:
         # Make a temporary doc_obj to pass data to render and obtain access to useful methods.
-        doc_obj = DocumentData(
-            created_by = request.user,
-            reference = '',
-            job = this_job,
-            doc_type = doc_code
-        )
+        included_list = this_job.get_default_included_items(doc_code)
+        excluded_list = this_job.get_default_excluded_items(doc_code)
+        special_instructions = None
+
 
     return render(request, 'adminas/document_builder.html', {
         'doc_title': doc_title,
-        'doc_id': doc_obj.id if doc_obj.id != None else 0,
+        'doc_id': doc_obj.id if doc_obj != None else 0,
         'doc': doc_obj,
+        'doc_type': doc_code,
+        'reference': doc_ref,
+        'job_id': job_id,
         'doc_specific': doc_specific_obj,
-        'special_instructions': doc_obj.instructions.all().order_by('-created_on')
+        'included_items': included_list,
+        'excluded_items': excluded_list,
+        'special_instructions': special_instructions
     })
 
 
@@ -795,7 +820,7 @@ def document_display(request, doc_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
-    my_doc = DocumentData.objects.get(id=doc_id)
+    my_doc = DocumentVersion.objects.get(id=doc_id)
 
     # Create a list of dicts where each has a display text label and a value for each piece of info needed for the document.
     # In a "full" version of the program there'd be a model for each type of document with a method to return the necessary fields.
@@ -809,14 +834,14 @@ def document_display(request, doc_id):
 
     fields.append({
         'h': 'Confirmation No.',
-        'body': my_doc.reference
+        'body': my_doc.document.reference
     })
 
     # While most documents will relate to a single PO, some customers prefer to make additions via an additional PO rather than amending the first,
     # so we're going to support making a list of POs.
-    str = f'{my_doc.job.po.all()[0].reference} dated {my_doc.job.po.all()[0].date_on_po}'
+    str = f'{my_doc.document.job.po.all()[0].reference} dated {my_doc.document.job.po.all()[0].date_on_po}'
     try:
-        for po in my_doc.job.po.all()[1:]:
+        for po in my_doc.document.job.po.all()[1:]:
             str += f', {po.reference} dated {po.date_on_po}'
     except:
         pass
@@ -827,7 +852,7 @@ def document_display(request, doc_id):
     })
 
     try:
-        prod_data = ProductionData.objects.filter(document=my_doc)[0]
+        prod_data = ProductionData.objects.filter(version=my_doc)[0]
         date_sched = prod_data.date_scheduled
     except:
         date_sched = 'TBC'
@@ -871,7 +896,7 @@ def document_display(request, doc_id):
     data['empty_row_range'] = range(1, num_empty_rows)
 
     return render(request, 'adminas/doc_order_confirmation.html', {
-        'doc': my_doc,
+        'doc_version': my_doc,
         'data': data,
         'page': req_page
     })
@@ -884,23 +909,23 @@ def document_main(request, doc_id):
         return anonymous_user(request)
 
     try:
-        doc_obj = DocumentData.objects.get(id=doc_id)
+        doc_obj = DocumentVersion.objects.get(id=doc_id)
     except:
         return error_page(request, "Can't find document.", 400) 
 
-    doc_title = dict(DOCUMENT_TYPES).get(doc_obj.doc_type)
+    doc_title = dict(DOCUMENT_TYPES).get(doc_obj.document.doc_type)
 
     doc_specific_obj = None
-    if doc_obj.doc_type == 'WO':
+    if doc_obj.document.doc_type == 'WO':
         try:
-            doc_specific_obj = ProductionData.objects.filter(document=doc_obj)[0]
+            doc_specific_obj = ProductionData.objects.filter(version=doc_obj)[0]
         except:
             pass
 
     return render(request, 'adminas/document_main.html', {
         'doc_title': doc_title,
         'doc_id': doc_id,
-        'doc': doc_obj,
+        'doc_version': doc_obj,
         'doc_specific': doc_specific_obj,
         'special_instructions': doc_obj.instructions.all().order_by('-created_on')
     })

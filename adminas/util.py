@@ -59,3 +59,42 @@ def debug(print_this):
     print('---------------------------------------------------------------------------')
 
 
+
+
+def get_document_included_items(possible_items, doc_type):
+    # List of items assigned to this Job which have not yet been assigned to a document of this type.
+    # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
+    # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
+
+    if possible_items.count() == 0:
+        return None
+
+    else:
+        result = []
+        for poss_item in possible_items:
+            qty = poss_item.quantity
+            assignments = adminas.models.DocAssignment.objects.filter(version__document__doc_type=doc_type).filter(item=poss_item).filter(version__active=True)
+
+            for assignment in assignments:
+                qty = qty - assignment.quantity
+
+            if qty > 0:
+                this_dict = {}
+                this_dict['jiid'] = poss_item.pk
+                this_dict['display'] = poss_item.display_str().replace(str(poss_item.quantity), str(qty))
+                this_dict['is_available'] = True
+                result.append(this_dict)      
+
+        if len(result) == 0:
+            return None
+        else:
+            return result
+
+
+def copy_relations_to_new_document_version(existing_relations, new_version):
+    for record in existing_relations:
+        r = record
+        r.pk = None
+        r.version = new_version
+        r.save()
+    return

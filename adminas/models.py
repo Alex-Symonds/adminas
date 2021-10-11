@@ -10,7 +10,7 @@ from django_countries.fields import CountryField
 
 from decimal import Decimal
 from adminas.constants import DOCUMENT_TYPES, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
-from adminas.util import format_money, get_plusminus_prefix, debug
+from adminas.util import format_money, get_document_included_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
 import datetime
 
 # Size fields
@@ -411,11 +411,44 @@ class Job(AdminAuditTrail):
         return item_list
 
     def related_documents(self):
-        qs = DocumentData.objects.filter(job=self).filter(active=True)
-        return qs.order_by('issue_date').order_by('doc_type')
+        qs = DocumentVersion.objects.filter(document__job=self).filter(active=True)
+        return qs.order_by('issue_date').order_by('document__doc_type')
 
     def related_po(self):
         return PurchaseOrder.objects.filter(job=self).filter(active=True).order_by('date_received')
+
+
+    # Document stuff
+    def get_default_included_items(self, doc_type):
+        # List of items assigned to this Job which have not yet been assigned to a document of this type.
+        # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
+        # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
+        result = get_document_included_items(self.main_item_list(), doc_type)
+        return result
+
+    def get_default_excluded_items(self, doc_type):
+        # List of items already assigned to another document of the type in the argument.
+        # Used to populate the "excluded" list when displaying a blank form for creating a new document.
+        assigned_elsewhere = DocAssignment.objects\
+                            .filter(version__document__job=self)\
+                            .filter(version__document__doc_type=doc_type)\
+                            .filter(version__active=True)\
+
+        if assigned_elsewhere.all().count() == 0:
+            return None
+
+        result = []
+        for ae in assigned_elsewhere.all():
+            this_dict = {}
+            this_dict['id'] = ae.pk
+            this_dict['jiid'] = ae.item.pk
+            this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
+            this_dict['is_available'] = False
+            this_dict['used_by'] = ae.document.reference
+            this_dict['doc_id'] = ae.document.id
+            result.append(this_dict)                
+        return result
+
 
 
     def __str__(self):
@@ -891,13 +924,27 @@ class AccEventTO(AccountingEvent):
 
 
 
-
-class DocumentData(AdminAuditTrail):
+class DocumentData(models.Model):
     reference = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
-    issue_date = models.DateField(null=True, blank=True)
     doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)
-
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='documents')
+
+    def previous_versions(self):
+        try:
+            return DocumentVersion.objects.filter(document=self).filter(active=False).order_by('created_on')
+        except:
+            return None
+
+    def __str__(self):
+        return f'{self.doc_type} {self.reference}'
+
+
+class DocumentVersion(AdminAuditTrail):
+    document = models.ForeignKey(DocumentData, on_delete=models.CASCADE, related_name='versions')
+    version_number = models.IntegerField()
+    issue_date = models.DateField(null=True, blank=True)
+
+    # This should be set to False in two situations: version is deleted; version is replaced
     active = models.BooleanField(default=True)
 
     # Suppose a customer places an order, then moves premises prior to delivery. The Job record should be updated with their new address,
@@ -908,23 +955,39 @@ class DocumentData(AdminAuditTrail):
 
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
     
-
     def deactivate(self):
         self.active = False
+
+    def get_replacement(self):
+        r = self
+
+        r.pk = None
+        r.created_on = datetime.date.today()
+        r.version_number = self.version_number + 1
+        r.issue_date = None
+        r.active = True
+        r.invoice_to = self.document.job.invoice_to
+        r.delivery_to = self.document.job.delivery_to
+        r.save()
+
+        copy_relations_to_new_document_version(self.items.all(), self)
+        copy_relations_to_new_document_version(self.instructions.all(), self)
+        copy_relations_to_new_document_version(self.production_data.all(), self)
+
+        self.deactivate()
+
+        return r
 
 
 
     def get_included_items(self):
         # List of items assigned to this particular document.
         # Use for populating the "included" list in the builder page.
-        if self.id == None:
-            return self.get_available_items()
-
-        elif self.items.all().count() == 0:
+        if self.items.all().count() == 0:
             return None
 
         else:
-            assignments = DocAssignment.objects.filter(document=self)
+            assignments = DocAssignment.objects.filter(version=self)
             result = []
             for a in assignments:
                 this_dict = {}
@@ -933,6 +996,7 @@ class DocumentData(AdminAuditTrail):
                 this_dict['display'] = a.item.display_str().replace(str(a.item.quantity), str(a.quantity))
                 result.append(this_dict)
             return result
+
 
     def get_excluded_items(self):
         available = self.get_available_items()
@@ -950,13 +1014,13 @@ class DocumentData(AdminAuditTrail):
         if self.items.all().count() == 0:
             return None
         else:
-            assignments = DocAssignment.objects.filter(document=self)
+            assignments = DocAssignment.objects.filter(version=self)
             result = []
             for a in assignments:
                 main_item = {}
                 main_item['quantity'] = a.quantity
                 main_item['part_number'] = a.item.product.part_number
-                main_item['product_description'] = a.item.product.get_description(self.job.language)
+                main_item['product_description'] = a.item.product.get_description(self.document.job.language)
                 main_item['origin'] = a.item.product.origin_country
                 main_item['list_price_f'] = format_money(a.item.list_price() / a.item.quantity)
                 main_item['unit_price_f'] = format_money(a.item.selling_price / a.item.quantity)
@@ -978,45 +1042,21 @@ class DocumentData(AdminAuditTrail):
 
 
     def get_available_items(self):
-        # List of items available for assignment to this particular document.
-        # When creating a new document, default assumption = the user is creating this document to cover all the unassigned items, so
-        # this is used to populate the default "included" list.
-        # When updating an existing document, this will form the top half of the "excluded" list.
-        possible_items = self.job.main_item_list()
-
-        if possible_items.count() == 0:
-            return None
-
-        else:
-            result = []
-            for poss_item in possible_items:
-                qty = poss_item.quantity
-                assignments = DocAssignment.objects.filter(document__doc_type=self.doc_type).filter(item=poss_item).filter(document__active=True)
-
-                for assignment in assignments:
-                    qty = qty - assignment.quantity
-                
-                if qty > 0:
-                    this_dict = {}
-                    this_dict['jiid'] = poss_item.pk
-                    this_dict['display'] = poss_item.display_str().replace(str(poss_item.quantity), str(qty))
-                    this_dict['is_available'] = True
-                    result.append(this_dict)      
-
-            if len(result) == 0:
-                return None
-            else:
-                return result
-
+        # List of items assigned to this Job which have not yet been assigned to a document of this type.
+        # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
+        # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
+        return get_document_included_items(self.document.job.main_item_list(), self.document.doc_type)
 
 
     def get_unavailable_items(self):
         # List of items already assigned to another document of this type.
         # Used to populate the "excluded" list.
-        assigned_elsewhere = DocAssignment.objects.filter(document__job=self.job).filter(document__doc_type=self.doc_type).filter(document__active=True)
-        if self.id != None:
-            assigned_elsewhere = assigned_elsewhere.exclude(document=self)
-        
+        assigned_elsewhere = DocAssignment.objects\
+                            .filter(version__document__job=self.document.job)\
+                            .filter(version__document__doc_type=self.document.doc_type)\
+                            .filter(version__active=True)\
+                            .exclude(version=self)
+
         if assigned_elsewhere.all().count() == 0:
             return None
 
@@ -1027,8 +1067,8 @@ class DocumentData(AdminAuditTrail):
             this_dict['jiid'] = ae.item.pk
             this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
             this_dict['is_available'] = False
-            this_dict['used_by'] = ae.document.reference
-            this_dict['doc_id'] = ae.document.id
+            this_dict['used_by'] = ae.version.document.reference
+            this_dict['doc_id'] = ae.version.id
             result.append(this_dict)                
         return result
 
@@ -1037,7 +1077,7 @@ class DocumentData(AdminAuditTrail):
         # required = a list of dicts with two fields, JobItem id and quantity, which reflects the desired end state for DocAssignment records.
         # Here we compare "required" to existing DocAssignments and handle cases of update, "no change" and delete.
         # Creating new DocAssignments will be handled elsewhere, so return a list of everything that doesn't already have a record.
-        for ea in DocAssignment.objects.filter(document=self):
+        for ea in DocAssignment.objects.filter(version=self):
             found = False
             for req in required:
                 if 'id' in req and int(req['id']) == ea.item.id:
@@ -1055,7 +1095,7 @@ class DocumentData(AdminAuditTrail):
 
 
     def update_special_instructions_and_get_create_list(self, required):
-        for ei in SpecialInstruction.objects.filter(document=self):
+        for ei in SpecialInstruction.objects.filter(version=self):
             found = False
             for req in required:
                 if 'id' in req and int(req['id']) == ei.id:
@@ -1070,13 +1110,13 @@ class DocumentData(AdminAuditTrail):
 
 
     def update_requested_production_date(self, prod_data_form):
-        if self.doc_type == 'WO':
-            proddata_qs = ProductionData.objects.filter(document=self)
+        if self.document.doc_type == 'WO':
+            proddata_qs = ProductionData.objects.filter(version=self)
 
             if proddata_qs.count() == 0:
                 if '' != prod_data_form.cleaned_data['date_requested']:
                     prod_req = ProductionData(
-                        document = self,
+                        version = self,
                         date_requested = prod_data_form.cleaned_data['date_requested'],
                         date_scheduled = None
                     )
@@ -1102,11 +1142,11 @@ class DocumentData(AdminAuditTrail):
         return format_money(self.total_value())
 
     def __str__(self):
-        return f'{self.doc_type} {self.reference} dated {self.issue_date}'
+        return f'{self.document.doc_type} {self.document.reference} v{self.version_number} dated {self.issue_date}'
 
 
 class DocAssignment(models.Model):
-    document = models.ForeignKey(DocumentData, on_delete=models.CASCADE)
+    version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE)
     item = models.ForeignKey(JobItem, on_delete=models.CASCADE)
     quantity = models.IntegerField()
 
@@ -1120,7 +1160,7 @@ class DocAssignment(models.Model):
 
 
 class ProductionData(models.Model):
-    document = models.ForeignKey(DocumentData, on_delete=models.CASCADE)
+    version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='production_data')
     date_requested = models.DateField(blank=True, null=True)
     date_scheduled = models.DateField(blank=True, null=True)
 
@@ -1128,7 +1168,7 @@ class ProductionData(models.Model):
         return f'Production of {self.document.doc_type} {self.document.reference}. Req = {self.date_requested}, Sch = {self.date_scheduled}'
 
 class SpecialInstruction(AdminAuditTrail):
-    document = models.ForeignKey(DocumentData, on_delete=models.CASCADE, related_name='instructions')
+    version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='instructions')
     instruction = models.TextField(blank=True)
 
     def __str__(self):

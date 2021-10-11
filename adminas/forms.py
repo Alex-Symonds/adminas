@@ -1,6 +1,6 @@
 from django.db.models.base import Model
 from django.forms import ModelForm, modelformset_factory, modelform_factory, ModelChoiceField, Textarea, HiddenInput
-from adminas.models import Job, JobItem, JobModule, PurchaseOrder, Company, Address, Site, Product, DocumentData, ProductionData
+from adminas.models import Job, JobItem, JobModule, PurchaseOrder, Company, Address, Site, Product, DocumentData, ProductionData, DocumentVersion
 
 
 class CompanyForm(ModelForm):
@@ -117,7 +117,13 @@ class POForm(ModelForm):
 class DocumentDataForm(ModelForm):
     class Meta():
         model = DocumentData
-        fields = ['reference', 'issue_date']
+        fields = ['reference']
+
+class DocumentVersionForm(ModelForm):
+      class Meta():
+        model = DocumentVersion
+        fields = ['issue_date']  
+
 
 class ProductionReqForm(ModelForm):
     class Meta():
