@@ -1,11 +1,16 @@
 {% extends "adminas/layout.html" %}
+{% load static %}
+
 
 {% block title %}
     - Document
 {% endblock %}
 
 {% block javascript %}
-    
+    <script>
+        const URL_DOC_MAIN = "{% url 'doc_main' doc_version.id %}"
+    </script>
+    <script src="{% static 'adminas/document_main.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
@@ -15,13 +20,16 @@
     
     <section class="status-controls">
     {% if doc_version.issue_date %}
-        <span>Issued on {{ doc_version.issue_date }}</span><br />
+        <span>Issued on {{ doc_version.issue_date }} (v{{ doc_version.version_number }})</span><br />
         <a href="{% url 'doc_display' doc_version.id %}?mode=issued">View</a><br />
-        <button class="replace-document" data-doc_id="{{ doc_version.id }}">Replace with new version</button><br />
+        <button class="replace-document">Replace with new version</button><br />
     {% elif doc_version.active %}
-        <span>Working / draft</span><br />
+        <span>Working / draft (v{{ doc_version.version_number }})</span><br />
         <a href="{% url 'doc_builder' %}?id={{ doc_version.id }}">Enter edit mode</a><br />
         <a href="{% url 'doc_display' doc_version.id %}?mode=preview">Preview</a><br />
+        {% if doc_version.version_number > 1 %}
+            <button class="revert-document">Revert to previous version</button><br />
+        {% endif %}
     {% else %}
         <span>Deleted</span>
         <p>To restore, contact an administrator.</p>
@@ -33,6 +41,8 @@
     <div class="document-fields-container">
         <label for="id_doc_reference">Reference</label>
         <div id="id_doc_reference">{{ doc_version.document.reference }}</div>
+        <div class="doc-version">Version {{ doc_version.version_number }}</div>
+
 
     {% if doc_version.document.doc_type == 'WO' %}
         <label for="id_req_prod_date">Requested Completion Date</label>

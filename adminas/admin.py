@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import JobItem, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder, AccEventOE, DocumentData, ProductionData
+from .models import JobItem, SpecialInstruction, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder, AccEventOE, DocumentData, ProductionData, DocumentVersion, DocAssignment
 
 # Register your models here.
 
@@ -105,6 +105,26 @@ class ProductAdmin(admin.ModelAdmin):
         SlotsInline,
     ]
 
+class ProductionDataInline(admin.TabularInline):
+    model = ProductionData
+    extra = 0
+
+class DocAssignmentInline(admin.TabularInline):
+    model = DocAssignment
+    extra = 0
+
+class SpecialInstructionInline(admin.TabularInline):
+    model = SpecialInstruction
+    extra = 0
+
+class DocumentVersionAdmin(admin.ModelAdmin):
+    model = DocumentVersion
+    inlines = [
+        ProductionDataInline,
+        DocAssignmentInline,
+        SpecialInstructionInline,
+    ]
+
 
 
 admin.site.register(User)
@@ -124,5 +144,6 @@ admin.site.register(AgentResaleGroup, AgentResaleAdmin)
 admin.site.register(AccEventOE)
 admin.site.register(PurchaseOrder)
 admin.site.register(DocumentData)
-admin.site.register(ProductionData)
+admin.site.register(DocumentVersion, DocumentVersionAdmin)
+
 

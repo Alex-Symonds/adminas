@@ -744,7 +744,8 @@ def doc_builder(request):
                         item = JobItem.objects.get(id=jobitem['id']),
                         quantity = jobitem['quantity']
                     )
-                    assignment.save()          
+                    assignment.quantity = min(assignment.quantity, assignment.max_quantity_excl_self())
+                    assignment.save()
 
                 for spec_instr in new_special_instructions:
                     instr = SpecialInstruction(
@@ -783,6 +784,7 @@ def doc_builder(request):
         included_list = doc_obj.get_included_items()
         excluded_list = doc_obj.get_excluded_items()
         special_instructions = doc_obj.instructions.all().order_by('-created_on')
+        version_num = doc_obj.version_number
 
         # Check for doc_specific fields.
         if doc_obj.document.doc_type == 'WO':
@@ -796,12 +798,14 @@ def doc_builder(request):
         included_list = this_job.get_default_included_items(doc_code)
         excluded_list = this_job.get_default_excluded_items(doc_code)
         special_instructions = None
+        version_num = 1
 
 
     return render(request, 'adminas/document_builder.html', {
         'doc_title': doc_title,
         'doc_id': doc_obj.id if doc_obj != None else 0,
         'doc': doc_obj,
+        'version_number': version_num,
         'doc_type': doc_code,
         'reference': doc_ref,
         'job_id': job_id,
@@ -907,6 +911,49 @@ def document_display(request, doc_id):
 def document_main(request, doc_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
+
+    if request.method == 'POST':
+        posted_data = json.loads(request.body)
+
+        try:
+            this_version = DocumentVersion.objects.get(id=doc_id)
+        except:
+            return JsonResponse({
+                'message': "Error: Can't find original document version"
+            }, status=500)
+
+        if posted_data['task'] == 'replace':
+            try:
+                new_version = this_version.get_replacement_version(request.user)
+                return JsonResponse({
+                    'redirect': f'{reverse("doc_builder")}?id={new_version.pk}'
+                })
+
+            except:
+                return JsonResponse({
+                    'message': 'Replacement failed'
+                }, status=500)
+
+        elif posted_data['task'] == 'revert':
+            previous_version = this_version.revert_to_previous_version()
+
+            if previous_version == None:
+                return JsonResponse({
+                    'message': 'Cannot revert to previous version: some items have been assigned to other documents of the same type.'
+                }, status=405)
+
+            else:
+                # While we're /generally/ deactivating document versions instead of .delete()ing them, it'd be nice if misclicks didn't result in
+                # loads of deactivated documents that nobody ever wanted.
+                # If the user clicks to revert on the same day as the new version was created, we'll assume it was a misclick.
+                if this_version.created_on.date() == datetime.date.today():
+                    this_version.delete()
+
+                return JsonResponse({
+                    'redirect': reverse("doc_main", kwargs={"doc_id": previous_version.pk})
+                }, status=200)
+
+
 
     try:
         doc_obj = DocumentVersion.objects.get(id=doc_id)

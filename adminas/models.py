@@ -10,8 +10,9 @@ from django_countries.fields import CountryField
 
 from decimal import Decimal
 from adminas.constants import DOCUMENT_TYPES, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
-from adminas.util import format_money, get_document_included_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
+from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
 import datetime
+import re
 
 # Size fields
 JOB_NAME_LENGTH = 8 # YYMM-NNN
@@ -423,7 +424,7 @@ class Job(AdminAuditTrail):
         # List of items assigned to this Job which have not yet been assigned to a document of this type.
         # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
         # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
-        result = get_document_included_items(self.main_item_list(), doc_type)
+        result = get_document_available_items(self.main_item_list(), doc_type)
         return result
 
     def get_default_excluded_items(self, doc_type):
@@ -957,27 +958,60 @@ class DocumentVersion(AdminAuditTrail):
     
     def deactivate(self):
         self.active = False
+        self.save()
 
-    def get_replacement(self):
-        r = self
+    def reactivate(self):
+        self.active = True
+        self.save()
 
-        r.pk = None
-        r.created_on = datetime.date.today()
-        r.version_number = self.version_number + 1
-        r.issue_date = None
-        r.active = True
-        r.invoice_to = self.document.job.invoice_to
-        r.delivery_to = self.document.job.delivery_to
+    def get_replacement_version(self, user):
+        r = DocumentVersion(
+            created_by = user,
+            document = self.document,
+            version_number = self.version_number + 1,
+            issue_date = None,
+            active = True,
+            invoice_to = self.document.job.invoice_to,
+            delivery_to = self.document.job.delivery_to
+        )
         r.save()
 
-        copy_relations_to_new_document_version(self.items.all(), self)
-        copy_relations_to_new_document_version(self.instructions.all(), self)
-        copy_relations_to_new_document_version(self.production_data.all(), self)
+        copy_relations_to_new_document_version(DocAssignment.objects.filter(version=self), r)
+        copy_relations_to_new_document_version(self.instructions.all(), r)
+        copy_relations_to_new_document_version(self.production_data.all(), r)
 
         self.deactivate()
 
         return r
 
+    def revert_to_previous_version(self):
+        previous = DocumentVersion.objects.filter(document=self.document).filter(version_number=self.version_number - 1).order_by('-created_on')[0]
+
+        # Deactivate self to "free up" all assigned items before testing for a clash (otherwise if the item list hasn't changed, previous will clash with its future self)
+        self.deactivate()
+        if previous.item_assignments_clash(self):
+            # If it clashes anyway, reactivate self and abort the revert
+            self.reactivate()
+            return None
+        else:
+            previous.reactivate()
+            return previous
+
+
+
+    def item_assignments_clash(self, revert_obj):
+        # Part of the "revert to previous version" process
+        # Suppose a user: issued WO #A v1, including 1/1 of Item #X; created WO #A v2 in which 1/1 of Item #X is removed; created WO #B v1, including 1/1 of Item #X;
+        # tries to revert WO #A to v1.
+        # To avoid 1/1 of Item #X appearing in two places, reverting WO #A to v1 is forbidden until 1/1 Item #X no longer appears on WO #B.
+        # This is where we check if any of the possible "Item #Xs" on this WO already appear elsewhere.
+
+        for assignment in DocAssignment.objects.filter(version=self):
+            if assignment.quantity > assignment.max_quantity_excl_self():
+                return True
+
+        return False
+       
 
 
     def get_included_items(self):
@@ -1045,7 +1079,7 @@ class DocumentVersion(AdminAuditTrail):
         # List of items assigned to this Job which have not yet been assigned to a document of this type.
         # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
         # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
-        return get_document_included_items(self.document.job.main_item_list(), self.document.doc_type)
+        return get_document_available_items(self.document.job.main_item_list(), self.document.doc_type)
 
 
     def get_unavailable_items(self):
@@ -1084,7 +1118,7 @@ class DocumentVersion(AdminAuditTrail):
                     # Case = UPDATE: assignment already exists. Update the quantity, if necessary, then check this off the to-do list.
                     found = True
                     if int(req['quantity']) != ea.quantity:
-                        ea.quantity = min(int(req['quantity']), ea.max_quantity())
+                        ea.quantity = min(int(req['quantity']), ea.max_quantity_incl_self())
                         ea.save()
                     required.remove(req)
                     break
@@ -1150,13 +1184,24 @@ class DocAssignment(models.Model):
     item = models.ForeignKey(JobItem, on_delete=models.CASCADE)
     quantity = models.IntegerField()
 
-    def max_quantity(self):
+    def max_quantity_incl_self(self):
+        return self.max_quantity_excl_self() + self.quantity
+
+    def max_quantity_excl_self(self):
         total = self.item.quantity
-        assigned = DocAssignment.objects.filter(item=self.item).aggregate(Sum('quantity'))['quantity__sum']
-        return total - assigned + self.quantity
+        qty_assigned = DocAssignment.objects\
+                    .filter(item=self.item)\
+                    .filter(version__document__doc_type=self.version.document.doc_type)\
+                    .filter(version__active=True)\
+                    .aggregate(Sum('quantity'))['quantity__sum']
+
+        if qty_assigned == None:
+            qty_assigned = 0
+
+        return total - qty_assigned
 
     def __str__(self):
-        return f'{self.quantity} x {self.item.product.name} assigned to {self.document.doc_type} {self.document.reference}'
+        return f'{self.quantity} x {self.item.product.name} assigned to {self.version.document.doc_type} {self.version.document.reference}'
 
 
 class ProductionData(models.Model):
@@ -1165,11 +1210,11 @@ class ProductionData(models.Model):
     date_scheduled = models.DateField(blank=True, null=True)
 
     def __str__(self):
-        return f'Production of {self.document.doc_type} {self.document.reference}. Req = {self.date_requested}, Sch = {self.date_scheduled}'
+        return f'Production of {self.version.document.doc_type} {self.version.document.reference}. Req = {self.date_requested}, Sch = {self.date_scheduled}'
 
 class SpecialInstruction(AdminAuditTrail):
     version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='instructions')
     instruction = models.TextField(blank=True)
 
     def __str__(self):
-        return f'Note on {self.document.doc_type} {self.document.reference} by {self.created_by.name} on {self.created_on}'
+        return f'Note on {self.version.document.doc_type} {self.version.document.reference} by {self.created_by.name} on {self.created_on}'

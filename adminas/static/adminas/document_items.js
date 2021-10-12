@@ -8,7 +8,6 @@ const CLASS_SPLIT_WINDOW = 'split-docitem-window';
 const ID_SPLIT_WINDOW_INCLUDES_ARROWS = 'id_split_includes_arrows';
 const ID_SPLIT_WINDOW_EXCLUDES_ARROWS = 'id_split_excludes_arrows';
 const ID_SPLIT_WINDOW_DIRECTION = 'id_split_controls';
-const CLASS_MESSAGE_BOX = 'system-message-box';
 const CLASS_SPECIAL_INSTRUCTION_EDIT = 'edit-special-instruction-btn';
 const CLASS_SPECIAL_INSTRUCTION_DELETE = 'delete-special-instruction-btn';
 
@@ -661,7 +660,8 @@ function update_document_on_server(issue_date){
         if ('redirect' in data){
             window.location.href = data['redirect'];
         } else {
-            display_document_response_message(data);
+            display_document_response_message(data, document.querySelector('#docbuilder_actions_buttons_container'));
+            remove_save_warning_ele();
         }
     })
     .catch(error => {
@@ -671,30 +671,7 @@ function update_document_on_server(issue_date){
 
 
 
-function display_document_response_message(data){
-    let message_ele = document.querySelector('.' + CLASS_MESSAGE_BOX);
 
-    if(message_ele == null){
-        let anchor_ele = document.querySelector('#docbuilder_actions_buttons_container');
-        message_ele = create_message_ele();
-        anchor_ele.after(message_ele);
-    }
-
-    message_ele.innerHTML = `${data['message']} @ ${get_date_time()}`;
-    remove_save_warning_ele();
-}
-
-function get_date_time(){
-    let dt = new Date();
-    let display_dt = dt.toLocaleString();
-    return display_dt;
-}
-
-function create_message_ele(){
-    let message_ele = document.createElement('div');
-    message_ele.classList.add(CLASS_MESSAGE_BOX);
-    return message_ele;
-}
 
 
 function get_document_data_as_dict(issue_date){

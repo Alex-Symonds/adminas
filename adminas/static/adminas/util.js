@@ -1,12 +1,11 @@
 const QTY_RE = /\d+(?=( x ))/g;
-
+const CLASS_MESSAGE_BOX = 'system-message-box';
 
 // Add comma for thousands separator
 function numberWithCommas(num) {
     // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
     return num.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
 }
-
 
 
 // Obtain the value of the selected option based on the display text
@@ -90,4 +89,30 @@ function get_jobitem_qty_field(){
     fld.min = 1;
 
     return fld;
+}
+
+
+
+// Documents: display a response message
+function display_document_response_message(data, anchor_ele){
+    let message_ele = document.querySelector('.' + CLASS_MESSAGE_BOX);
+
+    if(message_ele == null){
+        message_ele = create_message_ele();
+        anchor_ele.after(message_ele);
+    }
+
+    message_ele.innerHTML = `${data['message']} @ ${get_date_time()}`;
+}
+
+function get_date_time(){
+    let dt = new Date();
+    let display_dt = dt.toLocaleString();
+    return display_dt;
+}
+
+function create_message_ele(){
+    let message_ele = document.createElement('div');
+    message_ele.classList.add(CLASS_MESSAGE_BOX);
+    return message_ele;
 }

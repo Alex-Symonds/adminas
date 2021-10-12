@@ -1,0 +1,112 @@
+{% extends 'adminas/layout_headed_document.html' %}
+
+{% load static %}
+
+{% block css %}
+    <link href="{% static data.css_file %}" rel="stylesheet">
+{% endblock %}
+
+{% block title %}
+    - Order Confirmation
+{% endblock %}
+
+{% block body %}
+    <div class="document-toolbar">
+        <a href="{% url 'job' doc_version.document.job.id %}">Back to job</a><br />
+        <a href="{% url 'doc_main' doc_version.id %}">Back to document (read)</a><br />
+    {% if doc_version.issue_date == None %}
+        <a href="{% url 'doc_builder' %}?id={{doc_version.id}}">Back to document (edit)</a><br />
+    {% endif %}
+    
+    {% if page.has_previous %}
+        <a href="{% url 'doc_display' doc_version.id %}?page={{page.previous_page_number}}">previous</a>
+    {% else %}
+        <span class="disabled">previous</span>
+    {% endif %}
+        viewing page {{ page.number }} of {{ page.paginator.num_pages }}
+    {% if page.has_next %}
+        <a href="{% url 'doc_display' doc_version.id %}?page={{page.next_page_number}}">next</a>
+    {% else %}
+        <span class="disabled">next</span>
+    {% endif %}    
+        <div id="mode_box">
+        {% if data.mode == 'issued' %}
+            FINAL ({{ doc_version.issue_date }})
+        {% else %}
+            PREVIEW
+        {% endif %} 
+        </div>  
+    </div>
+
+
+    <h2>{{ data.title }}</h2>
+
+    <section class="invoice-to">
+        <h3>Invoice to</h3>
+        {{ doc_version.invoice_to.display_str_newlines }}
+    </section>
+
+    <section class="delivery-to">
+        <h3>Deliver to</h3>
+        {{ doc_version.delivery_to.display_str_newlines }}
+    </section>
+
+    <section class="fields">
+    {% for fld in data.fields %}
+        <div class="one-field">
+            <h4>{{ fld.h }}</h4>
+            <span>{{ fld.body }}</span>
+        </div>
+    {% endfor %}
+    </section>
+
+    {% if doc_version.instructions.all %}
+    <section class="special-instructions">
+        <h3>Special Instructions</h3>
+        {% for sp_inst in doc_version.instructions.all %}
+        <div class="one-special-instruction">
+            <div class="contents">{{ sp_inst.instruction }}</div>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="page-number">
+        Page {{ page.number }} of {{ page.paginator.num_pages }}
+    </section>
+
+    <section class="section-item-list">
+        <table>
+            <tr>
+                <th>Qty</th>
+                <th>Part #</th>
+                <th>Description</th>
+                <th>Origin</th>
+                <th>List</th>
+                <th>Unit</th>
+                <th>Total ({{ doc_version.document.job.currency }})</th>
+            </tr>
+    {% for item in page %}
+            <tr>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.part_number }}</td>
+                <td>{{ item.product_description }}</td>
+                <td>{{ item.origin }}</td>
+                <td>{{ item.list_price_f }}</td>
+                <td>{{ item.unit_price_f }}</td>
+                <td>{{ item.total_price_f }}</td>
+            </tr>
+    {% endfor %}
+    {% for empty_row in data.empty_row_range %}
+            <tr><td>-</td><td></td><td></td><td></td><td></td></tr>
+    {% endfor %}
+            <tr>
+                <td colspan=6>Total {{ doc_version.document.job.currency }}</td>
+                <td>{{ doc_version.total_value_f }}</td>
+            </tr>
+        </table>
+    </section>
+
+
+
+{% endblock %}
