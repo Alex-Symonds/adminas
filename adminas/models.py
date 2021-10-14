@@ -14,6 +14,10 @@ from adminas.util import format_money, get_document_available_items, get_plusmin
 import datetime
 import re
 
+# Copied from views.py due to moving info processing for document to the model
+from django.core.paginator import Paginator
+from adminas.constants import MAX_ROWS_OC
+
 # Size fields
 JOB_NAME_LENGTH = 8 # YYMM-NNN
 PART_NUM_LENGTH = 10
@@ -445,8 +449,8 @@ class Job(AdminAuditTrail):
             this_dict['jiid'] = ae.item.pk
             this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
             this_dict['is_available'] = False
-            this_dict['used_by'] = ae.document.reference
-            this_dict['doc_id'] = ae.document.id
+            this_dict['used_by'] = ae.version.document.reference
+            this_dict['doc_id'] = ae.version.id
             result.append(this_dict)                
         return result
 
@@ -955,7 +959,114 @@ class DocumentVersion(AdminAuditTrail):
     delivery_to = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, related_name='delivery_documents')
 
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
-    
+
+    def get_display_data_dict(self, page_num):
+        fields = []
+
+        fields.append({
+            'h': 'Issue Date',
+            'body': self.issue_date
+        })
+
+        fields.append({
+            'h': 'Confirmation No.',
+            'body': self.document.reference
+        })
+
+        # While most documents will relate to a single PO, some customers prefer to make additions via an additional PO rather than amending the first,
+        # so we're going to support making a list of POs.
+        str = f'{self.document.job.po.all()[0].reference} dated {self.document.job.po.all()[0].date_on_po}'
+        try:
+            for po in self.document.job.po.all()[1:]:
+                str += f', {po.reference} dated {po.date_on_po}'
+        except:
+            pass
+
+        fields.append({
+            'h': 'PO No.',
+            'body': str
+        })
+
+        try:
+            prod_data = ProductionData.objects.filter(version=self)[0]
+            date_sched = prod_data.date_scheduled
+        except:
+            date_sched = 'TBC'
+        fields.append({
+            'h': 'Estimated Date',
+            'body': date_sched
+        })
+
+        str = ''
+        for i in self.items.all(): 
+            if i.product.origin_country.name not in str:
+                if str != '':
+                    str += ', '
+                str += i.product.origin_country.name
+        fields.append({
+            'h': 'Country of Origin',
+            'body': str
+        })
+
+        # Stick it all in a "data" dictionary
+        data = {}
+        data['fields'] = fields
+        data['title'] = 'Order Confirmation'
+        data['job_id'] = self.document.job.id
+
+        if self.issue_date != '' and self.issue_date != None:
+            mode = 'issued'
+        else:
+            mode = 'preview'
+        data['mode'] = mode
+        if mode == 'issued':
+            data['css_file'] = 'adminas/document_final.css'
+        else:
+            data['css_file'] = 'adminas/document_preview.css'
+
+        data['version_id'] = self.id
+        data['job_id'] = self.document.job.id
+        data['currency'] = self.document.job.currency
+        data['total_value_f'] = self.total_value_f()
+        data['invoice_to'] = self.invoice_to.display_str_newlines()
+        data['delivery_to'] = self.delivery_to.display_str_newlines()
+        data['issue_date'] = self.issue_date if self.issue_date != '' else None
+
+        data['instructions'] = []
+        for instr in self.instructions.all():
+            data['instructions'].append(instr.instruction)
+        
+        p = Paginator(self.get_body_lines(), MAX_ROWS_OC)
+        req_page = p.get_page(page_num)
+        #num_empty_rows = MAX_ROWS_OC - (req_page.end_index() - req_page.start_index() + 1)
+        #data['empty_row_range'] = range(1, num_empty_rows)
+        
+        # data['line_items'] = []   # commented out while I experiment with letting wkhtmltopdf handle the pagination
+        # for item in req_page: 
+        #     data['line_items'].append(item)
+        data['line_items'] = self.get_body_lines()
+        data['empty_row_range'] = range(1, len(data['line_items']) % MAX_ROWS_OC)
+        
+        data['page_num'] = page_num
+        data['num_pages'] = p.num_pages
+
+        if req_page.has_next():
+            data['has_next'] = True
+            data['next_page_number'] = req_page.next_page_number()
+        else:
+            data['has_next'] = False
+            data['next_page_number'] = None
+        
+        if req_page.has_previous():
+            data['has_previous'] = True
+            data['previous_page_number'] = req_page.previous_page_number()
+        else:
+            data['has_previous'] = False
+            data['previous_page_number'] = None          
+
+        return data      
+
+
     def deactivate(self):
         self.active = False
         self.save()

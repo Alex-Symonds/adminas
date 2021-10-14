@@ -7,6 +7,8 @@
         const DOC_ID = '{{ doc_id }}';
         const JOB_ID = '{{ job_id }}';
         const URL_DOCBUILDER = "{% url 'doc_builder' %}";
+        const URL_DOCMAIN = "{% url 'doc_main' doc_id %}"
+        const URL_PREVIEW = "{% url 'doc_display' doc_id %}?mode=preview";
     </script>
     <script src="{% static 'adminas/document_items.js' %}" type="text/javascript"></script>
 {% endblock %}
@@ -23,13 +25,13 @@
     <section class="status-controls">
         <span>Working on document.</span><br />
 
-
     {% if doc_id == 0 %}
         <p>Preview is disabled until the document has been saved.</p>
     {% else %}
         <a href="{% url 'doc_main' doc_id %}">Exit edit mode</a><br />
         <a href="{% url 'doc_display' doc_id %}?mode=preview">Preview</a><br />
     {% endif %}
+
         <a href="{% url 'job' job_id %}">Return to Job</a>
     </section>
 

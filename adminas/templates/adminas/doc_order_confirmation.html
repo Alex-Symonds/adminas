@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block css %}
-    <link href="{% static data.css_file %}" rel="stylesheet">
+    <link href="{% static css_file %}" rel="stylesheet">
 {% endblock %}
 
 {% block title %}
@@ -11,48 +11,53 @@
 {% endblock %}
 
 {% block body %}
+    CSS file = "{% static css_file %}"
+
+    {% if media == 'screen' %}
     <div class="document-toolbar">
-        <a href="{% url 'job' doc_version.document.job.id %}">Back to job</a><br />
-        <a href="{% url 'doc_main' doc_version.id %}">Back to document (read)</a><br />
-    {% if doc_version.issue_date == None %}
-        <a href="{% url 'doc_builder' %}?id={{doc_version.id}}">Back to document (edit)</a><br />
-    {% endif %}
+        <a href="{% url 'job' job_id %}">Back to job</a><br />
+        <a href="{% url 'doc_main' version_id %}">Back to document (read)</a><br />
+        {% if issue_date == None %}
+        <a href="{% url 'doc_builder' %}?id={{version_id}}">Back to document (edit)</a><br />
+        {% endif %}
     
-    {% if page.has_previous %}
-        <a href="{% url 'doc_display' doc_version.id %}?page={{page.previous_page_number}}">previous</a>
-    {% else %}
+        <a href="{% url 'doc_display' version_id %}?mode=pdf">PDF Document</a>
+
+        {% if has_previous %}
+        <a href="{% url 'doc_display' version_id %}?page={{ previous_page_number }}">previous</a>
+        {% else %}
         <span class="disabled">previous</span>
-    {% endif %}
-        viewing page {{ page.number }} of {{ page.paginator.num_pages }}
-    {% if page.has_next %}
-        <a href="{% url 'doc_display' doc_version.id %}?page={{page.next_page_number}}">next</a>
-    {% else %}
+        {% endif %}
+        viewing page {{ page_num }} of {{ num_pages }}
+        {% if has_next %}
+        <a href="{% url 'doc_display' version_id %}?page={{ next_page_number }}">next</a>
+        {% else %}
         <span class="disabled">next</span>
-    {% endif %}    
+        {% endif %}    
         <div id="mode_box">
-        {% if data.mode == 'issued' %}
-            FINAL ({{ doc_version.issue_date }})
+        {% if issue_date != None %}
+            FINAL ({{ issue_date }})
         {% else %}
             PREVIEW
         {% endif %} 
         </div>  
     </div>
+    {% endif %}
 
-
-    <h2>{{ data.title }}</h2>
+    <h2>{{ title }}</h2>
 
     <section class="invoice-to">
         <h3>Invoice to</h3>
-        {{ doc_version.invoice_to.display_str_newlines }}
+        {{ invoice_to }}
     </section>
 
     <section class="delivery-to">
         <h3>Deliver to</h3>
-        {{ doc_version.delivery_to.display_str_newlines }}
+        {{ delivery_to }}
     </section>
 
     <section class="fields">
-    {% for fld in data.fields %}
+    {% for fld in fields %}
         <div class="one-field">
             <h4>{{ fld.h }}</h4>
             <span>{{ fld.body }}</span>
@@ -60,10 +65,10 @@
     {% endfor %}
     </section>
 
-    {% if doc_version.instructions.all %}
+    {% if instructions %}
     <section class="special-instructions">
         <h3>Special Instructions</h3>
-        {% for sp_inst in doc_version.instructions.all %}
+        {% for sp_inst in instructions %}
         <div class="one-special-instruction">
             <div class="contents">{{ sp_inst.instruction }}</div>
         </div>
@@ -72,7 +77,7 @@
     {% endif %}
 
     <section class="page-number">
-        Page {{ page.number }} of {{ page.paginator.num_pages }}
+        Page {{ page_num }} of {{ num_pages }}
     </section>
 
     <section class="section-item-list">
@@ -84,9 +89,9 @@
                 <th>Origin</th>
                 <th>List</th>
                 <th>Unit</th>
-                <th>Total ({{ doc_version.document.job.currency }})</th>
+                <th>Total ({{ currency }})</th>
             </tr>
-    {% for item in page %}
+    {% for item in line_items %}
             <tr>
                 <td>{{ item.quantity }}</td>
                 <td>{{ item.part_number }}</td>
@@ -97,12 +102,12 @@
                 <td>{{ item.total_price_f }}</td>
             </tr>
     {% endfor %}
-    {% for empty_row in data.empty_row_range %}
+    {% for empty_row in empty_row_range %}
             <tr><td>-</td><td></td><td></td><td></td><td></td></tr>
     {% endfor %}
             <tr>
-                <td colspan=6>Total {{ doc_version.document.job.currency }}</td>
-                <td>{{ doc_version.total_value_f }}</td>
+                <td colspan=6>Total {{ currency }}</td>
+                <td>{{ total_value_f }}</td>
             </tr>
         </table>
     </section>

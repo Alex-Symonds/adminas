@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'adminas',
+    'wkhtmltopdf',
     'django_countries',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -40,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+WKHTMLTOPDF_CMD = r'"C:/test/wkhtmltopdf/bin/wkhtmltopdf"'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -121,8 +124,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = None
-MEDIA_ROOT = ''
+MEDIA_URL = '/media/'
+STATIC_ROOT = '/adminas/static/'
+MEDIA_ROOT = '/adminas/media/'
+
+if DEBUG == True:
+    STATIC_ROOT = 'Z:/Documents/Programming/CS50w/Project 5, Unknown/project5/adminas/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field

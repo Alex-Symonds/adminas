@@ -14,6 +14,11 @@ from django.core.paginator import Paginator
 from decimal import Decimal
 import datetime
 
+# PDF stuff ----------------------------------------------
+from django.views.generic.base import View
+from wkhtmltopdf.views import PDFTemplateResponse
+# --------------------------------------------------------
+
 from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion
 from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, MAX_ROWS_OC
@@ -633,6 +638,7 @@ def doc_builder(request):
             return JsonResponse({
                 'redirect': reverse('job', kwargs={'job_id': doc_obj.document.job.id})
             })
+
         else:
             return JsonResponse({
                 'message': "FORBIDDEN: documents cannot be deleted after they've been issued, only replaced with a newer version. Delete failed"
@@ -693,6 +699,7 @@ def doc_builder(request):
 
             # If the inputs are ok, proceed with the database updates.
             if form.is_valid() and version_form.is_valid() and (not doctype_specific_fields_exist or doctype_specific_fields_are_ok):
+                response = {}
 
                 if(doc_obj == None):
                     # POST and doc_obj == None means the user is creating a new document. Create it now and save it.
@@ -716,7 +723,7 @@ def doc_builder(request):
                     # If it's a new document, all the assigned_items and special_instructions must also be new and therefore require creation.
                     new_assignments = posted_data['assigned_items']
                     new_special_instructions = posted_data['special_instructions']
-                    message = 'Document created and saved'
+                    response['redirect'] = f"{reverse('doc_builder')}?id={doc_obj.id}"
 
                 else:
                     # POST and doc_id != None means the user is updating an existing document.
@@ -735,14 +742,14 @@ def doc_builder(request):
                     # Handle update and delete here. Create is also needed for new documents, so we'll handle that outside this if statement.
                     new_assignments = doc_obj.update_item_assignments_and_get_create_list(posted_data['assigned_items'])
                     new_special_instructions = doc_obj.update_special_instructions_and_get_create_list(posted_data['special_instructions'])
-                    message = 'Document saved'
+                    response['message'] = 'Document saved'
 
                 # Create new JobItem assignments and special instructions.
                 for jobitem in new_assignments:
                     assignment = DocAssignment(
                         version = doc_obj,
                         item = JobItem.objects.get(id=jobitem['id']),
-                        quantity = jobitem['quantity']
+                        quantity = int(jobitem['quantity'])
                     )
                     assignment.quantity = min(assignment.quantity, assignment.max_quantity_excl_self())
                     assignment.save()
@@ -765,9 +772,7 @@ def doc_builder(request):
                     })
 
                 else:
-                    return JsonResponse({
-                        'message': message
-                    }, status=200)
+                    return JsonResponse(response, status=200)
 
             else:
                 debug(form.errors)
@@ -824,88 +829,40 @@ def document_display(request, doc_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
+    template = 'adminas/doc_oc_body.html'
     my_doc = DocumentVersion.objects.get(id=doc_id)
 
-    # Create a list of dicts where each has a display text label and a value for each piece of info needed for the document.
-    # In a "full" version of the program there'd be a model for each type of document with a method to return the necessary fields.
-    # Since this demo is only doing two documents, just bung it all in here.
-    fields = []
-
-    fields.append({
-        'h': 'Issue Date',
-        'body': my_doc.issue_date
-    })
-
-    fields.append({
-        'h': 'Confirmation No.',
-        'body': my_doc.document.reference
-    })
-
-    # While most documents will relate to a single PO, some customers prefer to make additions via an additional PO rather than amending the first,
-    # so we're going to support making a list of POs.
-    str = f'{my_doc.document.job.po.all()[0].reference} dated {my_doc.document.job.po.all()[0].date_on_po}'
-    try:
-        for po in my_doc.document.job.po.all()[1:]:
-            str += f', {po.reference} dated {po.date_on_po}'
-    except:
-        pass
-
-    fields.append({
-        'h': 'PO No.',
-        'body': str
-    })
-
-    try:
-        prod_data = ProductionData.objects.filter(version=my_doc)[0]
-        date_sched = prod_data.date_scheduled
-    except:
-        date_sched = 'TBC'
-    fields.append({
-        'h': 'Estimated Date',
-        'body': date_sched
-    })
-
-    str = ''
-    for i in my_doc.items.all(): 
-        if i.product.origin_country.name not in str:
-            if str != '':
-                str += ', '
-            str += i.product.origin_country.name
-    fields.append({
-        'h': 'Country of Origin',
-        'body': str
-    })
-
-    # Stick it all in a "data" dictionary
-    data = {}
-    data['fields'] = fields
-    data['title'] = 'Order Confirmation'
-
-    mode = request.GET.get('mode')
-    data['mode'] = mode
-    if mode == 'issued':
-        data['css_file'] = 'adminas/document_final.css'
-    else:
-        data['css_file'] = 'adminas/document_preview.css'
-
-
-    # Pagination of body text
+    # Prep for Pagination of body text
     if request.GET.get("page"):
         page_num = request.GET.get("page")
     else:
         page_num = 1
-    p = Paginator(my_doc.get_body_lines(), MAX_ROWS_OC)
-    req_page = p.get_page(page_num)
-    num_empty_rows = MAX_ROWS_OC - (req_page.end_index() - req_page.start_index() + 1)
-    data['empty_row_range'] = range(1, num_empty_rows)
 
-    return render(request, 'adminas/doc_order_confirmation.html', {
-        'doc_version': my_doc,
-        'data': data,
-        'page': req_page
-    })
+    context = my_doc.get_display_data_dict(page_num)
 
-    
+    if request.GET.get("mode") != 'pdf':
+        context['media'] = 'screen' # This is used to turn on a toolbar
+        return render(request, template, context)
+
+    else:
+        context['media'] = 'pdf' # This is used to turn off the toolbar
+        response = PDFTemplateResponse(request=request,
+                                        template=template,
+                                        filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
+                                        header_template = 'adminas/doc_oc_header.html',
+                                        footer_template = 'adminas/doc_oc_footer.html',
+                                        context= context,
+                                        show_content_in_browser=True, # Started as "False", want to test True
+                                        cmd_options={'margin-top': 150, # started off at 10
+                                                "zoom":1,
+                                                'quiet': None, # Added to try to resolve CalledProcessError (2)
+                                                "viewport-size" :"1366 x 513",
+                                                'javascript-delay':1000,
+                                                "no-stop-slow-scripts":True,
+                                                'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
+                                    )
+        return response
+   
 
 
 def document_main(request, doc_id):
