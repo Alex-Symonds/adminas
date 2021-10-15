@@ -829,22 +829,27 @@ def document_pdf(request, doc_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
-    template = 'adminas/pdf_doc_oc_body.html'
     my_doc = DocumentVersion.objects.get(id=doc_id)
     context = my_doc.get_display_data_dict()
+    template_body = f'adminas/pdf_doc_{my_doc.document.doc_type.lower()}_body.html'
+    template_header = f'adminas/pdf_doc_{my_doc.document.doc_type.lower()}_header.html'
+    template_footer = f'adminas/pdf_doc_{my_doc.document.doc_type.lower()}_footer.html'
+
+    if my_doc.document.doc_type == 'OC':
+        margin_top_setting = 150
+    elif my_doc.document.doc_type == 'WO':
+        margin_top_setting = 120
+
     response = PDFTemplateResponse(request=request,
-                                    template=template,
+                                    template=template_body,
                                     filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
-                                    header_template = 'adminas/pdf_doc_oc_header.html',
-                                    footer_template = 'adminas/pdf_doc_oc_footer.html',
+                                    header_template = template_header,
+                                    footer_template = template_footer,
                                     context= context,
-                                    show_content_in_browser=True, # Started as "False", want to test True
-                                    cmd_options={'margin-top': 150, # started off at 10
+                                    show_content_in_browser=True,
+                                    cmd_options={'margin-top': margin_top_setting, # started off at 10
                                             "zoom":1,
                                             'quiet': None, # Added to try to resolve CalledProcessError (2)
-                                            "viewport-size" :"1366 x 513",
-                                            'javascript-delay':1000,
-                                            "no-stop-slow-scripts":True,
                                             'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
                                 )
     return response

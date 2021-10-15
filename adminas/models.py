@@ -961,78 +961,31 @@ class DocumentVersion(AdminAuditTrail):
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
 
     def get_display_data_dict(self):
-        fields = []
-
-        fields.append({
-            'h': 'Issue Date',
-            'body': self.issue_date
-        })
-
-        fields.append({
-            'h': 'Confirmation No.',
-            'body': self.document.reference
-        })
-
-        # While most documents will relate to a single PO, some customers prefer to make additions via an additional PO rather than amending the first,
-        # so we're going to support making a list of POs.
-        str = f'{self.document.job.po.all()[0].reference} dated {self.document.job.po.all()[0].date_on_po}'
-        try:
-            for po in self.document.job.po.all()[1:]:
-                str += f', {po.reference} dated {po.date_on_po}'
-        except:
-            pass
-
-        fields.append({
-            'h': 'PO No.',
-            'body': str
-        })
-
-        try:
-            prod_data = ProductionData.objects.filter(version=self)[0]
-            date_sched = prod_data.date_scheduled
-        except:
-            date_sched = 'TBC'
-        fields.append({
-            'h': 'Estimated Date',
-            'body': date_sched
-        })
-
-        str = ''
-        for i in self.items.all(): 
-            if i.product.origin_country.name not in str:
-                if str != '':
-                    str += ', '
-                str += i.product.origin_country.name
-        fields.append({
-            'h': 'Country of Origin',
-            'body': str
-        })
-
-        # Stick it all in a "data" dictionary
         data = {}
-        data['fields'] = fields
-        data['title'] = 'Order Confirmation'
-        data['job_id'] = self.document.job.id
+        data['fields'] = self.get_doc_fields(self.document.doc_type)
+
+        data['title'] = dict(DOCUMENT_TYPES).get(self.document.doc_type)
 
         if self.issue_date != '' and self.issue_date != None:
-            mode = 'issued'
-        else:
-            mode = 'preview'
-        data['mode'] = mode
-
-        if mode == 'issued':
+            data['mode'] = 'issued'
             data['css_file'] = 'adminas/document_final.css'
         else:
+            data['mode'] = 'preview'
             data['css_file'] = 'adminas/document_preview.css'
 
+        data['job_id'] = self.document.job.id
         data['version_id'] = self.id
         data['job_id'] = self.document.job.id
+
         data['currency'] = self.document.job.currency
         data['total_value_f'] = self.total_value_f()
+
         data['invoice_to'] = self.invoice_to.display_str_newlines()
         data['delivery_to'] = self.delivery_to.display_str_newlines()
+        
         data['issue_date'] = self.issue_date if self.issue_date != '' else None
-
+        data['created_by'] = self.created_by
+        
         data['instructions'] = []
         for instr in self.instructions.all():
             data['instructions'].append(instr.instruction)
@@ -1041,6 +994,70 @@ class DocumentVersion(AdminAuditTrail):
         data['empty_row_range'] = range(1, len(data['line_items']) % MAX_ROWS_OC)
                  
         return data      
+
+
+    def get_doc_fields(self, doc_type):
+        # Many documents contain a section which lists a bunch of label/value pairs, where every item has the same formatting.
+        # "Fields" is for storing all those in a list so that in the template you can setup a loop for "field in fields" and be done with it.
+        fields = []
+
+        # Add Issue Date
+        fields.append({
+            'h': 'Issue Date',
+            'body': self.issue_date
+        })
+
+        # Add document reference (with conditional label text)
+        reference_label = 'Reference No.'
+        if doc_type == 'OC':
+            reference_label = 'Confirmation No.'
+        fields.append({
+            'h': reference_label,
+            'body': self.document.reference
+        })
+
+        # Add purchase order info.
+        # While most documents will relate to a single PO, some customers prefer to make modifications via additional PO/s rather than amending the first,
+        # so this must also support making a list of POs.
+        
+        try:
+            str = f'{self.document.job.po.all()[0].reference} dated {self.document.job.po.all()[0].date_on_po}'
+            for po in self.document.job.po.all()[1:]:
+                str += f', {po.reference} dated {po.date_on_po}'
+        except PurchaseOrder.DoesNotExist:
+            str = 'N/A'
+
+        fields.append({
+            'h': 'PO No.',
+            'body': str
+        })
+
+        # Add estimated production date.
+        try:
+            prod_data = ProductionData.objects.filter(version=self)[0]
+            date_sched = prod_data.date_scheduled
+        except ProductionData.DoesNotExist:
+            date_sched = 'TBC'
+        fields.append({
+            'h': 'Estimated Date',
+            'body': date_sched
+        })
+
+        # Add list of origin countries' full names, but only when needed
+        if doc_type == 'OC':
+            str = ''
+            for i in self.items.all(): 
+                if i.product.origin_country.name not in str:
+                    if str != '':
+                        str += ', '
+                    str += i.product.origin_country.name
+            fields.append({
+                'h': 'Country of Origin',
+                'body': str
+            })
+
+        return fields
+
 
 
     def deactivate(self):
