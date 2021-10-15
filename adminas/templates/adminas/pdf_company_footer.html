@@ -1,0 +1,15 @@
+{% extends 'adminas/layout_pdf_doc.html' %}
+{% load static %}
+
+{% block css %}
+    <link href="{% static css_file %}" rel="stylesheet">
+{% endblock %}
+
+{% block contents %}
+    {% block doc_specific_footer %}
+    {% endblock %}
+
+    <div class="document_footer">
+        TODO: Full address! Codes for stuff! Legal bumf!
+    </div>
+{% endblock %}

@@ -10,20 +10,9 @@
 
         {% block css %}
         {% endblock %}
-
-        {% block javascript %}
-        {% endblock %}
     </head>
     <body>
-        <div class="document_header">
-            TODO: LOGO! Name! Shortform address!
-        </div>
-        <div class='document_contents'>
-            {% block body %}
-            {% endblock %}
-        </div>
-        <div class="document_footer">
-            TODO: Full address! Codes for stuff! Legal bumf!
-        </div>
+        {% block contents %}
+        {% endblock %}
     </body>
 </html>

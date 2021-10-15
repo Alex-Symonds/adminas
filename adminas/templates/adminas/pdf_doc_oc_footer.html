@@ -1,0 +1,8 @@
+{% extends 'adminas/pdf_company_footer.html' %}
+
+{% block doc_specific_footer %}
+    <section id="total_value">
+        <div>Total {{ currency }} Value</div>
+        <div>{{ total_value_f }}</div>
+    </section>
+{% endblock %}

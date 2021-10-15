@@ -825,43 +825,29 @@ def doc_builder(request):
 
 
 
-def document_display(request, doc_id):
+def document_pdf(request, doc_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
-    template = 'adminas/doc_oc_body.html'
+    template = 'adminas/pdf_doc_oc_body.html'
     my_doc = DocumentVersion.objects.get(id=doc_id)
-
-    # Prep for Pagination of body text
-    if request.GET.get("page"):
-        page_num = request.GET.get("page")
-    else:
-        page_num = 1
-
-    context = my_doc.get_display_data_dict(page_num)
-
-    if request.GET.get("mode") != 'pdf':
-        context['media'] = 'screen' # This is used to turn on a toolbar
-        return render(request, template, context)
-
-    else:
-        context['media'] = 'pdf' # This is used to turn off the toolbar
-        response = PDFTemplateResponse(request=request,
-                                        template=template,
-                                        filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
-                                        header_template = 'adminas/doc_oc_header.html',
-                                        footer_template = 'adminas/doc_oc_footer.html',
-                                        context= context,
-                                        show_content_in_browser=True, # Started as "False", want to test True
-                                        cmd_options={'margin-top': 150, # started off at 10
-                                                "zoom":1,
-                                                'quiet': None, # Added to try to resolve CalledProcessError (2)
-                                                "viewport-size" :"1366 x 513",
-                                                'javascript-delay':1000,
-                                                "no-stop-slow-scripts":True,
-                                                'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
-                                    )
-        return response
+    context = my_doc.get_display_data_dict()
+    response = PDFTemplateResponse(request=request,
+                                    template=template,
+                                    filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
+                                    header_template = 'adminas/pdf_doc_oc_header.html',
+                                    footer_template = 'adminas/pdf_doc_oc_footer.html',
+                                    context= context,
+                                    show_content_in_browser=True, # Started as "False", want to test True
+                                    cmd_options={'margin-top': 150, # started off at 10
+                                            "zoom":1,
+                                            'quiet': None, # Added to try to resolve CalledProcessError (2)
+                                            "viewport-size" :"1366 x 513",
+                                            'javascript-delay':1000,
+                                            "no-stop-slow-scripts":True,
+                                            'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
+                                )
+    return response
    
 
 

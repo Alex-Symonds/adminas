@@ -960,7 +960,7 @@ class DocumentVersion(AdminAuditTrail):
 
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
 
-    def get_display_data_dict(self, page_num):
+    def get_display_data_dict(self):
         fields = []
 
         fields.append({
@@ -1019,6 +1019,7 @@ class DocumentVersion(AdminAuditTrail):
         else:
             mode = 'preview'
         data['mode'] = mode
+
         if mode == 'issued':
             data['css_file'] = 'adminas/document_final.css'
         else:
@@ -1036,34 +1037,9 @@ class DocumentVersion(AdminAuditTrail):
         for instr in self.instructions.all():
             data['instructions'].append(instr.instruction)
         
-        p = Paginator(self.get_body_lines(), MAX_ROWS_OC)
-        req_page = p.get_page(page_num)
-        #num_empty_rows = MAX_ROWS_OC - (req_page.end_index() - req_page.start_index() + 1)
-        #data['empty_row_range'] = range(1, num_empty_rows)
-        
-        # data['line_items'] = []   # commented out while I experiment with letting wkhtmltopdf handle the pagination
-        # for item in req_page: 
-        #     data['line_items'].append(item)
         data['line_items'] = self.get_body_lines()
         data['empty_row_range'] = range(1, len(data['line_items']) % MAX_ROWS_OC)
-        
-        data['page_num'] = page_num
-        data['num_pages'] = p.num_pages
-
-        if req_page.has_next():
-            data['has_next'] = True
-            data['next_page_number'] = req_page.next_page_number()
-        else:
-            data['has_next'] = False
-            data['next_page_number'] = None
-        
-        if req_page.has_previous():
-            data['has_previous'] = True
-            data['previous_page_number'] = req_page.previous_page_number()
-        else:
-            data['has_previous'] = False
-            data['previous_page_number'] = None          
-
+                 
         return data      
 
 

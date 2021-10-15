@@ -21,12 +21,12 @@
     <section class="status-controls">
     {% if doc_version.issue_date %}
         <span>Issued on {{ doc_version.issue_date }} (v{{ doc_version.version_number }})</span><br />
-        <a href="{% url 'doc_display' doc_version.id %}?mode=issued">View</a><br />
+        <a href="{% url 'doc_display' doc_version.id %}">View PDF</a><br />
         <button class="replace-document">Replace with new version</button><br />
     {% elif doc_version.active %}
         <span>Working / draft (v{{ doc_version.version_number }})</span><br />
         <a href="{% url 'doc_builder' %}?id={{ doc_version.id }}">Enter edit mode</a><br />
-        <a href="{% url 'doc_display' doc_version.id %}?mode=preview">Preview</a><br />
+        <a href="{% url 'doc_display' doc_version.id %}">Preview PDF</a><br />
         {% if doc_version.version_number > 1 %}
             <button class="revert-document">Revert to previous version</button><br />
         {% endif %}

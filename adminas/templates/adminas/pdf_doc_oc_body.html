@@ -1,0 +1,36 @@
+{% extends 'adminas/layout_pdf_doc.html' %}
+{% load static %}
+
+{% block css %}
+    <link href="{% static css_file %}" rel="stylesheet">
+{% endblock %}
+
+{% block contents %}
+    <section class="section-item-list">
+        <table>
+            <tr>
+                <th>Qty</th>
+                <th>Part #</th>
+                <th>Description</th>
+                <th>Origin</th>
+                <th>List</th>
+                <th>Unit</th>
+                <th>Total ({{ currency }})</th>
+            </tr>
+    {% for item in line_items %}
+            <tr>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.part_number }}</td>
+                <td>{{ item.product_description }}</td>
+                <td>{{ item.origin }}</td>
+                <td>{{ item.list_price_f }}</td>
+                <td>{{ item.unit_price_f }}</td>
+                <td>{{ item.total_price_f }}</td>
+            </tr>
+    {% endfor %}
+    {% for empty_row in empty_row_range %}
+            <tr><td>-</td><td></td><td></td><td></td><td></td></tr>
+    {% endfor %}
+        </table>
+    </section>
+{% endblock %}
