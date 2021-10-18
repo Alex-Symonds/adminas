@@ -202,6 +202,27 @@ def job(request, job_id):
 
 
 
+def price_check(request, job_id):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+
+    if request.method == 'POST':
+        my_job = Job.objects.get(id=job_id)
+        posted_data = json.loads(request.body)
+        #my_job.price_is_ok = 'true' == posted_data['new_status']
+        my_job.price_is_ok = posted_data['new_status']
+        my_job.save()
+
+        return JsonResponse({
+            'current_status': my_job.price_is_ok
+        }, status=200)
+
+
+        
+
+
+
+
 
 
 def purchase_order(request):
@@ -218,7 +239,9 @@ def purchase_order(request):
             create_oe_event(request.user, po_to_delete, f'Deleted PO {po_to_delete.reference}', -po_to_delete.value)
             po_to_delete.active = False
             po_to_delete.save()
-            return HttpResponseRedirect(reverse('job', kwargs={'job_id': po_to_delete.job.pk }))
+            job = po_to_delete.job
+            job.price_changed()
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': job.pk }))
 
         else:
             # Create and Update should both submit a JSONed POForm, so handle/check that
@@ -254,6 +277,10 @@ def purchase_order(request):
                     # Update OE to reflect changes to the PO, but only if the value changed
                     if difference != 0:
                         create_oe_event(request.user, po_to_update, reason, difference)
+
+                    # Price change = previous price confirmation is no longer valid
+                    job = po_to_update.job
+                    job.price_changed()
 
                 # Create PO
                 else:

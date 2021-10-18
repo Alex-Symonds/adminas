@@ -340,6 +340,12 @@ class Job(AdminAuditTrail):
     incoterm_code = models.CharField(max_length=3, choices=INCOTERMS)
     incoterm_location = models.CharField(max_length=30)
 
+    price_is_ok = models.BooleanField(default=False)
+
+    def price_changed(self):
+        if self.price_is_ok:
+            self.price_is_ok = False
+            self.save()
 
     def total_value(self):
         # Change this to whatever is going to be the "main" value for the order
@@ -666,6 +672,7 @@ class JobItem(AdminAuditTrail):
             if qty_per_parent == None:
                 qty_per_parent = 0
             stdAcc.quantity = self.quantity * qty_per_parent
+            stdAcc.save()
 
  
 
@@ -749,6 +756,9 @@ class JobItem(AdminAuditTrail):
 
     def __str__(self):
         return f'({self.job.name}) {self.quantity} x {self.product.name}'
+
+
+
 
 class JobModule(models.Model):
     parent = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='modules')
@@ -901,30 +911,19 @@ class InvoiceWording(DisplayLineItem):
 
 
 
-# If I don't need TO anymore, this can just go in the OE class
-class AccountingEvent(AdminAuditTrail):
-    """ Abstract class for the system's accounting data """
+
+
+class AccEventOE(AdminAuditTrail):
+    """ Store data about a single change to OE, whether it's a new order or a modification to an existing order """
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
     value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
     reason = models.TextField(blank=True)
-
-    class Meta:
-        abstract = True
-
-class AccEventOE(AccountingEvent):
-    """ Store data about a single change to OE, whether it's a new order or a modification to an existing order """
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='oe_events')
     po = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, related_name='oe_adjustments', blank=True, null=True)
 
     def __str__(self):
         return f'{get_plusminus_prefix(self.value)}{format_money(self.value)} {self.currency}. Job {self.job.name} @ {self.created_on.strftime("%Y-%m-%d %H:%M:%S")}'
 
-# I don't think I need this one anymore
-class AccEventTO(AccountingEvent):
-    fin_group = models.ForeignKey(FinGroup, on_delete=models.PROTECT, related_name='to_events')
-
-    def __str__(self):
-        return str(self.value) + ' ' + self.currency + ' ' + self.fin_group.name + ' @ ' + str(self.created_on)
 
 
 
@@ -1103,7 +1102,7 @@ class DocumentVersion(AdminAuditTrail):
 
 
 
-    def item_assignments_clash(self, revert_obj):
+    def item_assignments_clash(self):
         # Part of the "revert to previous version" process
         # Suppose a user: issued WO #A v1, including 1/1 of Item #X; created WO #A v2 in which 1/1 of Item #X is removed; created WO #B v1, including 1/1 of Item #X;
         # tries to revert WO #A to v1.

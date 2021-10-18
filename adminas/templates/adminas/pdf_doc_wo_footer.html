@@ -1,0 +1,9 @@
+{% extends 'adminas/pdf_company_footer.html' %}
+
+{% block doc_specific_footer %}
+    <section id="document_authorisation">
+        <div><span>Created by</span><span>{{ created_by }}</span></div>
+        <div><span>Authorised by</span><span></span></div>
+        <div><span>Authorisation Date</span><span></span>
+    </section>
+{% endblock %}
