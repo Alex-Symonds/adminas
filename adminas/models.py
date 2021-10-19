@@ -342,6 +342,67 @@ class Job(AdminAuditTrail):
 
     price_is_ok = models.BooleanField(default=False)
 
+    def admin_warnings(self):
+        strings = []
+        if not self.price_is_ok:
+            strings.append('Price is not confirmed')
+        
+        if self.po.all().count() == 0:
+            strings.append('No purchase orders have been added')
+
+        # TODO: Something to check for missing modules and add a result
+
+        result = {}
+        result['strings'] = strings
+        result['tuples'] = self.get_document_warnings()
+
+        return result
+
+
+    def get_document_warnings(self):
+        result = []
+        for my_tuple in DOCUMENT_TYPES:
+            doc_type = my_tuple[0]
+            warnings = self.get_document_admin_warnings_bools(doc_type)
+            if warnings['unassigned_items_exist']:
+                result.append((doc_type, 'unassigned items'))
+
+            if warnings['unissued_docs_exist']:
+                result.append((doc_type, 'unissued documents'))
+
+        return result
+
+    # This was intended to return a dict with bools so the template could work out what/how to display stuff.
+    # Now I'm thinking views should do that.
+    def admin_warnings_bools(self):
+        result = {}
+        result['missing_price_confirmation'] = not self.price_is_ok
+        result['missing_po'] = len(self.po) == 0
+        result['missing_modules'] = None
+
+        doc_warnings = {}
+        for doc_type in DOCUMENT_TYPES:
+            doc_warnings[doc_type.lower()] = self.get_document_admin_warnings(doc_type)
+        result['document_warnings'] = doc_warnings
+
+        return result
+
+    def get_document_admin_warnings_bools(self, doc_type):
+        result = {}
+        result['unassigned_items_exist'] = len(self.get_default_included_items(doc_type)) > 0 
+        result['unissued_docs_exist'] = self.unissued_documents_exist(doc_type)
+        return result
+
+    def unissued_documents_exist(self, doc_type):
+        try:
+            qs = self.related_documents()
+            dvs = qs.filter(document__doc_type=doc_type)
+        except DocumentVersion.DoesNotExist:
+            return False
+
+        return dvs.filter(issue_date = None).count() > 0
+
+
     def price_changed(self):
         if self.price_is_ok:
             self.price_is_ok = False

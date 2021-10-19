@@ -950,27 +950,3 @@ function delete_document(){
         })
     }
 }
-
-// function update_local_nav(doc_id){
-//     let local_nav_ele = document.querySelector('.' + CLASS_LOCAL_NAV);
-
-//     let p = local_nav_ele.querySelector('p');
-//     if(p == null){
-//         return;
-//     }
-
-//     let exit_edit_link = document.createElement('a');
-//     exit_edit_link.href = URL_DOCMAIN;
-//     exit_edit_link.innerHTML = 'Exit edit mode';
-//     p.after(exit_edit_link);
-
-//     let preview_link = document.createElement('a');
-//     preview_link.href = URL_PREVIEW.replace('0', doc_id);
-//     preview_link.innerHTML = 'Preview';
-//     exit_edit_link.after(preview_link);
-
-//     preview_link.before(document.createElement('br'));
-//     preview_link.after(document.createElement('br'));
-
-//     p.remove();
-// }

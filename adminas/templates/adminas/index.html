@@ -11,6 +11,25 @@
 
     <a href="{% url 'job' 1 %}">Job 1</a>
 
+    <div>
+    {% for job in data %}
+        <div>
+            <a href="{% url 'job' job.id %}">
+                <h4>{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
+                <p>{{ job.customer }} (via {{ job.agent }}). {{ job.currency }}&nbsp;{{ job.value }}</p>
+                <ul>        
+        {% for str_warning in job.admin_warnings.strings %}
+                    <li>{{ str_warning }}</li>
+        {% endfor %}    
+        {% for tuple_warning in job.admin_warnings.tuples %}
+                    <li>{{ tuple_warning.0 }} {{ tuple_warning.1 }}</li>
+        {% endfor %} 
+                </ul>
+            </a>
+        </div>
+    {% endfor %}
+    </div>
+
 {% endblock %}
 
 

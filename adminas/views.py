@@ -88,7 +88,26 @@ def register(request):
 
 
 def index(request):
-    return render(request, 'adminas/index.html')
+    jobs = Job.objects.all()
+
+    jobs_list = []
+    for j in jobs:
+        job = {}
+        job['id'] = j.id
+        job['name'] = j.name
+        job['flag_alt'] = j.country.name
+        job['flag_url'] = j.country.flag
+        job['customer'] = j.customer.name
+        job['agent'] = j.agent.name
+        job['currency'] = j.currency
+        job['value'] = j.total_value_f()
+        job['admin_warnings'] = j.admin_warnings()
+
+        jobs_list.append(job)
+
+    return render(request, 'adminas/index.html', {
+        'data': jobs_list
+    })
 
 
 
@@ -209,7 +228,6 @@ def price_check(request, job_id):
     if request.method == 'POST':
         my_job = Job.objects.get(id=job_id)
         posted_data = json.loads(request.body)
-        #my_job.price_is_ok = 'true' == posted_data['new_status']
         my_job.price_is_ok = posted_data['new_status']
         my_job.save()
 
@@ -338,6 +356,8 @@ def items(request):
                     })
                     if form.is_valid():
                         ji = add_jobitem(request.user, form)
+                        parent.job.price_changed()
+                        
                         return JsonResponse({
                             'id': ji.id
                         }, status=200)
@@ -355,6 +375,7 @@ def items(request):
         ji = JobItem.objects.get(id=ji_id)
 
         if request.GET.get('delete'):
+            ji.job.price_changed()
             ji.delete()
             return JsonResponse({
                 'message': 'Deleted record.'
@@ -381,6 +402,8 @@ def items(request):
                     elif previous_qty != ji.quantity:
                         ji.update_standard_accessories_quantities()
 
+                    ji.job.price_changed()
+
                     return JsonResponse(ji.get_post_edit_dictionary(), status=200)
             
 
@@ -392,6 +415,7 @@ def items(request):
                 if form.is_valid():
                     ji.selling_price = form.cleaned_data['selling_price']
                     ji.save()
+                    ji.job.price_changed()
                     return JsonResponse(ji.get_post_edit_dictionary(), status=200)
                 else:
                     return error_page(request, 'Item has not been updated.', 400)
