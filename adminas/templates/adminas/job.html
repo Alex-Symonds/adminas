@@ -12,6 +12,8 @@
         const JOB_ID = '{{ job.id }}';
         const URL_ITEMS = '{% url "items" %}';
         const URL_PRICE_CHECK = '{% url "price_check" job.id %}';
+        const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
+        const REPLACE_TODO_BTN = "div";
         //const URL_PO = '{% url 'purchase_order' %}';
     </script>
     <script src="{% static 'adminas/job_toggle.js' %}" type="text/javascript"></script>
@@ -20,12 +22,19 @@
     <script src="{% static 'adminas/po_edit.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/auto_item_desc.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/job_price_check_btn.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
     <h2>Job {{ job.name }} for {{ job.customer.name }}</h2>
+    {% if user in job.users_monitoring.all %}
+    <div class="on-todo-list">on todo list</div>
+    {% else %}
+    <button class="todo-list-add" data-job_id="{{ job.id }}">+</button>
+    {% endif %}
+
     <a href="{% url 'edit_job' %}?job={{job.id}}">Edit Job Details</a>
-   
+
     <h3>General Details</h3>
     <div id="job_general_section">
         <h4>Identification</h4>

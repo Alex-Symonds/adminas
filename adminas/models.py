@@ -14,8 +14,11 @@ from adminas.util import format_money, get_document_available_items, get_plusmin
 import datetime
 import re
 
+# Used for the third-party info for companies
+from django.db.models import Q
+from django.db.models import F
+
 # Copied from views.py due to moving info processing for document to the model
-from django.core.paginator import Paginator
 from adminas.constants import MAX_ROWS_OC
 
 # Size fields
@@ -34,7 +37,7 @@ PERSON_NAME_LENGTH = 100
 
 
 class User(AbstractUser):
-    pass
+    homepage_jobs = models.ManyToManyField('Job', related_name='users_monitoring')
 
 class AdminAuditTrail(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
@@ -43,14 +46,9 @@ class AdminAuditTrail(models.Model):
     class Meta:
         abstract = True
 
+
 # "System data" tables. That is, stuff that should already be in place when you begin processing a PO
-
 # Customers and partners
-from django.db.models import Q
-from django.db.models import F
-from django.db.models import Count
-from itertools import chain
-
 class Company(AdminAuditTrail):
     full_name = models.CharField(max_length=COMPANY_NAME_LENGTH)
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
@@ -196,8 +194,8 @@ class Product(AdminAuditTrail):
 
 
 class StandardAccessory(AdminAuditTrail):
-    parent = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='my_stdaccs')
-    accessory = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stdacc_for')
+    parent = models.ForeignKey(Product, on_delete=models.SET_NULL, related_name='my_stdaccs', null=True)
+    accessory = models.ForeignKey(Product, on_delete=models.SET_NULL, related_name='stdacc_for', null=True)
     quantity = models.IntegerField()
 
     def __str__(self):
@@ -342,56 +340,59 @@ class Job(AdminAuditTrail):
 
     price_is_ok = models.BooleanField(default=False)
 
+    def on_todo_list(self, user):
+        return user in self.users_monitoring.all()
+
     def admin_warnings(self):
-        strings = []
-        if not self.price_is_ok:
-            strings.append('Price is not confirmed')
-        
-        if self.po.all().count() == 0:
-            strings.append('No purchase orders have been added')
-
-        # TODO: Something to check for missing modules and add a result
-
         result = {}
-        result['strings'] = strings
-        result['tuples'] = self.get_document_warnings()
+
+        result['strings'] = []
+        if not self.price_is_ok:
+            result['strings'].append('Price unconfirmed'.upper())
+        
+        if self.items.count() == 0:
+            result['strings'].append('No items added')
+
+        if self.modules_are_missing():
+            result['strings'].append('Modular items incomplete')
+        
+        result['tuples'] = []
+        qs = self.related_po()
+        if qs.count() == 0:
+            result['tuples'].append(('PO', 'none'))
+
+
+        result['tuples'] += self.get_document_warnings()
 
         return result
+
+
+    def modules_are_missing(self):
+        main_items = self.main_item_list()
+        if main_items == None:
+            return False
+    
+        for ji in main_items:
+            if not ji.all_required_modules_assigned():
+                return True
+        return False
 
 
     def get_document_warnings(self):
         result = []
-        for my_tuple in DOCUMENT_TYPES:
-            doc_type = my_tuple[0]
-            warnings = self.get_document_admin_warnings_bools(doc_type)
-            if warnings['unassigned_items_exist']:
-                result.append((doc_type, 'unassigned items'))
+        for loop_tuple in DOCUMENT_TYPES:
+            doc_type = loop_tuple[0]
 
-            if warnings['unissued_docs_exist']:
-                result.append((doc_type, 'unissued documents'))
+            default_incl_items = self.get_default_included_items(doc_type)
+            if len(default_incl_items) > 0 if default_incl_items != None else False:
+                result.append((doc_type, 'items unassigned'))
 
-        return result
-
-    # This was intended to return a dict with bools so the template could work out what/how to display stuff.
-    # Now I'm thinking views should do that.
-    def admin_warnings_bools(self):
-        result = {}
-        result['missing_price_confirmation'] = not self.price_is_ok
-        result['missing_po'] = len(self.po) == 0
-        result['missing_modules'] = None
-
-        doc_warnings = {}
-        for doc_type in DOCUMENT_TYPES:
-            doc_warnings[doc_type.lower()] = self.get_document_admin_warnings(doc_type)
-        result['document_warnings'] = doc_warnings
+            if self.unissued_documents_exist(doc_type):
+                result.append((doc_type, 'documents unissued'))
 
         return result
 
-    def get_document_admin_warnings_bools(self, doc_type):
-        result = {}
-        result['unassigned_items_exist'] = len(self.get_default_included_items(doc_type)) > 0 
-        result['unissued_docs_exist'] = self.unissued_documents_exist(doc_type)
-        return result
+
 
     def unissued_documents_exist(self, doc_type):
         try:
@@ -1382,3 +1383,5 @@ class SpecialInstruction(AdminAuditTrail):
 
     def __str__(self):
         return f'Note on {self.version.document.doc_type} {self.version.document.reference} by {self.created_by.name} on {self.created_on}'
+
+

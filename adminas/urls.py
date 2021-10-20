@@ -21,5 +21,6 @@ urlpatterns = [
     path('document/<int:doc_id>/pdf', views.document_pdf, name='doc_display'),
     path('document/<int:doc_id>', views.document_main, name='doc_main'),
     path('job/<int:job_id>/price_check', views.price_check, name='price_check'),
+    path('todo_list', views.todo_list_management, name='todo_list_management'),
     path('get_data', views.get_data, name='get_data')
 ]

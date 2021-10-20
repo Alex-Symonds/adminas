@@ -1,7 +1,16 @@
 {% extends "adminas/layout.html" %}
 
+{%  load static %}
+
 {% block title %}
     - Home
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
+    </script>
+    <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
@@ -9,14 +18,27 @@
 
     <a href="{% url 'edit_job' %}">New Job</a>
 
-    <a href="{% url 'job' 1 %}">Job 1</a>
-
     <div>
     {% for job in data %}
-        <div>
+        <div id="todo_panel_job_{{ job.id }}">
+            <button class="todo-list-remove" data-job_id="{{ job.id }}">remove</button>
             <a href="{% url 'job' job.id %}">
                 <h4>{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
-                <p>{{ job.customer }} (via {{ job.agent }}). {{ job.currency }}&nbsp;{{ job.value }}</p>
+                <p>
+        {% if job.customer != None %}
+                    {{ job.customer }} 
+            {% if job.agent != None %}
+                    (via 
+            {% endif %}
+        {% endif %}
+        {% if job.agent != None %}
+            {{ job.agent }}
+        {% endif %}
+        {% if job.agent != None and job.customer != None %}
+            )
+        {% endif %}
+         @ {{ job.currency }}&nbsp;{{ job.value }}
+                </p>
                 <ul>        
         {% for str_warning in job.admin_warnings.strings %}
                     <li>{{ str_warning }}</li>

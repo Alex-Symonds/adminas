@@ -1,7 +1,17 @@
 {% extends "adminas/layout.html" %}
 
+{% load static %}
+
 {% block title %}
     - Records
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
+        const REPLACE_TODO_BTN = "td-dash";
+    </script>
+    <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
@@ -10,6 +20,7 @@
     <table>
         <tr>
             <th>View</th>
+            <th>Watch</th>
             <th>Name</th>
             <th>Agent</th>
             <th>Customer</th>
@@ -32,6 +43,13 @@
     {% for job in data %}
         <tr>
             <td><a href="{% url 'job' job.id %}">Link</a></td>
+            <td>
+        {% if user in job.users_monitoring.all %}
+                -
+        {% else %}
+                <button class="todo-list-add" data-job_id="{{ job.id }}">+</button>
+        {% endif %}
+            </td>
             <td>{{ job.name }}</td>
             <td>{{ job.agent.name }}</td>
             <td>{{ job.customer.name }}</td>

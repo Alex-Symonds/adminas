@@ -88,7 +88,11 @@ def register(request):
 
 
 def index(request):
-    jobs = Job.objects.all()
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+
+    user = request.user
+    jobs = user.homepage_jobs.all().order_by('-created_on')
 
     jobs_list = []
     for j in jobs:
@@ -97,8 +101,8 @@ def index(request):
         job['name'] = j.name
         job['flag_alt'] = j.country.name
         job['flag_url'] = j.country.flag
-        job['customer'] = j.customer.name
-        job['agent'] = j.agent.name
+        job['customer'] = j.customer.name if j.customer != None else None
+        job['agent'] = j.agent.name if j.agent != None else None
         job['currency'] = j.currency
         job['value'] = j.total_value_f()
         job['admin_warnings'] = j.admin_warnings()
@@ -113,8 +117,56 @@ def index(request):
 
 
 
+def todo_list_management(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'message': "You must be logged in to update the to-do list."
+        },status=400)   
 
+    if request.method == 'POST':
+        posted_data = json.loads(request.body)
 
+        if 'job_id' in posted_data and 'task' in posted_data:
+            try:
+                user = User.objects.get(username=request.user.username)
+            except User.DoesNotExist:
+                return JsonResponse({
+                    'message': "Failed to update to-do list: can't find user."
+                }, status=400)
+
+            try:
+                job = Job.objects.get(id=posted_data['job_id'])
+            except Job.DoesNotExist:
+                return JsonResponse({
+                    'message': "Failed to update to-do list: can't find job."
+                }, status=400)
+
+            # Get the task and perform it
+            if 'remove' == posted_data['task']:
+                if job in user.homepage_jobs.all():
+                    user.homepage_jobs.remove(job)
+                    user.save()
+                    return JsonResponse({
+                        'id': posted_data['job_id']
+                    }, status=200)
+
+            elif 'add' == posted_data['task']:
+                if not job in user.homepage_jobs.all():
+                    user.homepage_jobs.add(job)
+                    user.save()
+                    return JsonResponse({
+                        'status': 'ok'
+                    }, status=200)
+
+            else:
+                return JsonResponse({
+                    'message': "Failed to update to-do list: invalid task."
+                }, status=400)
+
+        else:
+            return JsonResponse({
+                'message': "Failed to update to-do list: incomplete instructions."
+            }, status=400)
 
 
 
@@ -174,6 +226,8 @@ def edit_job(request):
                 )
                 new_job.save()
                 redirect_id = new_job.id
+                user = User.objects.get(username=request.user.username)
+                user.homepage_jobs.add(new_job)
 
             else:
                 job = Job.objects.get(id=job_id)
@@ -210,11 +264,13 @@ def job(request, job_id):
 
     my_job = Job.objects.get(id=job_id)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
+    user_is_watching = my_job.on_todo_list(request.user)
 
     return render(request, 'adminas/job.html', {
         'job': my_job,
         'po_form': POForm(initial={'job': my_job.id}),
-        'item_formset': item_formset
+        'item_formset': item_formset,
+        'watching': user_is_watching
     })
 
 
@@ -649,12 +705,11 @@ def get_data(request):
 
 
 def records(request):
-    all_jobs = Job.objects.all()
+    all_jobs = Job.objects.all().order_by('created_on')
     data = all_jobs.annotate(total_po_value=Sum('po__value')).annotate(num_po=Count('po'))
 
     for j in data:
         j.total_po_value_f = format_money(j.total_po_value)
-
 
     return render(request, 'adminas/records.html', {
         'data': data
@@ -949,7 +1004,7 @@ def document_main(request, doc_id):
                     this_version.delete()
 
                 return JsonResponse({
-                    'redirect': reverse("doc_main", kwargs={"doc_id": previous_version.pk})
+                    'redirect': reverse('doc_main', kwargs={'doc_id': previous_version.pk})
                 }, status=200)
 
 

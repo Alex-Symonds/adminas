@@ -66,7 +66,7 @@ def get_document_available_items(jobitems, doc_type):
     # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
     # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
 
-    if jobitems.count() == 0:
+    if jobitems == None or jobitems.count() == 0:
         return None
 
     else:
