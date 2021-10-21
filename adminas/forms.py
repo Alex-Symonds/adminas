@@ -1,6 +1,6 @@
 from django.db.models.base import Model
-from django.forms import ModelForm, modelformset_factory, modelform_factory, ModelChoiceField, Textarea, HiddenInput
-from adminas.models import Job, JobItem, JobModule, PurchaseOrder, Company, Address, Site, Product, DocumentData, ProductionData, DocumentVersion
+from django.forms import ModelForm, modelformset_factory, modelform_factory, ModelChoiceField, Textarea, HiddenInput, BooleanField, CheckboxInput
+from adminas.models import Job, JobComment, JobItem, JobModule, PurchaseOrder, Company, Address, Site, Product, DocumentData, ProductionData, DocumentVersion
 
 
 class CompanyForm(ModelForm):
@@ -131,3 +131,9 @@ class ProductionReqForm(ModelForm):
         fields = ['date_requested']
 
  
+class JobCommentFullForm(ModelForm):
+    todo_bool = BooleanField(label='Display on to-do list', required=False, widget=CheckboxInput())
+
+    class Meta():
+        model = JobComment
+        fields = ['private', 'contents', 'todo_bool']

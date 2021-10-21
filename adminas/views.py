@@ -19,8 +19,8 @@ from django.views.generic.base import View
 from wkhtmltopdf.views import PDFTemplateResponse
 # --------------------------------------------------------
 
-from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion
-from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm
+from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment
+from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, MAX_ROWS_OC
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
@@ -92,7 +92,7 @@ def index(request):
         return anonymous_user(request)
 
     user = request.user
-    jobs = user.homepage_jobs.all().order_by('-created_on')
+    jobs = user.todo_list_jobs.all().order_by('-created_on')
 
     jobs_list = []
     for j in jobs:
@@ -143,16 +143,16 @@ def todo_list_management(request):
 
             # Get the task and perform it
             if 'remove' == posted_data['task']:
-                if job in user.homepage_jobs.all():
-                    user.homepage_jobs.remove(job)
+                if job in user.todo_list_jobs.all():
+                    user.todo_list_jobs.remove(job)
                     user.save()
                     return JsonResponse({
                         'id': posted_data['job_id']
                     }, status=200)
 
             elif 'add' == posted_data['task']:
-                if not job in user.homepage_jobs.all():
-                    user.homepage_jobs.add(job)
+                if not job in user.todo_list_jobs.all():
+                    user.todo_list_jobs.add(job)
                     user.save()
                     return JsonResponse({
                         'status': 'ok'
@@ -227,7 +227,7 @@ def edit_job(request):
                 new_job.save()
                 redirect_id = new_job.id
                 user = User.objects.get(username=request.user.username)
-                user.homepage_jobs.add(new_job)
+                user.todo_list_jobs.add(new_job)
 
             else:
                 job = Job.objects.get(id=job_id)
@@ -265,13 +265,89 @@ def job(request, job_id):
     my_job = Job.objects.get(id=job_id)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
     user_is_watching = my_job.on_todo_list(request.user)
+    comments_list = my_job.get_comments(request.user)
 
+    debug(comments_list)
+    
     return render(request, 'adminas/job.html', {
         'job': my_job,
         'po_form': POForm(initial={'job': my_job.id}),
         'item_formset': item_formset,
-        'watching': user_is_watching
+        'watching': user_is_watching,
+        'comments': comments_list
     })
+
+
+def job_comments(request, job_id):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)
+    
+    if request.method == 'POST':
+        comment_id = request.GET.get('id')
+        posted_data = json.loads(request.body)
+        comment_form = JobCommentFullForm({
+            'private': posted_data['private'],
+            'contents': posted_data['contents'],
+            'todo_bool': posted_data['todo_bool']
+        })
+
+        if comment_form.is_valid():
+            if comment_id == '0':
+                # Add new comment
+                try:
+                    job = Job.objects.get(id=job_id)
+                except Job.DoesNotExist:
+                    return JsonResponse({
+                        'error': "Can't find Job."
+                    }, status=400)
+
+                comment = JobComment(
+                    created_by = request.user,
+                    job = job,
+                    contents = comment_form.cleaned_data['contents'],
+                    private = comment_form.cleaned_data['private']
+                )
+                comment.save()
+
+                if comment_form.cleaned_data['todo_bool']:
+                    comment.todo_list_display.add(request.user)
+                    comment.save()
+
+            else:
+                # edit an existing comment
+                try:
+                    comment = JobComment.objects.get(id=comment_id)
+                except JobComment.DoesNotExist:
+                    return JsonResponse({
+                        'error': "Can't find comment."
+                    }, status=400)
+
+                comment.contents = comment_form.cleaned_data['contents']
+                comment.private = comment_form.cleaned_data['private']
+
+                want_todo_display = comment_form.cleaned_data['todo_bool']
+                user = User.objects.get(username=request.user.username)
+                have_todo_display = user in comment.todo_list_display.all()
+
+                if want_todo_display and not have_todo_display:
+                    comment.todo_list_display.add(request.user)
+                elif not want_todo_display and have_todo_display:
+                    comment.todo_list_display.remove(request.user)
+                
+                comment.save()
+            
+            return JsonResponse({
+                'id': comment.id
+            }, status=200)
+
+        else:
+            debug(comment_form.errors)
+            return JsonResponse({
+                'error': "Invalid form data."
+            }, status=400)            
+
+
+
 
 
 

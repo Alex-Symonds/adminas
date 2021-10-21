@@ -37,7 +37,7 @@ PERSON_NAME_LENGTH = 100
 
 
 class User(AbstractUser):
-    homepage_jobs = models.ManyToManyField('Job', related_name='users_monitoring')
+    todo_list_jobs = models.ManyToManyField('Job', related_name='users_monitoring')
 
 class AdminAuditTrail(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
@@ -340,6 +340,11 @@ class Job(AdminAuditTrail):
 
     price_is_ok = models.BooleanField(default=False)
 
+
+    def get_comments(self, user):
+        return JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by('-created_by')
+
+
     def on_todo_list(self, user):
         return user in self.users_monitoring.all()
 
@@ -350,6 +355,9 @@ class Job(AdminAuditTrail):
         if not self.price_is_ok:
             result['strings'].append('Price unconfirmed'.upper())
         
+        if self.total_difference_value_po_vs_line() != 0:
+            result['strings'].append('Price discrepancy (PO vs. line items)')
+
         if self.items.count() == 0:
             result['strings'].append('No items added')
 
@@ -537,10 +545,11 @@ class Job(AdminAuditTrail):
 class JobComment(AdminAuditTrail):
     contents = models.TextField()
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='comments')
-    is_status = models.BooleanField(default=False)
+    private = models.BooleanField(default=True)
+    todo_list_display = models.ManyToManyField(User, related_name='todo_list_comments')
 
     def __str__(self):
-        return f'{self.created_by} on Job {self.job.name}'
+        return f'{self.created_by} on Job {self.job.name} @ {self.created_on}: "{self.contents[:15]}..."'
 
 
 
@@ -844,132 +853,132 @@ class JobModule(models.Model):
 
 
 
-class ProdGroup(AdminAuditTrail):
-    date_wanted = models.DateTimeField()
-    date_scheduled = models.DateTimeField(blank=True)
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='batches')
-    name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
-    items = models.ManyToManyField(JobItem, related_name='prod_groups', through='ItemPrAssignment')
+# class ProdGroup(AdminAuditTrail):
+#     date_wanted = models.DateTimeField()
+#     date_scheduled = models.DateTimeField(blank=True)
+#     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='batches')
+#     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
+#     items = models.ManyToManyField(JobItem, related_name='prod_groups', through='ItemPrAssignment')
 
-    def __str__(self):
-        return '(' + self.job.name + ') ' + self.name
+#     def __str__(self):
+#         return '(' + self.job.name + ') ' + self.name
 
 # I don't think I need this anymore.
-class ItemPrAssignment(models.Model):
-    group = models.ForeignKey(ProdGroup, on_delete=models.CASCADE, related_name='assigned')
-    item = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='assignments')
-    quantity = models.IntegerField()
+# class ItemPrAssignment(models.Model):
+#     group = models.ForeignKey(ProdGroup, on_delete=models.CASCADE, related_name='assigned')
+#     item = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='assignments')
+#     quantity = models.IntegerField()
 
-    def __str__(self):
-        return f'{self.group.name} <<< {self.quantity} from ({self.item.job.name}) {self.item.quantity} x {self.item.product.name}'
+#     def __str__(self):
+#         return f'{self.group.name} <<< {self.quantity} from ({self.item.job.name}) {self.item.quantity} x {self.item.product.name}'
 
 
-class ProdDetails(AdminAuditTrail):
-    """ 
-        Details which arise during/after production and apply to MULTIPLE instances of the same product.
-        (e.g. "5 widgets from $JOB finished on $DATE")
+# class ProdDetails(AdminAuditTrail):
+#     """ 
+#         Details which arise during/after production and apply to MULTIPLE instances of the same product.
+#         (e.g. "5 widgets from $JOB finished on $DATE")
         
-        Note: This record would be created for every completed JobItem.
-    """
-    item = models.ForeignKey(JobItem, on_delete=models.PROTECT, related_name = 'details')
-    quantity = models.IntegerField(blank=True)
-    date_finished = models.DateField(blank=True)
+#         Note: This record would be created for every completed JobItem.
+#     """
+#     item = models.ForeignKey(JobItem, on_delete=models.PROTECT, related_name = 'details')
+#     quantity = models.IntegerField(blank=True)
+#     date_finished = models.DateField(blank=True)
 
-    def __str__(self):
-        return f'{self.quantity} x ({self.item.job.name}) {self.item.quantity} x {self.item.product.name}, completed on {self.date_finished}'
+#     def __str__(self):
+#         return f'{self.quantity} x ({self.item.job.name}) {self.item.quantity} x {self.item.product.name}, completed on {self.date_finished}'
 
 
-class SpecificDetails(AdminAuditTrail):
-    """ 
-        Details which arise during/after production and apply to a SINGLE instance of a product.
-        (e.g. serial numbers)
+# class SpecificDetails(AdminAuditTrail):
+#     """ 
+#         Details which arise during/after production and apply to a SINGLE instance of a product.
+#         (e.g. serial numbers)
 
-        Note: Only created when unique data exists for specific instances of a product.
+#         Note: Only created when unique data exists for specific instances of a product.
 
-        Notes about usage:
-            Case: JobItem quantity = 3 and Product id_type is "per item".
-            Expectation: 1 x ProdDetails record showing quantity = 3; 3 x SpecificDetails records, each containing a serial number for a specific item.
+#         Notes about usage:
+#             Case: JobItem quantity = 3 and Product id_type is "per item".
+#             Expectation: 1 x ProdDetails record showing quantity = 3; 3 x SpecificDetails records, each containing a serial number for a specific item.
 
-            Case: JobItem quantity = 150 and Product id_type is "per batch". All products supplied are from the same batch.
-            Expectation: 1 x ProdDetails record showing quantity = 150; 1 x SpecificDetails record shows the batch serial number.
+#             Case: JobItem quantity = 150 and Product id_type is "per batch". All products supplied are from the same batch.
+#             Expectation: 1 x ProdDetails record showing quantity = 150; 1 x SpecificDetails record shows the batch serial number.
 
-            Case: JobItem quantity = 150 and Product id_type is "per batch". 100 will be supplied from Batch A and 50 from Batch B.
-            Expectation: 2 x ProdDetails records, one showing a quantity of 100 and one showing a quantity of 50; 2 x SpecificDetails, one showing 
-            Batch A's serial number and linking to the 100; one showing Batch B's serial number and linking to the 50.
-    """
-    prod_details = models.ForeignKey(ProdDetails, on_delete=models.PROTECT, related_name = 'specifics', null=True)
-    reference = models.CharField(max_length=LENGTH_SERIAL_NUMBER)
+#             Case: JobItem quantity = 150 and Product id_type is "per batch". 100 will be supplied from Batch A and 50 from Batch B.
+#             Expectation: 2 x ProdDetails records, one showing a quantity of 100 and one showing a quantity of 50; 2 x SpecificDetails, one showing 
+#             Batch A's serial number and linking to the 100; one showing Batch B's serial number and linking to the 50.
+#     """
+#     prod_details = models.ForeignKey(ProdDetails, on_delete=models.PROTECT, related_name = 'specifics', null=True)
+#     reference = models.CharField(max_length=LENGTH_SERIAL_NUMBER)
     
-    # If multiple items supplied together all have SNs, optionally store the links.
-    supplied_with = models.ManyToManyField('self')
+#     # If multiple items supplied together all have SNs, optionally store the links.
+#     supplied_with = models.ManyToManyField('self')
 
-    def __str__(self):
-        return f'Item {self.reference}'
-
-
-# Finance support
-class FinGroup(AdminAuditTrail):
-    """ Group job content for a financial document (= invoice or credit note) """
-    job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='fin_groups')
-    reference = models.CharField(max_length=10, blank=True)
-
-    name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
-    #recipient = models.ForeignKey(Site, on_delete=models.PROTECT, related_name='financials') # commented out because isn't this what invoice_to is for?
-    currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
-    value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
-
-    show_item_discounts = models.BooleanField(default=True)
-
-    def __str__(self):
-        if self.name == '':
-            show_name = 'Unnamed'
-        else:
-            show_name = self.name
-        return show_name + ' for ' + self.job.name
+#     def __str__(self):
+#         return f'Item {self.reference}'
 
 
-class DisplayLineItem(AdminAuditTrail):
-    """ Abstract class to store 'dummy' body text / line-items for documents """
-    quantity = models.CharField(max_length=7, blank=True)
-    part_number = models.CharField(max_length=PART_NUM_LENGTH, blank=True)
-    description = models.CharField(max_length=DOCS_ONE_LINER, blank=True)
-    # Note: no value fields because any changes to values must occur via JobItems, so they can be recorded in the system
+# # Finance support
+# class FinGroup(AdminAuditTrail):
+#     """ Group job content for a financial document (= invoice or credit note) """
+#     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='fin_groups')
+#     reference = models.CharField(max_length=10, blank=True)
 
-    class Meta:
-        abstract = True
+#     name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
+#     #recipient = models.ForeignKey(Site, on_delete=models.PROTECT, related_name='financials') # commented out because isn't this what invoice_to is for?
+#     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
+#     value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
 
-class FinDisplayGroup(DisplayLineItem):
-    """ Group JobItems for display purposes within the financial document, applying display settings """   
-    group = models.ForeignKey(FinGroup, on_delete=models.CASCADE, related_name='subgroups')
-    name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
+#     show_item_discounts = models.BooleanField(default=True)
 
-    # Settings for the group
-    show_description = models.BooleanField(default=False)
-    show_details = models.BooleanField(default=True)
-    show_subtotal = models.BooleanField(default=False)
+#     def __str__(self):
+#         if self.name == '':
+#             show_name = 'Unnamed'
+#         else:
+#             show_name = self.name
+#         return show_name + ' for ' + self.job.name
 
-    def display_desc(self):
-        if self.description == '':
-            return self.name
-        else:
-            return self.description
 
-    def __str__(self):
-        return f'{self.group.name}: {self.name}'
+# class DisplayLineItem(AdminAuditTrail):
+#     """ Abstract class to store 'dummy' body text / line-items for documents """
+#     quantity = models.CharField(max_length=7, blank=True)
+#     part_number = models.CharField(max_length=PART_NUM_LENGTH, blank=True)
+#     description = models.CharField(max_length=DOCS_ONE_LINER, blank=True)
+#     # Note: no value fields because any changes to values must occur via JobItems, so they can be recorded in the system
 
-class InvoiceExtraLine(DisplayLineItem):
-    """ If the invoice needs some notes at the end, add them using this """
-    display_group = models.ForeignKey(FinDisplayGroup, on_delete=models.SET_NULL, related_name='extra_lines', null=True)
+#     class Meta:
+#         abstract = True
+
+# class FinDisplayGroup(DisplayLineItem):
+#     """ Group JobItems for display purposes within the financial document, applying display settings """   
+#     group = models.ForeignKey(FinGroup, on_delete=models.CASCADE, related_name='subgroups')
+#     name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
+
+#     # Settings for the group
+#     show_description = models.BooleanField(default=False)
+#     show_details = models.BooleanField(default=True)
+#     show_subtotal = models.BooleanField(default=False)
+
+#     def display_desc(self):
+#         if self.description == '':
+#             return self.name
+#         else:
+#             return self.description
+
+#     def __str__(self):
+#         return f'{self.group.name}: {self.name}'
+
+# class InvoiceExtraLine(DisplayLineItem):
+#     """ If the invoice needs some notes at the end, add them using this """
+#     display_group = models.ForeignKey(FinDisplayGroup, on_delete=models.SET_NULL, related_name='extra_lines', null=True)
     
-    def __str__(self):
-        return f'Line added to {self.display_group.name}: {self.display_desc()}'
+#     def __str__(self):
+#         return f'Line added to {self.display_group.name}: {self.display_desc()}'
 
-class InvoiceWording(DisplayLineItem):
-    """ If the customer needs their own descriptions / part numbers to appear on line items, store them here """
-    item = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='invoice_wording')
+# class InvoiceWording(DisplayLineItem):
+#     """ If the customer needs their own descriptions / part numbers to appear on line items, store them here """
+#     item = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='invoice_wording')
 
-    def __str__(self):
-        return f'Override ({self.item.job.name}) {self.item.quantity} x {self.item.product.name} text'
+#     def __str__(self):
+#         return f'Override ({self.item.job.name}) {self.item.quantity} x {self.item.product.name} text'
 
 
 
