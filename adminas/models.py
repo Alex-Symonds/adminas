@@ -342,11 +342,21 @@ class Job(AdminAuditTrail):
 
 
     def get_comments(self, user):
-        return JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by('-created_by')
+        job_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by('-created_by')
+        result = []
+        for jc in job_comments:
+            d = {}
+            d['created_by'] = jc.created_by.username
+            d['created_on'] = jc.created_on
+            d['contents'] = jc.contents
+            d['private'] = jc.private
+            d['todo'] = jc.on_todo_list(user)
+            result.append(d)
 
+        return result
 
     def on_todo_list(self, user):
-        return user in self.users_monitoring.all()
+        return self in user.todo_list_jobs.all()
 
     def admin_warnings(self):
         result = {}
@@ -547,6 +557,9 @@ class JobComment(AdminAuditTrail):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='comments')
     private = models.BooleanField(default=True)
     todo_list_display = models.ManyToManyField(User, related_name='todo_list_comments')
+
+    def on_todo_list(self, user):
+        return user in self.todo_list_display.all()
 
     def __str__(self):
         return f'{self.created_by} on Job {self.job.name} @ {self.created_on}: "{self.contents[:15]}..."'

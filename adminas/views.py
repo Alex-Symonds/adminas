@@ -13,6 +13,7 @@ from django.core.paginator import Paginator
 
 from decimal import Decimal
 import datetime
+from django.utils import formats
 
 # PDF stuff ----------------------------------------------
 from django.views.generic.base import View
@@ -267,8 +268,6 @@ def job(request, job_id):
     user_is_watching = my_job.on_todo_list(request.user)
     comments_list = my_job.get_comments(request.user)
 
-    debug(comments_list)
-    
     return render(request, 'adminas/job.html', {
         'job': my_job,
         'po_form': POForm(initial={'job': my_job.id}),
@@ -309,9 +308,11 @@ def job_comments(request, job_id):
                 )
                 comment.save()
 
+                have_todo_display = False
                 if comment_form.cleaned_data['todo_bool']:
                     comment.todo_list_display.add(request.user)
                     comment.save()
+                    have_todo_display = True
 
             else:
                 # edit an existing comment
@@ -337,7 +338,12 @@ def job_comments(request, job_id):
                 comment.save()
             
             return JsonResponse({
-                'id': comment.id
+                'id': comment.id,
+                'username': comment.created_by.username,
+                'timestamp': formats.date_format(comment.created_on, "DATETIME_FORMAT"),
+                'contents': comment.contents,
+                'private': comment.private,
+                'todo': have_todo_display
             }, status=200)
 
         else:

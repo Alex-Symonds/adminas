@@ -40,25 +40,26 @@
     <section id="job_comments">
         <h3>Comments</h3>
         {% for comment in comments %}
-        <div>
-            <div>
-                <div>
+        <div class="one-comment" data-comment_id="{{ comment.id }}" data-is_private="{{ comment.private|lower }}" data-on_todo="{{ comment.todo|lower }}">
+            <div class="main">
+                <div class="contents">
                     <p>{{ comment.contents }}</p>
                 </div>
-                <div>
-                    <button class="todo-list-toggle todo-status-{% if comment.on_todo_list %}on{% else %}off{% endif %}">todo</button>
-                    {% if request.user.username == comment.username %}
+                <div class="controls">
+                    <button class="todo-list-toggle todo-status-{% if comment.todo %}on{% else %}off{% endif %}">todo</button>
+
+                    {% if request.user.username == comment.created_by %}
                     <button class="edit-comment">edit</button>
                     {% endif %}
                 </div>
             </div>
-            <div>
+            <div class="footer">
                 {{ comment.created_by }} on {{ comment.created_on }}
                 {% if request.user.username == comment.created_by.username %}
                     {% if comment.private %}
                         [PRIVATE_ICON]
                     {% else %}
-                        [PUBLIC ICON]
+                        [public_icon]
                     {% endif %}
                 {% endif %}
             </div>
@@ -66,7 +67,7 @@
         {% empty %}
         <p>No comments exist.</p>
         {% endfor %}
-        <button id="id_add_job_comment">Add comment</button>
+        <button id="id_add_job_comment_with_settings">Add comment</button>
     </section>
 
 
