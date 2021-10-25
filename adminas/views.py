@@ -282,15 +282,41 @@ def job_comments(request, job_id):
         return anonymous_user(request)
     
     if request.method == 'POST':
+        # Check if this comment ID is valid and the user is allowed to change it
         comment_id = request.GET.get('id')
+        if comment_id != '0': # 0 would mean it's a new comment, so no check is needed (any logged-in user is allowed to create a comment)
+            try:
+                comment = JobComment.objects.get(id=comment_id)
+            except JobComment.DoesNotExist:
+                return JsonResponse({
+                    'error': "Can't find comment."
+                }, status=400)
+
+            if(comment.created_by != request.user):
+                return JsonResponse({
+                    'denied': "You are not the owner of this comment."
+                }, status=403) 
+
+        # Check if the user wants to delete a comment. if so, we have all the info we need, so delete it.
         posted_data = json.loads(request.body)
+        if posted_data['task'] == 'delete':
+            comment.delete()
+            return JsonResponse({'ok': 'ok'}, status=200)                     
+
+        # If it's create/update, stick the data into the form for cleaning and check it's all ok.
         comment_form = JobCommentFullForm({
             'private': posted_data['private'],
             'contents': posted_data['contents'],
             'todo_bool': posted_data['todo_bool']
         })
 
-        if comment_form.is_valid():
+        if not comment_form.is_valid():
+            debug(comment_form.errors)
+            return JsonResponse({
+                'error': "Invalid form data."
+            }, status=400)   
+
+        else:
             if comment_id == '0':
                 # Add new comment
                 try:
@@ -315,14 +341,7 @@ def job_comments(request, job_id):
                     have_todo_display = True
 
             else:
-                # edit an existing comment
-                try:
-                    comment = JobComment.objects.get(id=comment_id)
-                except JobComment.DoesNotExist:
-                    return JsonResponse({
-                        'error': "Can't find comment."
-                    }, status=400)
-
+                # Edit the existing comment
                 comment.contents = comment_form.cleaned_data['contents']
                 comment.private = comment_form.cleaned_data['private']
 
@@ -345,12 +364,7 @@ def job_comments(request, job_id):
                 'private': comment.private,
                 'todo': have_todo_display
             }, status=200)
-
-        else:
-            debug(comment_form.errors)
-            return JsonResponse({
-                'error': "Invalid form data."
-            }, status=400)            
+         
 
 
 

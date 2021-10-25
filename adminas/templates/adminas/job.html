@@ -54,14 +54,18 @@
                 </div>
             </div>
             <div class="footer">
-                {{ comment.created_by }} on {{ comment.created_on }}
-                {% if request.user.username == comment.created_by.username %}
-                    {% if comment.private %}
-                        [PRIVATE_ICON]
-                    {% else %}
-                        [public_icon]
+                <div>
+                    {{ comment.created_by }} on {{ comment.created_on }}
+                    <span class="privacy-status">
+                    {% if request.user.username == comment.created_by %}
+                        {% if comment.private %}
+                            [PRIVATE_ICON]
+                        {% else %}
+                            [public_icon]
+                        {% endif %}
                     {% endif %}
-                {% endif %}
+                    </span>
+                </div>
             </div>
         </div>
         {% empty %}

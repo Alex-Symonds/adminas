@@ -346,6 +346,7 @@ class Job(AdminAuditTrail):
         result = []
         for jc in job_comments:
             d = {}
+            d['id'] = jc.id
             d['created_by'] = jc.created_by.username
             d['created_on'] = jc.created_on
             d['contents'] = jc.contents
