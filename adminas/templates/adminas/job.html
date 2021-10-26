@@ -4,7 +4,7 @@
 {% load get_item_description %}
 
 {% block title %}
-    - Job #TODO
+    - Job {{ job.name }}
 {% endblock %}
 
 {% block javascript %}
@@ -15,6 +15,7 @@
         const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
         const REPLACE_TODO_BTN = "div";
         const URL_JOB_COMMENTS = "{% url 'job_comments' job.id %}";
+        const URL_TODO_MANAGEMENT_COMMENTS = '{% url "todo_list_comment_management" %}';
         //const URL_PO = '{% url 'purchase_order' %}';
     </script>
     <script src="{% static 'adminas/job_toggle.js' %}" type="text/javascript"></script>
@@ -28,8 +29,8 @@
 {% endblock %}
 
 {% block body %}
-    <h2>Job {{ job.name }} for {{ job.customer.name }}</h2>
-    {% if user in job.users_monitoring.all %}
+    <h2>Job {{ job.name }} {% if job.customer %}for {{ job.customer.name }}{% endif %}</h2>
+    {% if watching %}
     <div class="on-todo-list">on todo list</div>
     {% else %}
     <button class="todo-list-add" data-job_id="{{ job.id }}">+</button>
@@ -39,6 +40,8 @@
 
     <section id="job_comments">
         <h3>Comments</h3>
+        <a href="{% url 'job_comments' job.id %}">More comments</a>
+        <button id="id_add_job_comment_with_settings">Add comment</button>
         {% for comment in comments %}
         <div class="one-comment" data-comment_id="{{ comment.id }}" data-is_private="{{ comment.private|lower }}" data-on_todo="{{ comment.todo|lower }}">
             <div class="main">
@@ -71,7 +74,6 @@
         {% empty %}
         <p>No comments exist.</p>
         {% endfor %}
-        <button id="id_add_job_comment_with_settings">Add comment</button>
     </section>
 
 

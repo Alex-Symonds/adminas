@@ -266,7 +266,7 @@ def job(request, job_id):
     my_job = Job.objects.get(id=job_id)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
     user_is_watching = my_job.on_todo_list(request.user)
-    comments_list = my_job.get_comments(request.user)
+    comments_list = my_job.get_comments(request.user, '-created_on')
 
     return render(request, 'adminas/job.html', {
         'job': my_job,
@@ -299,7 +299,7 @@ def job_comments(request, job_id):
 
         # Check if the user wants to delete a comment. if so, we have all the info we need, so delete it.
         posted_data = json.loads(request.body)
-        if posted_data['task'] == 'delete':
+        if 'task' in posted_data and posted_data['task'] == 'delete':
             comment.delete()
             return JsonResponse({'ok': 'ok'}, status=200)                     
 
@@ -364,9 +364,69 @@ def job_comments(request, job_id):
                 'private': comment.private,
                 'todo': have_todo_display
             }, status=200)
+
+    my_job = Job.objects.get(id=job_id)
+    comments_list = my_job.get_comments(request.user, '-created_on')
+
+    job = {}
+    job['id'] = my_job.id
+    job['name'] = my_job.name
+    job['flag_alt'] = my_job.country.name
+    job['flag_url'] = my_job.country.flag
+    job['customer'] = my_job.customer.name if my_job.customer != None else None
+    job['agent'] = my_job.agent.name if my_job.agent != None else None
+    job['currency'] = my_job.currency
+    job['value'] = my_job.total_value_f()
+    job['admin_warnings'] = my_job.admin_warnings()
+
+    return render(request, 'adminas/job_comments.html', {
+        'job': my_job,
+        'comments': comments_list,
+        'data': job
+    })
+
          
 
 
+
+def todo_list_comment_management(request):
+    if not request.user.is_authenticated:
+        return anonymous_user(request)   
+
+    if request.method == 'POST':
+        if 'id' in request.GET:
+            comment_id = request.GET.get('id')
+        else:
+            return JsonResponse({
+                'message': "Comment ID not found."
+            }, status=400)            
+
+        try:
+            comment = JobComment.objects.get(id=comment_id)
+        except JobComment.DoesNotExist:
+            return JsonResponse({
+                'message': "Can't find the comment."
+            }, status=400)
+        
+        user = User.objects.get(username=request.user.username)
+        posted_data = json.loads(request.body)
+
+
+        if 'toggle' == posted_data['task']:
+            want_membership = posted_data['toggle_to']
+            have_membership = comment.on_todo_list(user)
+
+            if want_membership and not have_membership:
+                comment.todo_list_display.add(user)
+            elif not want_membership and have_membership:
+                comment.todo_list_display.remove(user)
+
+            return HttpResponse(status=200)
+
+        else:
+            return JsonResponse({
+                'message': "Invalid task."
+            }, status=400)            
 
 
 

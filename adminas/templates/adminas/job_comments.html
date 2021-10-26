@@ -1,0 +1,76 @@
+{% extends 'adminas/layout.html' %}
+{% load static %}
+
+
+{% block title %}
+    - Comments on Job {{ job.name }}
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        const JOB_ID = '{{ job.id }}';
+        const URL_JOB_COMMENTS = "{% url 'job_comments' job.id %}";
+        const URL_TODO_MANAGEMENT_COMMENTS = '{% url "todo_list_comment_management" %}';
+    </script>
+    <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/job_comments.js' %}" type="text/javascript"></script>
+{% endblock %}
+
+
+{% block body %}
+    <h2>Comments on Job {{ job.name }}</h2>
+    <section class="job-identifier-pane">
+        <h4>{{ data.name }} <img src="{{ data.flag_url }}" alt="{{ data.flag_alt }}"></h4>
+        <p>
+    {% if data.customer != None %}
+            {{ data.customer }} 
+        {% if data.agent != None %}
+            (via 
+        {% endif %}
+    {% endif %}
+    {% if data.agent != None %}
+        {{ data.agent }}
+    {% endif %}
+    {% if data.agent != None and data.customer != None %}
+        )
+    {% endif %}
+        @ {{ data.currency }}&nbsp;{{ data.value }}
+        </p>
+        <a href="{% url 'job' job.id %}">Return to Job</a>
+    </section>
+    <section class="container">
+        <button id="id_add_job_comment_with_settings">Add comment</button>
+    {% for comment in comments %}
+        <div class="one-comment {% if comment.private %}private{% else %}public{% endif %}-comment" data-comment_id="{{ comment.id }}" data-is_private="{{ comment.private|lower }}" data-on_todo="{{ comment.todo|lower }}">
+            <div class="main">
+                <div class="contents">
+                    <p>{{ comment.contents }}</p>
+                </div>
+                <div class="controls">
+                    <button class="todo-list-toggle todo-status-{% if comment.todo %}on{% else %}off{% endif %}">todo</button>
+
+        {% if request.user.username == comment.created_by %}
+                    <button class="edit-comment">edit</button>
+        {% endif %}
+                </div>
+            </div>
+            <div class="footer">
+                <div>
+                    {{ comment.created_by }} on {{ comment.created_on }}
+                    <span class="privacy-status">
+        {% if request.user.username == comment.created_by %}
+            {% if comment.private %}
+                            [PRIVATE_ICON]
+            {% else %}
+                            [public_icon]
+            {% endif %}
+        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p>No comments exist.</p>
+    {% endfor %}
+    </section>
+{% endblock %}

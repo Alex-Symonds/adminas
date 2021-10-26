@@ -22,6 +22,7 @@ urlpatterns = [
     path('document/<int:doc_id>', views.document_main, name='doc_main'),
     path('job/<int:job_id>/price_check', views.price_check, name='price_check'),
     path('todo_list', views.todo_list_management, name='todo_list_management'),
-    path('job/<int:job_id>/comment', views.job_comments, name='job_comments'),
+    path('job/<int:job_id>/comments', views.job_comments, name='job_comments'),
+    path('todo_list/comments', views.todo_list_comment_management, name='todo_list_comment_management'),
     path('get_data', views.get_data, name='get_data')
 ]

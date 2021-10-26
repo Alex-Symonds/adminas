@@ -10,7 +10,7 @@ from django_countries.fields import CountryField
 
 from decimal import Decimal
 from adminas.constants import DOCUMENT_TYPES, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
-from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
+from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version, get_empty_comment_section_dict
 import datetime
 import re
 
@@ -340,21 +340,72 @@ class Job(AdminAuditTrail):
 
     price_is_ok = models.BooleanField(default=False)
 
+    def get_comment_page_data(self, user, setting_for_order_by):
+        comment_page_data = []
 
-    def get_comments(self, user):
-        job_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by('-created_by')
+        todo_dict = {}
+        todo_dict['type'] = 'section'
+        todo_dict['need_close'] = False
+        todo_dict['title'] = 'Todo List Display'
+        comment_page_data.append(todo_dict)
+
+        all_todo_comments = self.get_all_todo_comments(user, setting_for_order_by)
+        if len(all_todo_comments) == 0:
+            comment_page_data.append(get_empty_comment_section_dict('No comments displayed on todo list'))
+        else:
+            comment_page_data += all_todo_comments
+
+        pinned_dict = {}
+        pinned_dict['type'] = 'section'
+        pinned_dict['need_close'] = True
+        pinned_dict['title'] = 'Pinned'
+        comment_page_data.append(pinned_dict)
+
+        all_pinned_comments = self.get_all_pinned_comments(user, setting_for_order_by)
+        if len(all_pinned_comments) == 0:
+            comment_page_data.append(get_empty_comment_section_dict('No comments have been pinned'))
+        else:
+            comment_page_data += all_pinned_comments
+
+        all_dict = {}
+        all_dict['type'] = 'section'
+        all_dict['need_close'] = True
+        all_dict['title'] = 'All'
+        comment_page_data.append(all_dict)
+
+        all_comments = self.get_all_comments(user, setting_for_order_by)
+        if len(all_comments) == 0:
+            comment_page_data.append(get_empty_comment_section_dict('No comments have been added'))
+        else:
+            comment_page_data += all_comments
+
+        return comment_page_data
+
+
+    def get_all_comments(self, user, setting_for_order_by):
+        all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
         result = []
-        for jc in job_comments:
-            d = {}
-            d['id'] = jc.id
-            d['created_by'] = jc.created_by.username
-            d['created_on'] = jc.created_on
-            d['contents'] = jc.contents
-            d['private'] = jc.private
-            d['todo'] = jc.on_todo_list(user)
-            result.append(d)
+        for c in all_comments:
+            result.append(c.get_display_dict(user))
 
         return result
+
+    def get_all_pinned_comments(self, user, setting_for_order_by):
+        all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
+        result = []
+        for c in all_comments:
+            if c.pinned_by(user):
+                result.append(c.get_display_dict(user))
+        return result
+
+    def get_all_todo_comments(self, user, setting_for_order_by):
+        all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
+        result = []
+        for c in all_comments:
+            if c.on_todo_list(user):
+                result.append(c.get_display_dict(user))
+        return result        
+
 
     def on_todo_list(self, user):
         return self in user.todo_list_jobs.all()
@@ -558,9 +609,28 @@ class JobComment(AdminAuditTrail):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='comments')
     private = models.BooleanField(default=True)
     todo_list_display = models.ManyToManyField(User, related_name='todo_list_comments')
+    pinned = models.ManyToManyField(User, related_name='pinned_comments')
 
     def on_todo_list(self, user):
         return user in self.todo_list_display.all()
+
+    def is_pinned_by(self, user):
+        return user in self.pinned.all()
+
+    def get_display_dict(self, user):
+        result = {}
+        result['type'] = 'comment'
+        result['id'] = self.id
+        result['created_by'] = self.created_by.username if self.created_by != user else 'You'
+        result['created_on'] = self.created_on
+        result['contents'] = self.contents
+        result['private'] = self.private
+        result['todo'] = self.on_todo_list(user)
+        result['pinned'] = self.is_pinned_by(user)
+
+        return result
+
+
 
     def __str__(self):
         return f'{self.created_by} on Job {self.job.name} @ {self.created_on}: "{self.contents[:15]}..."'

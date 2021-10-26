@@ -139,12 +139,14 @@ function create_job_comment_form_with_settings(comment_id){
 // Cancel Create/Update Mode: called onclick of the "cancel" button located in the JobComment "form"
 function close_create_job_comment_form_with_settings(){
     let ele = document.querySelector('.' + CLASS_COMMENT_CU_ELEMENT);
-    let comment_ele = ele.closest('.' + CLASS_INDIVIDUAL_COMMENT_CONTAINER);
-
-    // Create and Update: if the "form" still exists, remove it
-    if(ele != null){
-        ele.remove();
+    if(ele == null){
+        // It's not open, so there's nothing to close
+        return;
     }
+
+    // Attempt to use ele to set the comment_ele prior to removal
+    let comment_ele = ele.closest('.' + CLASS_INDIVIDUAL_COMMENT_CONTAINER);
+    ele.remove();
 
     // Create: there is no "closest" individual comment div, so the assignment above will fail and we skip this part.
     // Update: the form is inside a comment div, so the assignment will have succeeded. This also means the "read" parts
@@ -156,6 +158,7 @@ function close_create_job_comment_form_with_settings(){
     // Create and Update: restore visibility to the "form" opening buttons
     visibility_add_comment_btn(true);
     unhide_all_by_class(CLASS_COMMENT_EDIT_BTN);
+    return;
 }
 
 
@@ -340,7 +343,8 @@ async function delete_job_comment_on_server(comment_id){
 function update_job_page_comments_after_create(response){   
     close_create_job_comment_form_with_settings();
     let new_comment_div = get_new_comment_div_full(response);
-    let anchor_ele = document.getElementById(ID_ADD_COMMENT_WITH_SETTINGS_BTN);
+    //let anchor_ele = document.getElementById(ID_ADD_COMMENT_WITH_SETTINGS_BTN);
+    let anchor_ele = document.querySelector('.' + CLASS_INDIVIDUAL_COMMENT_CONTAINER);
     anchor_ele.before(new_comment_div);
     remove_all_jobcomment_warnings();
 }
@@ -566,7 +570,15 @@ function toggle_todo_status(btn){
 }
 
 function update_todo_on_server(comment_id, new_todo_status){
-    console.log('todo: send todo status to the server');
+    fetch(`${URL_TODO_MANAGEMENT_COMMENTS}?id=${comment_id}`, {
+        method: 'POST',
+        body: JSON.stringify({
+            'task': 'toggle',
+            'toggle_to': new_todo_status
+        }),
+        headers: getDjangoCsrfHeaders(),
+        credentials: 'include'
+    })
 }
 
 function update_todo_on_page(comment_container_div, new_todo_status){
