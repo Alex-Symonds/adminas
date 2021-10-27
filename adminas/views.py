@@ -23,7 +23,7 @@ from wkhtmltopdf.views import PDFTemplateResponse
 from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment
 from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, MAX_ROWS_OC
-from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
+from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event, get_empty_comment_section_dict
 
 # Create your views here.
 def login_view(request):
@@ -307,7 +307,7 @@ def job_comments(request, job_id):
         comment_form = JobCommentFullForm({
             'private': posted_data['private'],
             'contents': posted_data['contents'],
-            'todo_bool': posted_data['todo_bool']
+            'pinned': posted_data['pinned']
         })
 
         if not comment_form.is_valid():
@@ -334,39 +334,40 @@ def job_comments(request, job_id):
                 )
                 comment.save()
 
-                have_todo_display = False
-                if comment_form.cleaned_data['todo_bool']:
-                    comment.todo_list_display.add(request.user)
+                want_pinned = comment_form.cleaned_data['pinned']
+                if want_pinned:
+                    comment.pinned_by.add(request.user)
                     comment.save()
-                    have_todo_display = True
 
             else:
                 # Edit the existing comment
                 comment.contents = comment_form.cleaned_data['contents']
                 comment.private = comment_form.cleaned_data['private']
 
-                want_todo_display = comment_form.cleaned_data['todo_bool']
+                want_pinned = comment_form.cleaned_data['pinned']
                 user = User.objects.get(username=request.user.username)
-                have_todo_display = user in comment.todo_list_display.all()
+                have_pinned = comment.is_pinned_by(user)
 
-                if want_todo_display and not have_todo_display:
-                    comment.todo_list_display.add(request.user)
-                elif not want_todo_display and have_todo_display:
-                    comment.todo_list_display.remove(request.user)
+                if want_pinned and not have_pinned:
+                    comment.pinned_by.add(request.user)
+                elif not want_pinned and have_pinned:
+                    comment.pinned_by.remove(request.user)
                 
                 comment.save()
             
+            want_highlighted = False # placeholder until highlighted is setup
+
             return JsonResponse({
                 'id': comment.id,
                 'username': comment.created_by.username,
                 'timestamp': formats.date_format(comment.created_on, "DATETIME_FORMAT"),
                 'contents': comment.contents,
                 'private': comment.private,
-                'todo': have_todo_display
+                'pinned': want_pinned,
+                'highlighted': want_highlighted
             }, status=200)
 
     my_job = Job.objects.get(id=job_id)
-    comments_list = my_job.get_all_comments(request.user, '-created_on')
 
     job = {}
     job['id'] = my_job.id
@@ -377,22 +378,52 @@ def job_comments(request, job_id):
     job['agent'] = my_job.agent.name if my_job.agent != None else None
     job['currency'] = my_job.currency
     job['value'] = my_job.total_value_f()
-    job['admin_warnings'] = my_job.admin_warnings()
 
-    data = my_job.get_comment_page_data(request.user, '-created_on')
+    setting_for_order_by = '-created_on'
+
+    # class_suffix is used when creating a new comment: use it to find the relevant container divs to prepend the new comment div.
+    # title is used on the frontend to set the innerHTML of a <h#> tag.
+    # In the cases below, they are the same except for capitalisation, but they're separate fields in case I wanted to change a title to have spaces in it.
+    comments = []
+    highlighted_dict = {}
+    highlighted_dict['type'] = 'section'
+    highlighted_dict['class_suffix'] = 'highlighted' 
+    highlighted_dict['need_close'] = False
+    highlighted_dict['title'] = 'Highlighted'
+    comments.append(highlighted_dict)
+
+    all_highlighted_comments = my_job.get_highlighted_comments(request.user, setting_for_order_by)
+    if len(all_highlighted_comments) == 0:
+        comments.append(get_empty_comment_section_dict('No comments have been highlighted'))
+    else:
+        comments += all_highlighted_comments
+
+    all_dict = {}
+    all_dict['type'] = 'section'
+    all_dict['class_suffix'] = 'all'
+    all_dict['need_close'] = True
+    all_dict['title'] = 'All'
+    comments.append(all_dict)
+
+    all_comments = my_job.get_all_comments(request.user, setting_for_order_by)
+    if len(all_comments) == 0:
+        comments.append(get_empty_comment_section_dict('No comments have been added'))
+    else:
+        comments += all_comments
+
+    pinned = my_job.get_pinned_comments(request.user, setting_for_order_by)
 
     return render(request, 'adminas/job_comments.html', {
-        'job_obj': my_job,
-        'comments': comments_list,
         'job': job,
-        'data': data
+        'comments': comments,
+        'pinned': pinned
     })
 
          
 
 
 
-def todo_list_comment_management(request):
+def pinned_comments(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)   
 
@@ -417,12 +448,12 @@ def todo_list_comment_management(request):
 
         if 'toggle' == posted_data['task']:
             want_membership = posted_data['toggle_to']
-            have_membership = comment.on_todo_list(user)
+            have_membership = comment.is_pinned_by(user)
 
             if want_membership and not have_membership:
-                comment.todo_list_display.add(user)
+                comment.pinned_by.add(user)
             elif not want_membership and have_membership:
-                comment.todo_list_display.remove(user)
+                comment.pinned_by.remove(user)
 
             return HttpResponse(status=200)
 

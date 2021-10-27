@@ -15,7 +15,7 @@
         const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
         const REPLACE_TODO_BTN = "div";
         const URL_JOB_COMMENTS = "{% url 'job_comments' job.id %}";
-        const URL_TODO_MANAGEMENT_COMMENTS = '{% url "todo_list_comment_management" %}';
+        const URL_PINNED_COMMENTS = '{% url "pinned_comments" %}';
         //const URL_PO = '{% url 'purchase_order' %}';
     </script>
     <script src="{% static 'adminas/job_toggle.js' %}" type="text/javascript"></script>
@@ -43,24 +43,24 @@
         <a href="{% url 'job_comments' job.id %}">More comments</a>
         <button id="id_add_job_comment_with_settings">Add comment</button>
         {% for comment in comments %}
-        <div class="one-comment" data-comment_id="{{ comment.id }}" data-is_private="{{ comment.private|lower }}" data-on_todo="{{ comment.todo|lower }}">
-            <div class="main">
+        <article class="one-comment" data-comment_id="{{ comment.id }}" data-is_private="{{ comment.private|lower }}" data-is_pinned="{{ comment.pinned|lower }}">
+            <section class="main">
                 <div class="contents">
                     <p>{{ comment.contents }}</p>
                 </div>
                 <div class="controls">
-                    <button class="todo-list-toggle todo-status-{% if comment.todo %}on{% else %}off{% endif %}">todo</button>
+                    <button class="pinned-toggle pinned-status-{% if comment.pinned %}on">unpin{% else %}off">pin{% endif %}</button>
 
-                    {% if request.user.username == comment.created_by %}
+                    {% if comment.created_by == 'You' %}
                     <button class="edit-comment">edit</button>
                     {% endif %}
                 </div>
             </div>
-            <div class="footer">
+            <section class="footer">
                 <div>
                     {{ comment.created_by }} on {{ comment.created_on }}
                     <span class="privacy-status">
-                    {% if request.user.username == comment.created_by %}
+                    {% if comment.created_by == 'You' %}
                         {% if comment.private %}
                             [PRIVATE_ICON]
                         {% else %}

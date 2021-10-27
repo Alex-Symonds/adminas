@@ -132,8 +132,8 @@ class ProductionReqForm(ModelForm):
 
  
 class JobCommentFullForm(ModelForm):
-    todo_bool = BooleanField(label='Display on to-do list', required=False, widget=CheckboxInput())
+    pinned = BooleanField(label='Pin to order', required=False, widget=CheckboxInput())
 
     class Meta():
         model = JobComment
-        fields = ['private', 'contents', 'todo_bool']
+        fields = ['private', 'contents', 'pinned']
