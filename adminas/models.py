@@ -394,7 +394,7 @@ class Job(AdminAuditTrail):
         all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
         result = []
         for c in all_comments:
-            if c.pinned_by(user):
+            if c.is_pinned_by(user):
                 result.append(c.get_display_dict(user))
         return result
 

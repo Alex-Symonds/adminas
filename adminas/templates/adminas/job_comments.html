@@ -19,25 +19,76 @@
 
 {% block body %}
     <h2>Comments on Job {{ job.name }}</h2>
+
     <section class="job-identifier-pane">
-        <h4>{{ data.name }} <img src="{{ data.flag_url }}" alt="{{ data.flag_alt }}"></h4>
+        <h4>{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
         <p>
-    {% if data.customer != None %}
-            {{ data.customer }} 
-        {% if data.agent != None %}
+    {% if job.customer != None %}
+            {{ job.customer }} 
+        {% if job.agent != None %}
             (via 
         {% endif %}
     {% endif %}
-    {% if data.agent != None %}
-        {{ data.agent }}
+    {% if job.agent != None %}
+        {{ job.agent }}
     {% endif %}
-    {% if data.agent != None and data.customer != None %}
-        )
+    {% if job.agent != None and job.customer != None %}
+    )
     {% endif %}
-        @ {{ data.currency }}&nbsp;{{ data.value }}
+        @ {{ job.currency }}&nbsp;{{ job.value }}
         </p>
         <a href="{% url 'job' job.id %}">Return to Job</a>
+        <button id="id_add_job_comment_with_settings">Add comment</button>
     </section>
+
+    {% for d in data %}
+        {% if d.type == 'section' %}
+            {% if d.need_close %}
+            </section>
+            {% endif %}
+            <section class="comments-container">
+                <h3>{{ d.title }}</h3>
+
+        {% elif d.type == 'message' %}
+            <p>{{ d.message }}</p>
+        
+        {% elif d.type == 'comment' %}
+
+        <div class="one-comment {% if d.private %}private{% else %}public{% endif %}-comment" data-comment_id="{{ d.id }}" data-is_private="{{ d.private|lower }}" data-on_todo="{{ d.todo|lower }}">
+            <div class="main">
+                <div class="contents">
+                    <p>{{ d.contents }}</p>
+                </div>
+                <div class="controls">
+                    <button class="todo-list-toggle todo-status-{% if d.todo %}on{% else %}off{% endif %}">todo</button>
+
+            {% if request.user.username == d.created_by %}
+                    <button class="edit-comment">edit</button>
+            {% endif %}
+                </div>
+            </div>
+            <div class="footer">
+                <div>
+                    {{ d.created_by }} on {{ d.created_on }}
+                    <span class="privacy-status">
+            {% if request.user.username == d.created_by %}
+                {% if d.private %}
+                            [PRIVATE_ICON]
+                {% else %}
+                            [public_icon]
+                {% endif %}
+            {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+
+        {% endif %}
+    {% endfor %}
+
+
+
     <section class="container">
         <button id="id_add_job_comment_with_settings">Add comment</button>
     {% for comment in comments %}

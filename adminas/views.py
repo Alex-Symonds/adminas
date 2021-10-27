@@ -266,7 +266,7 @@ def job(request, job_id):
     my_job = Job.objects.get(id=job_id)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
     user_is_watching = my_job.on_todo_list(request.user)
-    comments_list = my_job.get_comments(request.user, '-created_on')
+    comments_list = my_job.get_all_comments(request.user, '-created_on')
 
     return render(request, 'adminas/job.html', {
         'job': my_job,
@@ -366,7 +366,7 @@ def job_comments(request, job_id):
             }, status=200)
 
     my_job = Job.objects.get(id=job_id)
-    comments_list = my_job.get_comments(request.user, '-created_on')
+    comments_list = my_job.get_all_comments(request.user, '-created_on')
 
     job = {}
     job['id'] = my_job.id
@@ -379,10 +379,13 @@ def job_comments(request, job_id):
     job['value'] = my_job.total_value_f()
     job['admin_warnings'] = my_job.admin_warnings()
 
+    data = my_job.get_comment_page_data(request.user, '-created_on')
+
     return render(request, 'adminas/job_comments.html', {
-        'job': my_job,
+        'job_obj': my_job,
         'comments': comments_list,
-        'data': job
+        'job': job,
+        'data': data
     })
 
          
