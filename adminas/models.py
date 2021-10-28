@@ -346,6 +346,9 @@ class Job(AdminAuditTrail):
         for c in all_comments:
             result.append(c.get_display_dict(user))
 
+        if(len(result) == 0):
+            return None
+
         return result
 
     def get_pinned_comments(self, user, setting_for_order_by):
@@ -354,6 +357,10 @@ class Job(AdminAuditTrail):
         for c in all_comments:
             if c.is_pinned_by(user):
                 result.append(c.get_display_dict(user))
+
+        if(len(result) == 0):
+            return None
+
         return result
 
     def get_highlighted_comments(self, user, setting_for_order_by):
@@ -362,6 +369,10 @@ class Job(AdminAuditTrail):
         for c in all_comments:
             if c.is_highlighted_by(user):
                 result.append(c.get_display_dict(user))
+
+        if(len(result) == 0):
+            return None
+
         return result        
 
 
@@ -577,7 +588,6 @@ class JobComment(AdminAuditTrail):
 
     def get_display_dict(self, user):
         result = {}
-        result['type'] = 'comment'
         result['id'] = self.id
         result['user_is_owner'] = self.created_by == user
         result['created_by'] = self.created_by.username if self.created_by != user else 'You'

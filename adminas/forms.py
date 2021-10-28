@@ -133,7 +133,8 @@ class ProductionReqForm(ModelForm):
  
 class JobCommentFullForm(ModelForm):
     pinned = BooleanField(label='Pin to order', required=False, widget=CheckboxInput())
-
+    highlighted = BooleanField(label='Highlight', required=False, widget=CheckboxInput())
+    
     class Meta():
         model = JobComment
-        fields = ['private', 'contents', 'pinned']
+        fields = ['private', 'contents', 'pinned', 'highlighted']

@@ -9,8 +9,8 @@
 {% block javascript %}
     <script>
         const JOB_ID = '{{ job.id }}';
-        const URL_JOB_COMMENTS = "{% url 'job_comments' job.id %}";
-        const URL_PINNED_COMMENTS = '{% url "pinned_comments" %}';
+        const URL_JOB_COMMENTS = '{% url "job_comments" job.id %}';
+        const URL_COMMENT_STATUS = '{% url "comment_status" %}';
     </script>
     <script src="{% static 'adminas/job_comments.js' %}" type="text/javascript"></script>
 {% endblock %}
@@ -39,13 +39,20 @@
         <a href="{% url 'job' job.id %}">Return to Job</a>
         <section class="comment-container-pinned">
         {% for p in pinned %}
-            <article class="one-comment {% if p.private %}private{% else %}public{% endif %} id-{{ p.id }}" data-comment_id="{{ p.id }}" data-is_private="{{ p.private|lower }}" data-is_pinned="true">
+            <article
+                class="one-comment {% if p.private %}private{% else %}public{% endif %} id-{{ p.id }} {% if p.highlighted %}highlighted{% endif %}" 
+                data-comment_id="{{ p.id }}"
+                data-is_private="{{ p.private|lower }}"
+                data-is_pinned="true"
+                data-is_highlighted="{{ p.highlighted }}"
+            >
                 <section class="main">
                     <div class="contents">
                         <p>{{ p.contents }}</p>
                     </div>
                     <div class="controls">
                         <button class="pinned-toggle pinned-status-on">unpin</button>
+                        <button class="highlighted-toggle">+/- highlight</button>
                 {% if p.user_is_owner %}
                         <button class="edit-comment">edit</button>
                 {% endif %}
@@ -71,49 +78,50 @@
         <button id="id_add_job_comment_with_settings">Add new comment</button>
     </section>
 
-    {% for comment in comments %}
-        {% if comment.type == 'section' %}
-            {% if comment.need_close %}
-        </div>
-    </section>
-            {% endif %}
+    {% for section in comment_data %}
     <section>
-        <h3>{{ comment.title }}</h3>
-        <div class="comment-container-{{ comment.class_suffix }}">
-        {% elif comment.type == 'message' %}
-            <p>{{ comment.message }}</p>
-        
-        {% elif comment.type == 'comment' %}
-
-            <article class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }}" data-comment_id="{{ comment.id }}" data-is_private="{{ comment.private|lower }}" data-is_pinned="{{ comment.pinned|lower }}">
+        <h3>{{ section.title }}</h3>
+        <div class="comment-container-{{ section.class_suffix }}">
+        {% for comment in section.comments %}
+            <article
+                class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if p.highlighted %}highlighted{% endif %}" 
+                data-comment_id="{{ comment.id }}"
+                data-is_private="{{ comment.private|lower }}"
+                data-is_pinned="{{ comment.pinned|lower }}"
+                data-is_highlighted="{{ comment.highlighted }}"
+            >
                 <section class="main">
                     <div class="contents">
                         <p>{{ comment.contents }}</p>
                     </div>
                     <div class="controls">
                         <button class="pinned-toggle pinned-status-{% if comment.pinned %}on">unpin{% else %}off">pin{% endif %}</button>
-            {% if comment.user_is_owner %}
+                        <button class="highlighted-toggle">+/- highlight</button>
+                {% if comment.user_is_owner %}
                         <button class="edit-comment">edit</button>
-            {% endif %}
+                {% endif %}
                     </div>
                 </section>
                 <section class="footer">
                     <div>
                         {{ comment.created_by }} on {{ comment.created_on }}
                         <span class="privacy-status">
-            {% if comment.user_is_owner %}
-                {% if comment.private %}
+                {% if comment.user_is_owner %}
+                    {% if comment.private %}
                             [PRIVATE_ICON]
-                {% else %}
+                    {% else %}
                             [public_icon]
+                    {% endif %}
                 {% endif %}
-            {% endif %}
                         </span>
                     </div>
                 </section>
-            </article>
-        {% endif %}
-    {% endfor %}
+            </article>            
+        {% empty %}
+            <p>No comments have been {{ section.class_suffix }}</p>
+        {% endfor %}
         </div>
     </section>
+    {% endfor %}
+
 {% endblock %}

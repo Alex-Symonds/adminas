@@ -23,6 +23,6 @@ urlpatterns = [
     path('job/<int:job_id>/price_check', views.price_check, name='price_check'),
     path('todo_list', views.todo_list_management, name='todo_list_management'),
     path('job/<int:job_id>/comments', views.job_comments, name='job_comments'),
-    path('todo_list/comments', views.pinned_comments, name='pinned_comments'),
+    path('comment_status', views.comment_status_toggle, name='comment_status'),
     path('get_data', views.get_data, name='get_data')
 ]

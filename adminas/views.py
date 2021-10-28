@@ -2,12 +2,11 @@ from django.core.exceptions import RequestDataTooBig
 from django.db.models.fields import NullBooleanField
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.db import IntegrityError
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 import json
-from django.http import JsonResponse
 from django.db.models import Sum, Count
 from django.core.paginator import Paginator
 
@@ -266,14 +265,33 @@ def job(request, job_id):
     my_job = Job.objects.get(id=job_id)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
     user_is_watching = my_job.on_todo_list(request.user)
-    comments_list = my_job.get_all_comments(request.user, '-created_on')
+    #comments_list = my_job.get_all_comments(request.user, '-created_on')
+
+    # Comments stuff
+    setting_for_order_by = '-created_on'
+
+    pinned_dict = {}
+    pinned_dict['title'] = 'Pinned'
+    pinned_dict['class_suffix'] = 'pinned'
+    pinned_dict['comments'] = my_job.get_pinned_comments(request.user, setting_for_order_by)
+
+    highlighted_dict = {}
+    highlighted_dict['title'] = 'Highlighted'
+    highlighted_dict['class_suffix'] = 'highlighted'
+    highlighted_dict['comments'] = my_job.get_highlighted_comments(request.user, setting_for_order_by)
+    
+    comment_data = []
+    comment_data.append(pinned_dict)
+    comment_data.append(highlighted_dict)
 
     return render(request, 'adminas/job.html', {
         'job': my_job,
         'po_form': POForm(initial={'job': my_job.id}),
         'item_formset': item_formset,
         'watching': user_is_watching,
-        'comments': comments_list
+        'num_comments': my_job.comments.all().count(),
+        'comment_data': comment_data#,
+        #'comments': comments_list
     })
 
 
@@ -307,7 +325,8 @@ def job_comments(request, job_id):
         comment_form = JobCommentFullForm({
             'private': posted_data['private'],
             'contents': posted_data['contents'],
-            'pinned': posted_data['pinned']
+            'pinned': posted_data['pinned'],
+            'highlighted': posted_data['highlighted']
         })
 
         if not comment_form.is_valid():
@@ -339,24 +358,36 @@ def job_comments(request, job_id):
                     comment.pinned_by.add(request.user)
                     comment.save()
 
+                want_highlighted = comment_form.cleaned_data['highlighted']
+                if want_highlighted:
+                    comment.highlighted_by.add(request.user)
+                    comment.save()
+
             else:
                 # Edit the existing comment
                 comment.contents = comment_form.cleaned_data['contents']
                 comment.private = comment_form.cleaned_data['private']
 
-                want_pinned = comment_form.cleaned_data['pinned']
                 user = User.objects.get(username=request.user.username)
+
+                want_pinned = comment_form.cleaned_data['pinned']
                 have_pinned = comment.is_pinned_by(user)
 
                 if want_pinned and not have_pinned:
                     comment.pinned_by.add(request.user)
                 elif not want_pinned and have_pinned:
                     comment.pinned_by.remove(request.user)
-                
+
+                want_highlighted = comment_form.cleaned_data['highlighted']
+                have_highlighted = comment.is_highlighted_by(user)
+
+                if want_highlighted and not have_highlighted:
+                    comment.highlighted_by.add(request.user)
+                elif not want_highlighted and have_highlighted:
+                    comment.highlighted_by.remove(request.user)                
+
                 comment.save()
             
-            want_highlighted = False # placeholder until highlighted is setup
-
             return JsonResponse({
                 'id': comment.id,
                 'username': comment.created_by.username,
@@ -381,49 +412,35 @@ def job_comments(request, job_id):
 
     setting_for_order_by = '-created_on'
 
-    # class_suffix is used when creating a new comment: use it to find the relevant container divs to prepend the new comment div.
     # title is used on the frontend to set the innerHTML of a <h#> tag.
-    # In the cases below, they are the same except for capitalisation, but they're separate fields in case I wanted to change a title to have spaces in it.
-    comments = []
+    # class_suffix is used when creating a new comment: use it to allow JS to identify the correct container divs to prepend the new comment div.
+    # In the cases below, they are the same except for capitalisation, but they're separate fields in case I wanted to change a title without changing the class name.
     highlighted_dict = {}
-    highlighted_dict['type'] = 'section'
-    highlighted_dict['class_suffix'] = 'highlighted' 
-    highlighted_dict['need_close'] = False
     highlighted_dict['title'] = 'Highlighted'
-    comments.append(highlighted_dict)
-
-    all_highlighted_comments = my_job.get_highlighted_comments(request.user, setting_for_order_by)
-    if len(all_highlighted_comments) == 0:
-        comments.append(get_empty_comment_section_dict('No comments have been highlighted'))
-    else:
-        comments += all_highlighted_comments
-
+    highlighted_dict['class_suffix'] = 'highlighted'
+    highlighted_dict['comments'] = my_job.get_highlighted_comments(request.user, setting_for_order_by)
+    
     all_dict = {}
-    all_dict['type'] = 'section'
-    all_dict['class_suffix'] = 'all'
-    all_dict['need_close'] = True
     all_dict['title'] = 'All'
-    comments.append(all_dict)
+    all_dict['class_suffix'] = 'all'
+    all_dict['comments'] = my_job.get_all_comments(request.user, setting_for_order_by)
 
-    all_comments = my_job.get_all_comments(request.user, setting_for_order_by)
-    if len(all_comments) == 0:
-        comments.append(get_empty_comment_section_dict('No comments have been added'))
-    else:
-        comments += all_comments
+    comment_data = []
+    comment_data.append(highlighted_dict)
+    comment_data.append(all_dict)
 
     pinned = my_job.get_pinned_comments(request.user, setting_for_order_by)
 
     return render(request, 'adminas/job_comments.html', {
         'job': job,
-        'comments': comments,
+        'comment_data': comment_data,
         'pinned': pinned
     })
 
          
 
 
-
-def pinned_comments(request):
+def comment_status_toggle(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)   
 
@@ -445,15 +462,24 @@ def pinned_comments(request):
         user = User.objects.get(username=request.user.username)
         posted_data = json.loads(request.body)
 
-
         if 'toggle' == posted_data['task']:
             want_membership = posted_data['toggle_to']
-            have_membership = comment.is_pinned_by(user)
 
-            if want_membership and not have_membership:
-                comment.pinned_by.add(user)
-            elif not want_membership and have_membership:
-                comment.pinned_by.remove(user)
+            if 'pinned' == posted_data['mode']:
+                have_membership = comment.is_pinned_by(user)
+
+                if want_membership and not have_membership:
+                    comment.pinned_by.add(user)
+                elif not want_membership and have_membership:
+                    comment.pinned_by.remove(user)
+
+            elif 'highlighted' == posted_data['mode']:
+                have_membership = comment.is_highlighted_by(user)
+
+                if want_membership and not have_membership:
+                    comment.highlighted_by.add(user)
+                elif not want_membership and have_membership:
+                    comment.highlighted_by.remove(user)                
 
             return HttpResponse(status=200)
 
@@ -461,6 +487,10 @@ def pinned_comments(request):
             return JsonResponse({
                 'message': "Invalid task."
             }, status=400)            
+
+
+
+
 
 
 
