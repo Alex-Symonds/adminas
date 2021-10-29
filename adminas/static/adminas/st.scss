@@ -579,9 +579,72 @@ nav {
 }
 
 
+.hover-parent{
+    display: inline-block;
+    position: relative;
+
+    .hover-child{
+        display: none;
+        position: absolute;
+        top: -0.75rem;
+        left: 1rem;
+        width: 18rem;
+        font-size: 0.8rem;
+        padding: 3px 5px 3px 0px;
+        background: white;
+        border: 1px solid grey;
+    }
+
+    &:hover .hover-child{
+        display: block;
+    }
+}
+
+
+
 .highlighted {
     background: yellow;
 }
+
+
+.todo-list-add-pinned-comment-container, .one-comment{
+    border: 1px solid grey;
+    /* border-radius: 5px; */
+    font-size: 0.9rem;
+    padding: 2px 5px;
+}
+
+
+.one-comment{
+    display: flex;
+    flex-direction: column;
+
+    &.private{
+        .contents{
+            background: black;
+            color: white;
+        }
+    }
+
+    .main{
+        display: flex;
+        flex-direction: row;
+
+        .contents{
+            flex-grow: 4;
+            padding: 0;
+        }
+
+        .controls{
+            display: absolute;
+            top: 0;
+            right: 0;
+        }
+
+    }
+
+}
+
 
 
 

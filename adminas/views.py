@@ -22,7 +22,7 @@ from wkhtmltopdf.views import PDFTemplateResponse
 from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment
 from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, MAX_ROWS_OC
-from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event, get_empty_comment_section_dict
+from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
 
 # Create your views here.
 def login_view(request):
@@ -106,6 +106,7 @@ def index(request):
         job['currency'] = j.currency
         job['value'] = j.total_value_f()
         job['admin_warnings'] = j.admin_warnings()
+        job['pinned_comments'] = j.get_pinned_comments(request.user, 'created_by')
 
         jobs_list.append(job)
 
@@ -265,7 +266,6 @@ def job(request, job_id):
     my_job = Job.objects.get(id=job_id)
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
     user_is_watching = my_job.on_todo_list(request.user)
-    #comments_list = my_job.get_all_comments(request.user, '-created_on')
 
     # Comments stuff
     setting_for_order_by = '-created_on'
@@ -290,8 +290,7 @@ def job(request, job_id):
         'item_formset': item_formset,
         'watching': user_is_watching,
         'num_comments': my_job.comments.all().count(),
-        'comment_data': comment_data#,
-        #'comments': comments_list
+        'comment_data': comment_data
     })
 
 
@@ -423,7 +422,18 @@ def job_comments(request, job_id):
     all_dict = {}
     all_dict['title'] = 'All'
     all_dict['class_suffix'] = 'all'
-    all_dict['comments'] = my_job.get_all_comments(request.user, setting_for_order_by)
+
+    # Unpaginated all comments
+    #all_dict['comments'] = my_job.get_all_comments(request.user, setting_for_order_by)
+
+    # Paginated all comments
+    num_comments_per_page = 10
+    requested_page_num = request.GET.get('page')
+    if(requested_page_num == None):
+        requested_page_num = 1
+    paginator = Paginator(my_job.get_all_comments(request.user, setting_for_order_by), num_comments_per_page)
+    requested_page = paginator.page(requested_page_num)
+    all_dict['comments'] = requested_page.object_list
 
     comment_data = []
     comment_data.append(highlighted_dict)
@@ -434,7 +444,8 @@ def job_comments(request, job_id):
     return render(request, 'adminas/job_comments.html', {
         'job': job,
         'comment_data': comment_data,
-        'pinned': pinned
+        'pinned': pinned,
+        'page_data': requested_page
     })
 
          

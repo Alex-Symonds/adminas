@@ -16,6 +16,7 @@
         const REPLACE_TODO_BTN = 'div';
         const URL_JOB_COMMENTS = '{% url "job_comments" job.id %}';
         const URL_COMMENT_STATUS = '{% url "comment_status" %}';
+        const MODE_COMMENT_CU = 'all_settings';
         //const URL_PO = '{% url 'purchase_order' %}';
     </script>
     <script src="{% static 'adminas/job_toggle.js' %}" type="text/javascript"></script>
@@ -46,7 +47,7 @@
             <div class="comment-container-{{ section.class_suffix }}">
             {% for comment in section.comments %}
                 <article
-                    class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if p.highlighted %}highlighted{% endif %}" 
+                    class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if comment.highlighted %}highlighted{% endif %}" 
                     data-comment_id="{{ comment.id }}"
                     data-is_private="{{ comment.private|lower }}"
                     data-is_pinned="{{ comment.pinned|lower }}"
@@ -54,7 +55,7 @@
                 >
                     <section class="main">
                         <div class="contents">
-                            <p>{{ comment.contents }}</p>
+                            <span>{{ comment.contents }}</span>
                         </div>
                         <div class="controls">
                             <button class="pinned-toggle pinned-status-{% if comment.pinned %}on">unpin{% else %}off">pin{% endif %}</button>
@@ -85,46 +86,8 @@
             </div>
         </section>
         {% endfor %}
-        <a href="{% url 'job_comments' job.id %}">See all {{ num_comments }} comments</a>
+        <a href="{% url 'job_comments' job.id %}?page=1">See all {{ num_comments }} comments</a>
     </section>
-
-
-
-        <!-- <a href="{% url 'job_comments' job.id %}">More comments</a>
-        <button id="id_add_job_comment_with_settings">Add comment</button>
-        {% for comment in comments %}
-        <article class="one-comment" data-comment_id="{{ comment.id }}" data-is_private="{{ comment.private|lower }}" data-is_pinned="{{ comment.pinned|lower }}">
-            <section class="main">
-                <div class="contents">
-                    <p>{{ comment.contents }}</p>
-                </div>
-                <div class="controls">
-                    <button class="pinned-toggle pinned-status-{% if comment.pinned %}on">unpin{% else %}off">pin{% endif %}</button>
-
-                    {% if comment.created_by == 'You' %}
-                    <button class="edit-comment">edit</button>
-                    {% endif %}
-                </div>
-            </section>
-            <section class="footer">
-                <div>
-                    {{ comment.created_by }} on {{ comment.created_on }}
-                    <span class="privacy-status">
-                    {% if comment.created_by == 'You' %}
-                        {% if comment.private %}
-                            [PRIVATE_ICON]
-                        {% else %}
-                            [public_icon]
-                        {% endif %}
-                    {% endif %}
-                    </span>
-                </div>
-            </section>
-        </article>
-        {% empty %}
-        <p>No comments exist.</p>
-        {% endfor %}
-    </section> -->
 
 
     <h3>General Details</h3>

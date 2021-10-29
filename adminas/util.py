@@ -104,9 +104,4 @@ def copy_relations_to_new_document_version(existing_relations, new_version):
         r.save()
     return
 
-def get_empty_comment_section_dict(message):
-    d = {}
-    d['type'] = 'message'
-    d['message'] = message
-    return d
 

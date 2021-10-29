@@ -10,7 +10,7 @@ from django_countries.fields import CountryField
 
 from decimal import Decimal
 from adminas.constants import DOCUMENT_TYPES, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
-from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version, get_empty_comment_section_dict
+from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
 import datetime
 import re
 

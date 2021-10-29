@@ -31,12 +31,19 @@ const CLASS_PREFIX_FOR_COMMENT_ID = 'id-';
 
 const CLASS_HIGHLIGHTED = 'highlighted';
 
+const FORM_MODE_ALL = 'all_settings';
+const FORM_MODE_CONTENT_ONLY = 'content_only';
+
+
 // Assign event listeners onload
 document.addEventListener('DOMContentLoaded', () => {
 
-    document.getElementById(ID_ADD_COMMENT_WITH_SETTINGS_BTN).addEventListener('click', ()=>{
-        open_create_job_comment_form_with_settings(DEFAULT_COMMENT_ID);
-    });
+    let add_comment_button = document.getElementById(ID_ADD_COMMENT_WITH_SETTINGS_BTN);
+    if(add_comment_button != null){
+        add_comment_button.addEventListener('click', ()=>{
+            open_create_job_comment_form_with_settings(DEFAULT_COMMENT_ID);
+        });
+    }
 
     document.querySelectorAll('.' + CLASS_COMMENT_EDIT_BTN).forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -137,7 +144,7 @@ function create_job_comment_form_with_settings(comment_id){
     save_btn.innerHTML = 'save';
     save_btn.setAttribute('data-comment_id', comment_id);
     save_btn.addEventListener('click', (e) => {
-        save_job_comment_with_settings(e.target);
+        save_job_comment(e.target);
     });
     container.append(save_btn);
 
@@ -160,6 +167,54 @@ function create_job_comment_form_with_settings(comment_id){
 
     return container;
 }
+
+function create_job_comment_form_simplified(comment_id){
+    let container = document.createElement('div');
+    container.classList.add(CLASS_COMMENT_CU_ELEMENT);
+
+    let h = document.createElement('h4');
+    if(comment_id == DEFAULT_COMMENT_ID){
+        h.innerHTML = 'Add Comment';
+    } else {
+        h.innerHTML = 'Editing';
+    }
+    container.append(h);
+
+    let main_input = document.createElement('textarea');
+    main_input.name = 'contents';
+    main_input.id = ID_COMMENT_TEXTAREA;
+    main_input.cols = 30;
+    main_input.rows = 5;
+    container.append(main_input);
+
+    let save_btn = document.createElement('button');
+    save_btn.innerHTML = 'save';
+    save_btn.setAttribute('data-comment_id', comment_id);
+    save_btn.addEventListener('click', (e) => {
+        save_job_comment(e.target);
+    });
+    container.append(save_btn);
+
+    if(comment_id != DEFAULT_COMMENT_ID){
+        let delete_btn = document.createElement('button');
+        delete_btn.classList.add(CLASS_COMMENT_DELETE_BTN);
+        delete_btn.innerHTML = 'delete';
+        delete_btn.addEventListener('click', (e) => {
+            delete_job_comment(e.target);
+        });
+        container.append(delete_btn);
+    }
+
+    let close_btn = document.createElement('button');
+    close_btn.innerHTML = 'cancel';
+    close_btn.addEventListener('click', () => {
+        close_create_job_comment_form_with_settings();
+    });
+    container.append(close_btn);
+
+    return container;
+}
+
 
 
 // Cancel Create/Update Mode: called onclick of the "cancel" button located in the JobComment "form"
@@ -191,7 +246,14 @@ function close_create_job_comment_form_with_settings(){
 // Open Edit Mode: called onclick of an edit button
 function open_edit_job_comment(btn){
     let comment_container = btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_CONTAINER);
-    let edit_mode_ele = edit_job_comment_form_with_settings(comment_container);
+
+    if(FORM_MODE_ALL == MODE_COMMENT_CU){
+        var edit_mode_ele = edit_job_comment_form_with_settings(comment_container);
+    }
+    else if(FORM_MODE_CONTENT_ONLY == MODE_COMMENT_CU){
+        var edit_mode_ele = edit_job_comment_form_simplified(comment_container);
+    }
+
     comment_container.prepend(edit_mode_ele);
     visibility_edit_mode(comment_container, false);
 }
@@ -203,7 +265,7 @@ function edit_job_comment_form_with_settings(comment_container){
 
     // Populate the "form" with the existing information for this comment
     // Contents default = empty, so fill it with the old comment
-    let old_contents = comment_container.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('p').innerHTML;
+    let old_contents = comment_container.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('span').innerHTML;
     base_element.querySelector('#' + ID_COMMENT_TEXTAREA).value = old_contents;
 
     // Private status default == true
@@ -226,6 +288,20 @@ function edit_job_comment_form_with_settings(comment_container){
 
     return base_element;
 }
+
+function edit_job_comment_form_simplified(comment_container){
+    let comment_id = comment_container.dataset.comment_id;
+    let base_element = create_job_comment_form_simplified(comment_id);
+
+    // Populate the "form" with the existing information for this comment
+    // Contents default = empty, so fill it with the old comment
+    let old_contents = comment_container.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('span').innerHTML;
+    base_element.querySelector('#' + ID_COMMENT_TEXTAREA).value = old_contents;
+
+    return base_element;
+}
+
+
 
 // Open Edit Mode: hide/show the "read" portions of the comments as required
 function visibility_edit_mode(comment_ele, want_visibility){
@@ -260,61 +336,124 @@ function visibility_add_comment_btn(want_visibility){
 // --------------------------------------------------------------------------------------------
 // Backend (Create, Update): called onclick of the "save" button on the JobComment "form"
 // Sends data to the backend then calls the appropriate page update function.
-async function save_job_comment_with_settings(btn){
-    let comment_id = btn.dataset.comment_id;
-    let response = await save_job_comment(btn);
+
+async function save_job_comment(btn){
+    if(MODE_COMMENT_CU == FORM_MODE_ALL){
+        data = get_job_comment_dict_with_settings();
+    }
+    else if(MODE_COMMENT_CU == FORM_MODE_CONTENT_ONLY){
+        data = get_job_comment_dict_simplified(btn);
+    }
+    else {
+        return;
+    }
+    let response = await backend_save_job_comment(btn, data);
 
     // Case: "new comment". Add a new comment div to the list
+    let comment_id = btn.dataset.comment_id;
     if(comment_id == '0'){
-        update_job_page_comments_after_create(response);
+        if(MODE_COMMENT_CU == FORM_MODE_ALL){
+            update_job_page_comments_after_create(response);
+        }
+        else if(MODE_COMMENT_CU == FORM_MODE_CONTENT_ONLY){
+            console.log('TODO: frontend update for todo list.');
+        }
+        
     }
+
     // Case: "smart-arse tried to edit someone else's comment". Add a chastising message to the page
     else if('denied' in response){
         update_job_page_comments_after_denied(response['denied'], btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_CONTAINER));
     }
+
     // Case: "update comment". Adjust the existing div
     else {
         update_job_page_comments_after_update(response);
-    }
+    }    
 }
 
-// Backend (Create, Update): prepare the data and send it off to the server
-async function save_job_comment(btn){
-    // This function will be called in two situations:
-    //  1) From the Job page, where there are checkboxes to flag a comment for privacy and pinned.
-    //  2) From the to-do list, where it's a more compact display and has no checkboxes.
-    // If there's a checkbox, use the value the user has set; if not, default to true for both.
-    // This default is based on the assumptions that: adding a comment via the todo list implies the user wants it pinned (making it appear on the todo list);
-    // pinned comments are intended to serve as reminders for the user, so more often than not it won't be of public interest anyway;
-    // private = true is a safer default than the alternative.
+function get_job_comment_dict_with_settings(){
+    let result = {};
 
-    let contents = document.getElementById(ID_COMMENT_TEXTAREA).value;
+    // Set defaults appropriate to the "with settings" form.
+    result['contents'] = document.getElementById(ID_COMMENT_TEXTAREA).value;
+    result['private'] = true;
+    result['pinned'] = false;
+    result['highlighted'] = false;
 
-    let want_private = true;
+    // Replace defaults with checkbox contents, if there are any.
+    // This will happen to all comments submitted via the "full" form (i.e. Job page and Job Comments page)
     let private_checkbox = document.getElementById(ID_COMMENT_CHECKBOX_PRIVATE);
     if(private_checkbox != null){
-        want_private = private_checkbox.checked;
+        result['private'] = private_checkbox.checked;
     }
 
-    let want_pinned = true;
     let pinned_checkbox = document.getElementById(ID_COMMENT_CHECKBOX_PINNED);
     if(pinned_checkbox != null){
-        want_pinned = pinned_checkbox.checked;
+        result['pinned'] = pinned_checkbox.checked;
     }
 
-    let want_highlighted = false;
     let highlighted_checkbox = document.getElementById(ID_COMMENT_CHECKBOX_HIGHLIGHTED);
     if(highlighted_checkbox != null){
-        want_highlighted = highlighted_checkbox.checked;
+        result['highlighted'] = highlighted_checkbox.checked;
     }    
 
-    let response = await fetch(`${URL_JOB_COMMENTS}?id=${btn.dataset.comment_id}`, {
+    return result;
+}
+
+function get_job_comment_dict_simplified(btn){
+    // The simplified form only has a textarea, with no way to set status toggles, so we must decide on the status toggles on the user's behalf.
+
+    // Assumptions/decisions:
+    //  1) If the user is editing an existing comment, the status toggles should not change (it'd be weird to fix a typo and suddenly private=true).
+    //  2) Presently the simplified form is only in use on the todo list, which only displays pinned comments. As such, "pinned = true" is a reasonable assumption.
+    //  3) "private = true" is a safer default than the alternative.
+    //  4) "highlight = false" because highlighting is really intended for picking out the wheat from the chaff on the Job Comments page.
+
+    // This bit is the same for create and edit.
+    let result = {};
+    result['contents'] = document.getElementById(ID_COMMENT_TEXTAREA).value;
+
+    // Set default status toggles for use on new comments.
+    result['private'] = true;
+    result['pinned'] = true;
+    result['highlighted'] = false;
+
+    // If the user is editing an existing comment, the button will be inside a comment div with the existing settings stored as attributes.
+    // Replace the defaults with those, if they exist.
+    let comment_ele = btn.closest(`.${CLASS_INDIVIDUAL_COMMENT_CONTAINER}`);
+    if(comment_ele != null){
+        result['private'] = comment_ele.dataset.is_private.toLowerCase() == 'true';
+        result['pinned'] = comment_ele.dataset.is_pinned.toLowerCase() == 'true';
+        result['highlighted'] = comment_ele.dataset.is_highlighted.toLowerCase() == 'true';
+    }
+
+    return result;
+}
+
+
+
+// Backend (Create, Update): prepare the data and send it off to the server
+async function backend_save_job_comment(btn, data){
+
+    //  The URL for POSTing data contains the job ID number, which needs to be handled slightly differently on different pages.
+    if(URL_JOB_COMMENTS != null){
+        // On the Job and Job Comments pages, all existing/new comments are regarding the same job, so only one URL is needed: it's added to the script tags as a const.
+        url = URL_JOB_COMMENTS;
+    }
+    else {
+        // The todo list contains multiple jobs, each of which needs a different URL. To handle this, the URL is added as a dataset attribute to the comment container.
+        let container_div = btn.closest(`.${CLASS_PINNED_COMMENTS_CONTAINER}`);
+        url = container_div.dataset.url_comments;
+    }
+ 
+    let response = await fetch(`${url}?id=${btn.dataset.comment_id}`, {
         method: 'POST',
         body: JSON.stringify({
-            'contents': contents,
-            'private': want_private,
-            'pinned': want_pinned,
-            'highlighted': want_highlighted
+            'contents': data['contents'],
+            'private': data['private'],
+            'pinned': data['pinned'],
+            'highlighted': data['highlighted']
         }),
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
@@ -441,9 +580,9 @@ function get_new_comment_div(response){
 function create_comment_body(contents){
     let contents_ele = document.createElement('div');
     contents_ele.classList.add(CLASS_COMMENT_CONTENTS);
-    let p = document.createElement('p');
-    p.innerHTML = contents;
-    contents_ele.append(p);
+    let ele = document.createElement('span');
+    ele.innerHTML = contents;
+    contents_ele.append(ele);
 
     return contents_ele;
 }
@@ -547,7 +686,7 @@ function update_presence_in_filtered_comment_section(response, section_class_suf
 // DOM (Update): Dig into a standard comment element and update everything.
 function update_comment_ele(response, comment_ele){
     // Update where the comment contents are displayed
-    let contents_ele = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('p');
+    let contents_ele = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('span');
     contents_ele.innerHTML = response['contents'];
 
     // Update toggle-able statuses
@@ -578,9 +717,9 @@ function update_comment_pinned_btn(pinned_btn, want_on){
 function get_comment_privacy_status_ele(is_private){
     // PLACEHOLDER: this will probably change when the CSS is setup.
     let result = document.createElement('span');
-    result.classList.add(CLASS_PRIVACY_STATUS);
 
     if(is_private){
+        result.classList.add(CLASS_PRIVACY_STATUS);
         result.innerHTML = '[PRIVATE_ICON]';
     }
     else{
@@ -639,8 +778,13 @@ function remove_all_jobcomment_warnings(){
 
 // JobComment utils: hide/show an element via a CSS class as required
 function visibility_element(element, want_visibility){
-    let have_visibility = !element.classList.contains('hide');
+    if(element == null){
+        // If the element doesn't exist then it's as hidden as hidden can be, which is great if we wanted to hide it.
+        // If we wanted to show it then eh, can't hope to fix that with a CSS class, so just give up.
+        return;
+    }
 
+    let have_visibility = !element.classList.contains('hide');
     if(want_visibility && !have_visibility){
         element.classList.remove('hide');
     }
@@ -682,7 +826,7 @@ function toggle_status(btn, toggled_attribute){
         return;
     }
 
-    var previous = previous_attr == 'true';
+    var previous = previous_attr.toLowerCase() == 'true';
     let comment_id = comment_container_div.dataset.comment_id;
 
     update_backend_for_comment_toggle(comment_id, !previous, toggled_attribute);
@@ -703,7 +847,6 @@ function update_backend_for_comment_toggle(comment_id, new_status, toggled_attri
 }
 
 function update_frontend_for_comment_toggle(comment_id, new_status, toggled_attribute){
-
     // Depending on toggle status and which page we're on, there could be multiple instances of the
     // same comment displayed on the page: all will need to be updated following a toggle.
     // To avoid worrying about which specific sections are currently visible, we will find the comments
@@ -760,11 +903,23 @@ function update_frontend_comment_highlighted_status(comment_ele, is_highlighted)
 
 function update_frontend_comment_private_status(comment_ele, is_private){
     comment_ele.setAttribute('data-is_private', is_private);
+    let have_private_class = comment_ele.classList.contains('private');
+    
+    if(have_private_class && !is_private){
+        comment_ele.classList.remove('private');
+    }
+    else if(!have_private_class && is_private){
+        comment_ele.classList.add('private');
+    }
 
     // Update where private/public status is displayed
     // Note: I'd prefer to only update the DOM if this /needs/ to change, but the placeholder version doesn't support that well.
     // If later on there ends up being a telling CSS class or something, add something smarter. :)
     let privacy_ele = comment_ele.querySelector('.' + CLASS_PRIVACY_STATUS);
+    if(privacy_ele == null){
+        return;
+    }
+
     privacy_ele.before(get_comment_privacy_status_ele(is_private));
     privacy_ele.remove();
     return;
