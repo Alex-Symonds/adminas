@@ -106,7 +106,7 @@ def index(request):
         job['currency'] = j.currency
         job['value'] = j.total_value_f()
         job['admin_warnings'] = j.admin_warnings()
-        job['pinned_comments'] = j.get_pinned_comments(request.user, 'created_by')
+        job['pinned_comments'] = j.get_pinned_comments(request.user, '-created_by')
 
         jobs_list.append(job)
 
@@ -421,7 +421,7 @@ def job_comments(request, job_id):
     
     all_dict = {}
     all_dict['title'] = 'All'
-    all_dict['class_suffix'] = 'all'
+    all_dict['class_suffix'] = 'all-comments'
 
     # Unpaginated all comments
     #all_dict['comments'] = my_job.get_all_comments(request.user, setting_for_order_by)
