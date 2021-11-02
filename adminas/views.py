@@ -417,23 +417,29 @@ def job_comments(request, job_id):
     highlighted_dict = {}
     highlighted_dict['title'] = 'Highlighted'
     highlighted_dict['class_suffix'] = 'highlighted'
+    highlighted_dict['empty_message_suffix'] = 'highlighted'
     highlighted_dict['comments'] = my_job.get_highlighted_comments(request.user, setting_for_order_by)
     
     all_dict = {}
     all_dict['title'] = 'All'
     all_dict['class_suffix'] = 'all-comments'
+    all_dict['empty_message_suffix'] = 'added'
 
-    # Unpaginated all comments
-    #all_dict['comments'] = my_job.get_all_comments(request.user, setting_for_order_by)
-
-    # Paginated all comments
+    # Paginate the comments for all_dict
     num_comments_per_page = 10
     requested_page_num = request.GET.get('page')
+    all_comments = my_job.get_all_comments(request.user, setting_for_order_by)
+
     if(requested_page_num == None):
         requested_page_num = 1
-    paginator = Paginator(my_job.get_all_comments(request.user, setting_for_order_by), num_comments_per_page)
-    requested_page = paginator.page(requested_page_num)
-    all_dict['comments'] = requested_page.object_list
+    
+    if(all_comments != None):
+        paginator = Paginator(all_comments, num_comments_per_page)
+        requested_page = paginator.page(requested_page_num)
+        all_dict['comments'] = requested_page.object_list
+    else:
+        all_dict['comments'] = None
+        requested_page = None
 
     comment_data = []
     comment_data.append(highlighted_dict)

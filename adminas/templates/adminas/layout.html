@@ -5,7 +5,7 @@
     <head>
         <title>Adminas{% block title %}{% endblock %}</title>
 
-        <link href="{% static 'adminas/styles.css' %}" rel="stylesheet">
+        <link href="{% static 'adminas/st.css' %}" rel="stylesheet">
         <script src="{% static 'adminas/util.js' %}" type="text/javascript"></script>
 
         {% block javascript %}
@@ -17,16 +17,16 @@
                 <ul>
 {% if user.is_authenticated %}
                     <li>
-                        <a href="{% url 'logout' %}">Log out</a>
-                    </li>
-                    <li>
                         <a href="{% url 'index' %}">Home</a>
                     </li>
                     <li>
                         <a href="{% url 'records' %}">Records</a>
                     </li>
                     <li>
-                        <a href="{% url 'edit_job' %}">Add New Job</a>
+                        <a href="{% url 'edit_job' %}">New</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'logout' %}">Log out</a>
                     </li>
 {% else %}
                     <li>

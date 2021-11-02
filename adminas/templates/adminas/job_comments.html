@@ -119,7 +119,7 @@
                 </section>
             </article>            
         {% empty %}
-            <p>No comments have been {{ section.class_suffix }}</p>
+            <p class="empty-section-notice">No comments have been {{ section.empty_message_suffix }}.</p>
         {% endfor %}
         </div>
     </section>

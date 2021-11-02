@@ -31,7 +31,10 @@ const CLASS_PINNED_COMMENTS_CONTAINER = 'pinned';
 const CLASS_HIGHLIGHTED_COMMENTS_CONTAINER = 'highlighted';
 const CLASS_PREFIX_FOR_COMMENT_ID = 'id-';
 
-const CLASS_HIGHLIGHTED = 'highlighted';
+const SECTION_NAMES = ['all-comments', 'pinned', 'highlighted'];
+
+const CLASS_HIGHLIGHTED_CSS = 'highlighted';
+const CLASS_EMPTY_SECTION_P = 'empty-section-notice';
 
 // Assign event listeners onload
 document.addEventListener('DOMContentLoaded', () => {
@@ -567,13 +570,12 @@ function update_job_page_comments_after_create(response){
 function get_new_comment_div(response){
     let container_ele = document.createElement('article');
 
-    container_ele.setAttribute('data-comment_id', response['id']);
-    container_ele.setAttribute('data-is_private', response['private']);
-    container_ele.setAttribute('data-is_pinned', response['pinned']);
-    container_ele.setAttribute('data-is_highlighted', response['highlighted']);
-
     container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
     container_ele.classList.add(`${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`);
+
+    if(WANT_STREAMLINED_COMMENTS){
+        container_ele.classList.add('hover-parent');
+    }
 
     if(response['private']){
         container_ele.classList.add('private');
@@ -582,8 +584,13 @@ function get_new_comment_div(response){
     }
 
     if(response['highlighted']){
-        container_ele.classList.add(CLASS_HIGHLIGHTED);
+        container_ele.classList.add(CLASS_HIGHLIGHTED_CSS);
     }
+
+    container_ele.setAttribute('data-comment_id', response['id']);
+    container_ele.setAttribute('data-is_private', response['private']);
+    container_ele.setAttribute('data-is_pinned', response['pinned']);
+    container_ele.setAttribute('data-is_highlighted', response['highlighted']);
 
     let upper_ele = document.createElement('section');
     upper_ele.classList.add(CLASS_COMMENT_MAIN);
@@ -605,10 +612,6 @@ function get_new_comment_div(response){
 function create_comment_body(contents){
     let contents_ele = document.createElement('div');
     contents_ele.classList.add(CLASS_COMMENT_CONTENTS);
-
-    if(WANT_STREAMLINED_COMMENTS){
-        contents_ele.classList.add('hover-parent');
-    }
 
     let ele = document.createElement('span');
     ele.innerHTML = contents;
@@ -712,9 +715,11 @@ function update_job_page_comments_after_update(response){
 
 // DOM (Update): Loop through all "special" comment sections, ensuring the updated comment appears where it should.
 function update_presence_in_filtered_comment_sections(response){
-    let section_list = ['pinned', 'highlighted'];
-    for(let i = 0; i < section_list.length; i++){
-        update_presence_in_filtered_comment_section(response, section_list[i]);
+    for(let i = 0; i < SECTION_NAMES.length; i++){
+        // "all-comments" is not considered "filtered", so skip that one.
+        if(SECTION_NAMES[i] != CLASS_ALL_COMMENTS_CONTAINER){
+            update_presence_in_filtered_comment_section(response, SECTION_NAMES[i]);
+        }
     }
     return;
 }
@@ -810,7 +815,9 @@ function get_access_denied_ele(response_str){
 function update_job_page_comments_after_delete(comment_id){
     // Update all remaining copies of this comment to reflect the changes the user just made
     document.querySelectorAll(`.${CLASS_PREFIX_FOR_COMMENT_ID}${comment_id}`).forEach(ele =>{
+        let container = ele.closest(`.${CLASS_COMMENTS_CONTAINER}`);
         ele.remove();
+        handle_section_emptiness(container);
     });
 }
 
@@ -944,12 +951,12 @@ function update_frontend_comment_pinned_status(comment_ele, is_pinned){
 function update_frontend_comment_highlighted_status(comment_ele, is_highlighted){
     comment_ele.setAttribute('data-is_highlighted', is_highlighted);
 
-    let have_highlighted = comment_ele.classList.contains(CLASS_HIGHLIGHTED);
+    let have_highlighted = comment_ele.classList.contains(CLASS_HIGHLIGHTED_CSS);
     if(is_highlighted && !have_highlighted){
-        comment_ele.classList.add(CLASS_HIGHLIGHTED);
+        comment_ele.classList.add(CLASS_HIGHLIGHTED_CSS);
     }
     else if(!is_highlighted && have_highlighted){
-        comment_ele.classList.remove(CLASS_HIGHLIGHTED);
+        comment_ele.classList.remove(CLASS_HIGHLIGHTED_CSS);
     }
 
     return;
@@ -1010,6 +1017,10 @@ function add_comment_to_section(class_to_find_comment, section_name, comment_dat
     }
 
     section_ele.prepend(section_comment);
+
+    // Adding that comment might've affected the emptiness of this section, so sort out the emptiness paragraph if it did.
+    handle_section_emptiness(section_ele, section_name);
+
     return;
 }
 
@@ -1021,7 +1032,7 @@ function remove_comment_from_section(class_to_find_comment, section_name){
         // given that this is a toggle, but whatever: all's well that ends well.
         if(comment_in_section != null){
             comment_in_section.remove();
-            handle_empty_section(section_ele);
+            handle_section_emptiness(section_ele, section_name);
         }
     });
 
@@ -1029,20 +1040,50 @@ function remove_comment_from_section(class_to_find_comment, section_name){
 }
 
 
-function handle_empty_section(comment_section_ele){
-    let section_name = CLASS_ALL_COMMENTS_CONTAINER; // PLACEHOLDER
+function handle_section_emptiness(comment_section_ele, section_name="?"){
+    if(WANT_STREAMLINED_COMMENTS){
+        // Streamlined comments mean space is at a premium, so we're not going to waste a line just to say "no pinned comments exist"
+        return;
+    }
 
-    if(comment_section_ele.querySelectorAll(`${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0){
-        let p = get_empty_comment_section_ele(section_name);
+    if(section_name=="?"){
+        // If the calling function didn't share the section_name, work it out from the element.
+        section_name = pick_out_comment_section_name(comment_section_ele.className);
+    }
+    console.log(comment_section_ele);
+    if(comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0){
+        var p = get_empty_comment_section_ele(section_name);
         comment_section_ele.prepend(p);
+    }
+    else{
+        var p = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
+        if(p != null){
+            p.remove();
+        }
     }
 }
 
+function pick_out_comment_section_name(class_name){
+    let class_list = class_name.split(' ');
+    for(let s = 0; s < SECTION_NAMES.length; s++){
+        for(let c = 0; c < class_list.length; c++){
+            console.log(`Loop ${s}-${c}: ${SECTION_NAMES[s]} vs ${class_list[c]}`);
+            if(SECTION_NAMES[s] == class_list[c]){
+                return SECTION_NAMES[s];
+            }
+        }
+    }
+    return null;
+}
+
+
+
 function get_empty_comment_section_ele(section_name){
     let p = document.createElement('p');
+    p.classList.add(CLASS_EMPTY_SECTION_P);
 
     if(section_name == CLASS_ALL_COMMENTS_CONTAINER){
-        p.innerHTML = `No comments have been added.`;
+        p.innerHTML = 'No comments have been added.';
     }
     else if(section_name == CLASS_HIGHLIGHTED_COMMENTS_CONTAINER || section_name == CLASS_PINNED_COMMENTS_CONTAINER){
         p.innerHTML = `No comments have been ${section_name}.`;
