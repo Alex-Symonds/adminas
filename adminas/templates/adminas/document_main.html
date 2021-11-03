@@ -16,7 +16,7 @@
 {% block body %}
 
     <h2>Document</h2>
-    <h2>{{ doc_title }}</h2>
+    <div class="subheading">{{ doc_title }}</div>
     
     <section class="status-controls">
     {% if doc_version.issue_date %}
@@ -38,7 +38,7 @@
     </section>
 
     
-    <div class="document-fields-container">
+    <section class="document-fields-container">
         <label for="id_doc_reference">Reference</label>
         <div id="id_doc_reference">{{ doc_version.document.reference }}</div>
         <div class="doc-version">Version {{ doc_version.version_number }}</div>
@@ -48,10 +48,10 @@
         <label for="id_req_prod_date">Requested Completion Date</label>
         <div id="id_req_prod_date">{{ doc_specific.date_requested }}</div>
     {% endif %}
-    </div>
+    </section>
 
-    <div>
-        Items
+    <section>
+        <h3>Items</h3>
         <div class="included-container">
             Include
             <ul class="included">

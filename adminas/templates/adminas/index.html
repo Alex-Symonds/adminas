@@ -10,18 +10,17 @@
     <script>
         const URL_COMMENT_STATUS = '{% url "comment_status" %}';
         const URL_TODO_MANAGEMENT = '{% url "todo_list_management" %}';
-        const WANT_STREAMLINED_COMMENTS = true;
     </script>
     <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/job_comments.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
-    <h2>Home page</h2>
+    <h2>Home</h2>
     <div>
     {% for job in data %}
-        <article id="todo_panel_job_{{ job.id }}">
-            <section class="job_details">
+        <article id="todo_panel_job_{{ job.id }}" class="job-panel">
+            <section class="job-details">
                 <button class="todo-list-remove" data-job_id="{{ job.id }}">remove</button>
                 <a href="{% url 'job' job.id %}">
                     <h4>{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
@@ -83,7 +82,7 @@
                     {% endfor %}
                 </section>
                 <div class="todo-list-add-pinned-comment-container">
-                    <button class="add-job-comment-simplified">+ comment</button>
+                    <button class="add-job-comment-simplified" data-form_type="content-only">+ comment</button>
                 </div>
             </section>
         </article>

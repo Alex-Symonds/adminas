@@ -11,14 +11,15 @@
         const JOB_ID = '{{ job.id }}';
         const URL_JOB_COMMENTS = '{% url "job_comments" job.id %}';
         const URL_COMMENT_STATUS = '{% url "comment_status" %}';
-        const WANT_STREAMLINED_COMMENTS = false;
+        //const WANT_STREAMLINED_COMMENTS = false;
     </script>
     <script src="{% static 'adminas/job_comments.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 
 {% block body %}
-    <h2>Comments on Job {{ job.name }}</h2>
+    <h2>Comments</h2>
+    <div class="subheading">Job {{ job.name }}</div>
 
     <section class="job-identifier-pane">
         <h4>{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
@@ -76,7 +77,7 @@
             </article>
             {% endfor %}
         </section>
-        <button id="id_add_job_comment_with_settings">Add new comment</button>
+        <button id="id_add_job_comment_with_settings" data-form_type="full">Add new comment</button>
     </section>
 
     {% for section in comment_data %}
