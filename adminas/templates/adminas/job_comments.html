@@ -52,27 +52,28 @@
                     <div class="contents">
                         <span>{{ p.contents }}</span>
                     </div>
+                </section>
+                <section class="footer">
+                    {{ p.created_by }} on {{ p.created_on }}
+                    <span class="privacy-status">
+                        {% if p.user_is_owner %}
+                            {% if p.private %}
+                                    [PRIVATE_ICON]
+                            {% else %}
+                                    [public_icon]
+                            {% endif %}
+                        {% endif %}
+                    </span>
                     <div class="controls">
-                        <button class="pinned-toggle pinned-status-on">unpin</button>
-                        <button class="highlighted-toggle">+/- highlight</button>
+                        <button class="pinned-toggle pinned-status-on">
+                            unpin
+                        </button>
+                        <button class="highlighted-toggle">highlight +/-</button>
                 {% if p.user_is_owner %}
                         <button class="edit-comment">edit</button>
                 {% endif %}
                     </div>
-                </section>
-                <section class="footer">
-                    <div>
-                        {{ p.created_by }} on {{ p.created_on }}
-                        <span class="privacy-status">
-                {% if p.user_is_owner %}
-                    {% if p.private %}
-                            [PRIVATE_ICON]
-                    {% else %}
-                            [public_icon]
-                    {% endif %}
-                {% endif %}
-                        </span>
-                    </div>
+
                 </section>
             </article>
             {% endfor %}

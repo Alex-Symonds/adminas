@@ -47,37 +47,41 @@
                 <section class="comment-container pinned">
                     {% for comment in job.pinned_comments %}
                     <article
-                        class="one-comment hover-parent {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if comment.highlighted %}highlighted{% endif %}" 
+                        class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if comment.highlighted %}highlighted{% endif %}" 
                         data-comment_id="{{ comment.id }}"
                         data-is_private="{{ comment.private|lower }}"
                         data-is_pinned="true"
                         data-is_highlighted="{{ comment.highlighted }}"
                     >
-                        <section class="main">
-                            <div class="contents">
-                                <span>{{ comment.contents }}</span>
-                            </div>
-                            <div class="controls">
-                                <button class="pinned-toggle pinned-status-on">unpin</button>
-                        {% if comment.user_is_owner %}
-                                <button class="edit-comment">edit</button>
-                        {% endif %}
-                            </div>
-                        </section>
-                        <section class="footer hover-child">
-                            <div>
-                                {{ comment.created_by }} on {{ comment.created_on }}
-                                <span class="privacy-status">
-                        {% if comment.user_is_owner %}
-                            {% if comment.private %}
-                                    [PRIVATE_ICON]
-                            {% else %}
-                                    [public_icon]
-                            {% endif %}
-                        {% endif %}
+                        <details>
+
+                            <summary>
+                                <span class="main">
+                        {% if comment.user_is_owner %}{% if comment.private %}
+                                    <div class="privacy-status">
+                                        <img src="{% static 'adminas/i-private-comment.svg' %}" alt="private comment">
+                                    </div>
+                        {% endif %}{% endif %}
+                                    <span class="contents">
+                                        {{ comment.contents }}
+                                    </span>
                                 </span>
-                            </div>
-                        </section>
+                            </summary>
+
+                            <section class="footer">
+                                <div class="ownership">
+                                    {{ comment.created_by }} on {{ comment.created_on }}
+                                </div>
+                                <div class="controls">
+                                    <button class="pinned-toggle pinned-status-on">unpin</button>
+                                    <button class="highlighted-toggle">+/- highlight</button>
+                            {% if comment.user_is_owner %}
+                                    <button class="edit-comment">edit</button>
+                            {% endif %}
+                                </div>
+                            </section>
+
+                        </details>
                     </article>  
                     {% endfor %}
                 </section>
@@ -88,7 +92,6 @@
         </article>
     {% endfor %}
     </div>
-
 {% endblock %}
 
 

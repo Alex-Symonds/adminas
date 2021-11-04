@@ -1,0 +1,450 @@
+$f_heading: 'Arial', sans-serif;
+$f_contents: 'Calibri', sans-serif;
+
+$c_bg_main: rgb(24, 25, 26);
+/*$g_bg_main: linear-gradient(45deg, rgb(24, 25, 26) 0%, rgb(30, 30, 31) 35%, rgb(46, 48, 48) 100%);*/
+$g_bg_main: linear-gradient(45deg, rgb(34, 35, 36) 0%, rgb(40, 40, 41) 35%, rgb(56, 58, 58) 100%);
+$c_txt_main: #F6F6F6;/* rgb(233, 247, 255); */
+$c_txt_main_highlight: white;
+$c_txt_alt: black;
+$c_txt_alt_highlight: #222;
+
+$c_tone_00: #141414;
+$c_tone_01: #222;
+$c_tone_02: #444;
+$c_tone_03: #666;
+$c_tone_04: #888;
+$c_tone_05: #AAA;
+$c_tone_06: #BBB;
+$c_tone_07: #F6F6F6;
+
+$c_accent_main: #00D4F5;
+$c_accent_border: #00A8C2; /*#00A4C5;*/
+$c_accent_highlight: #4ADFF7; /*#00E4F5;*/
+$c_accent_lighter: #6bfaff; /* #6bfaff */
+$c_txt_on_accent: black;
+$g_accent_main: linear-gradient(135deg, $c_accent_border 0%, $c_accent_main 50%, $c_accent_lighter 100%);
+
+$g_button_main: linear-gradient(45deg, $c_accent_highlight 0%, $c_accent_main 33%, $c_accent_border 100%);
+$g_button_hover: linear-gradient(135deg, $c_accent_lighter, $c_accent_highlight 66%, $c_accent_main 100%);
+
+$c_warning_text: white;
+$g_warning: linear-gradient(0deg, rgb(139, 0, 0) 0%, rgb(192, 0, 0) 100%);
+
+$c_accent_secondary: #0DFA96;
+$c_warning: rgb(207, 0, 0);
+
+$panel_shadow: 0 0 10px 1px rgba(black, 85%);
+$panel_shadow_highlight: 0 0 10px 1px rgba($c_accent_main, 50%);
+
+html, body{
+    min-height: 100%;
+}
+
+body {
+    font-family: $f_contents;
+    background: $c_bg_main;
+    background: $g_bg_main;
+    color: $c_txt_main;
+}
+
+a{
+    color: $c_accent_main;
+
+    &:hover{
+        color: $c_accent_highlight;
+    }
+}
+
+h2, h3, h4, h5, h6{
+    font-family: $f_heading;
+}
+
+h2 {
+    color: $c_txt_main;
+    margin-top: 2rem;
+    margin-bottom: 0;
+    width: 100%;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid $c_txt_main;
+}
+
+.subheading{
+    margin-top: 0px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+h3{
+    margin-top: 1.7rem;
+    width: 100%;
+    padding: 0.4rem 0 0.3rem 0;
+    border-bottom: 1px solid $c_tone_03;
+}
+
+input, select, textarea{
+    max-width: 100%;
+    margin-top: 3px;
+    background: $c_tone_00;/*$c_tone_01;*/
+    border: 1px solid $c_accent_border;
+    border-radius: 3px;
+    color: $c_txt_main;
+
+    &:active, &:focus{
+        outline: thin dotted;
+        background: $c_tone_02;
+    }        
+}
+
+input {
+    height: 1.3rem;
+    padding: 0.2rem 0.5rem;
+}
+
+select{
+    height: 1.7rem;
+    padding: 0.2rem 0.3rem;
+}
+
+textarea{
+    padding: 3px 5px;
+}
+
+article{
+    padding: 0;
+    margin: 0;
+}
+
+/* Visibility functionality ------------------------------------------------------ */
+.hide{
+    position: absolute;
+    visibility: hidden;
+}
+
+/* Details for comments */
+details {
+    padding: 0;
+    border: 1px solid transparent;
+    border-bottom: 1px solid $c_tone_03;
+}
+
+summary {
+    padding: 0 5px 5px 5px;
+}
+
+details[open] {
+    background: $c_tone_03;
+    border: 1px solid $c_tone_04;
+}
+
+details[open] summary {
+    background: $c_tone_02;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 5px;
+}
+
+
+.hover-parent{
+    display: inline-block;
+    position: relative;
+
+    .hover-child{
+        display: none;
+        position: absolute;
+        top: -0.75rem;
+        left: 1rem;
+        width: 18rem;
+        font-size: 0.8rem;
+        padding: 3px 5px 3px 3px;
+        color: $c_txt_alt;
+        background: $c_tone_05;
+        border: 1px solid $c_tone_06;
+        border-radius: 2px;
+    }
+
+    &:hover .hover-child{
+        display: block;
+    }
+}
+
+
+
+/* Nav bar ------------------------------------------------------ */
+nav {
+    ul{
+        display: flex;
+        flex-direction: row;
+
+        margin: 0;
+        padding: 0;
+
+        border: 1px solid $c_tone_03;
+        border-left-width: 0;
+        border-right-width: 0;
+        list-style: none;
+
+        background: $c_bg_main;
+        background: $g_bg_main;
+        box-shadow: 0px 0px 15px 8px rgb(15,15,15);
+    }
+    li, li a{
+        font-size: 1rem;
+        height: 1.2rem;
+        padding: 0.5rem;
+
+        text-decoration: none;
+        color: $c_txt_main;
+    }
+    li a{
+        border-bottom: 3px solid transparent;
+        &:hover{
+            color: $c_txt_main_highlight;
+            background: $c_tone_02;
+            border-bottom: 3px solid $c_accent_main;
+        }
+    }
+}
+
+
+/* Home ------------------------------------------------------ */
+.job-panel{
+    display: inline-block;
+    position: relative;
+    border: 1px solid $c_tone_04;
+    border-radius: 8px;
+    margin: 1rem 0 0 0;
+    width: 100%;
+    box-shadow: $panel_shadow;
+
+    &:hover{
+        border: 1px solid $c_tone_06;
+        box-shadow: $panel_shadow_highlight;  
+    }
+
+    a{
+        text-decoration: none;
+    }
+
+    .todo-list-remove{
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        color: $c_tone_07;
+        background: transparent;/*$c_tone_04;*/
+        border: 1px solid $c_tone_06;
+        border-radius: 8px;
+        padding: 3px 5px;
+        font-size: 0.75rem;
+        z-index: 2;
+
+        &:hover{
+            color: $c_tone_07;
+            background: $c_tone_03;
+            border: 1px solid $c_tone_07;            
+        }
+    }
+
+    h4{
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        margin: 0;
+        padding: 12px 8px;
+        color: $c_txt_main;
+        background: $c_tone_02;
+        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
+    }
+
+    p{
+        color: $c_txt_main;
+        margin: 0;
+        padding: 12px 10px;
+        background: $c_tone_02;
+        border-bottom: 1px solid $c_accent_main;
+        /*background: linear-gradient(0deg, $c_tone_02 0%, $c_tone_02 30%, $c_tone_03 100%);*/
+    }
+
+    ul{
+        margin-top: 0;
+        margin-bottom: 0;
+        /*background: $c_accent_main;*/
+        background: $g_bg_main;
+        color: $c_txt_main;
+        padding: 8px 24px;
+        /*border-bottom: 1px solid $c_tone_04;*/
+        border-bottom: 1px solid $c_accent_main;
+    }
+
+    .comments{
+        margin: 0;
+    }
+
+    .one-comment{
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: calc(100% - 10px);
+        padding: 2px 5px 0;
+
+        &.highlighted{
+            details{
+                border-left: 3px solid yellow;
+            }
+        }
+
+        summary{
+            min-height: calc(24px + 8px);
+        }
+        .main{
+            .contents{
+                margin: 0;
+                padding: 5px;
+            }
+
+            .privacy-status{
+                float: right;
+                //margin: 6px 4px 0 0; // setting when it's in the footer
+                margin: 4px 6px;
+
+                // background-repeat: no-repeat;
+                // background-position: center;
+                // background-size: 16px 16px;
+                // text-indent: -9999px;
+            }
+        }
+
+        .footer{
+            margin: 3px;
+
+            .ownership{
+                display: inline-block;
+                margin: 0;
+                margin-left: 3px;
+                padding-bottom: 3px;
+            }
+        }
+
+
+        .controls{
+
+            .edit-comment{
+                background-image: url(i-edit.svg);
+            }
+    
+            .highlighted-toggle{
+                background-image: url(i-highlight.svg);        
+            }
+    
+            .pinned-status-on{
+                background-image: url(i-pin-filled.svg);
+            }
+        
+            .pinned-status-off{
+                background-image: url(i-pin-unfilled.svg);
+            }
+
+
+            .edit-comment, .highlighted-toggle, .pinned-status-on, .pinned-status-on{
+                border: 0;
+                border-radius: 13px;
+                border: 1px solid transparent;
+
+                height: 26px;
+                width: 26px;
+
+                background-color: transparent;
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: 16px 16px;
+                text-indent: -9999px;
+
+                &:hover{
+                    //position: absolute;
+    
+                    //background-position: 4px 4px;
+                    background-color: $c_tone_04;
+                    border: 1px solid $c_tone_05;
+
+                    color: $c_txt_main;
+                    font-weight: bold;
+
+                    animation-duration: 0.2s;
+                    animation-fill-mode: forwards;
+                    animation-name: expand_comment_button;
+                }
+    
+            }
+            .edit-comment{
+                &:hover{
+                    background-position: 7px 4px;
+                }
+            }
+
+            .highlighted-toggle, .pinned-status-on, .pinned-status-on{
+                &:hover{
+                    background-position: 4px 4px;
+                }
+            }
+        }
+    }
+}
+
+@keyframes expand_comment_button {
+    from {
+        width: 26px;
+        text-indent: -9999px;
+    }
+
+    95%{
+        text-indent: -9999px;
+    }
+    
+    to {
+        width: 8rem;
+        text-indent: 1px;
+    }
+}
+
+
+/* Create New ------------------------------------------------------ */
+.form-row{
+    margin-left: 0.5rem;
+
+    label{
+        display: block;
+        margin: 1rem 0 0 1px;
+    }
+
+    .display-address{
+        margin: 0.5rem 0 0 1rem;
+        padding-left: 8px;
+        border-left: 2px solid $c_accent_secondary;
+        color: $c_tone_07;
+    }
+}
+
+#submit_btn{
+    display: block;
+    margin: 1rem auto 0;
+    font-size: 1.2rem;
+    background: $c_accent_main;
+    background: $g_button_main;
+    color: $c_txt_main;
+    font-weight: bold;
+    height: 2.5rem;
+    width: 98%;
+    max-width: 15rem;
+    border-radius: 0.4rem;
+    border: 1px solid $c_accent_border;
+
+    &:hover{
+        color: $c_txt_alt;
+        background: $c_accent_highlight;
+        background: $g_button_hover;
+        box-shadow: 0 0 3px 1px $c_tone_02;
+    }
+
+    @media screen and (min-width:500px){
+        margin: 1rem 0 0;
+    }
+}
+
