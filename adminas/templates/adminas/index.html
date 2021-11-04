@@ -54,17 +54,14 @@
                         data-is_highlighted="{{ comment.highlighted }}"
                     >
                         <details>
-
                             <summary>
                                 <span class="main">
                         {% if comment.user_is_owner %}{% if comment.private %}
                                     <div class="privacy-status">
-                                        <img src="{% static 'adminas/i-private-comment.svg' %}" alt="private comment">
+                                        [PRIVATE]<!-- <img src="{% static 'adminas/i-private-comment.svg' %}" alt="private comment"> -->
                                     </div>
                         {% endif %}{% endif %}
-                                    <span class="contents">
-                                        {{ comment.contents }}
-                                    </span>
+                                    <span class="contents">{{ comment.contents }}</span>
                                 </span>
                             </summary>
 

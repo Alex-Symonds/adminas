@@ -322,7 +322,7 @@ function edit_job_comment_form_streamlined(comment_ele){
 
     // Populate the "form" with the existing information for this comment
     // Contents default = empty, so fill it with the old comment
-    let old_contents = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('span').innerHTML;
+    let old_contents = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).innerHTML.trim();
     base_element.querySelector('#' + ID_COMMENT_TEXTAREA).value = old_contents;
 
     return base_element;
@@ -572,6 +572,55 @@ function update_job_page_comments_after_create(response){
 
 
 // DOM (Create Comment Ele): Make a new comment element. Broken up into multiple functions.
+function get_new_comment_ele(response){
+    let container_ele = document.createElement('article');
+
+    container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
+    container_ele.classList.add(`${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`);
+
+    if(response['highlighted']){
+        container_ele.classList.add(CLASS_HIGHLIGHTED_CSS);
+    }
+
+    container_ele.setAttribute('data-comment_id', response['id']);
+    container_ele.setAttribute('data-is_private', response['private']);
+    container_ele.setAttribute('data-is_pinned', response['pinned']);
+    container_ele.setAttribute('data-is_highlighted', response['highlighted']);
+
+    let details_ele = document.createElement('details');
+    details_ele.append(create_node_comment_summary(response['private'], response['contents']));
+    details_ele.append(create_node_comment_hidden_details(response['username'], response['timestamp'], response['pinned']));
+
+    container_ele.append(details_ele);
+    apply_event_listeners_to_comment(container_ele);
+
+    return container_ele;    
+}
+
+
+function create_node_comment_summary(is_private, body_str){
+    let summary_ele = document.createElement('summary');
+    let main_ele = document.createElement('span');
+    main_ele.classList.add(CLASS_COMMENT_MAIN);
+    if(is_private){
+        main_ele.append(get_comment_privacy_status_ele());
+    }
+    main_ele.append(create_comment_body_streamlined(body_str));
+    summary_ele.append(main_ele);
+    return summary_ele;
+}
+
+function create_node_comment_hidden_details(username, timestamp, is_pinned){
+    let footer_ele = document.createElement('section');
+    footer_ele.classList.add(CLASS_COMMENT_FOOTER);
+    footer_ele.append(create_comment_ownership(username, timestamp));
+    footer_ele.append(create_comment_controls(is_pinned));
+    return footer_ele;
+}
+
+
+
+
 function get_new_comment_div(response, streamline_comment){
     let container_ele = document.createElement('article');
 
@@ -618,6 +667,13 @@ function get_new_comment_div(response, streamline_comment){
 }
 
 // DOM (Create Comment): JobComment div with the comment itself inside
+function create_comment_body_streamlined(contents){
+    let ele = document.createElement('span');
+    ele.classList.add(CLASS_COMMENT_CONTENTS);
+    ele.innerHTML = contents;
+    return ele;
+}
+
 function create_comment_body(contents){
     let contents_ele = document.createElement('div');
     contents_ele.classList.add(CLASS_COMMENT_CONTENTS);
@@ -630,7 +686,7 @@ function create_comment_body(contents){
 }
 
 // DOM (Create Comment): JobComment div with the pinned and edit buttons inside
-function create_comment_controls(is_pinned, streamline_comment){
+function create_comment_controls(is_pinned){
     let controls_ele = document.createElement('div');
     controls_ele.classList.add(CLASS_COMMENT_CONTROLS);
 
@@ -645,13 +701,11 @@ function create_comment_controls(is_pinned, streamline_comment){
     }
     controls_ele.append(pinned_btn);
 
-    if(!streamline_comment){
-        let highlighted_btn = document.createElement('button');
-        highlighted_btn.classList.add(CLASS_COMMENT_HIGHLIGHTED_TOGGLE);
-        highlighted_btn.innerHTML = '+/- highlight';
-        controls_ele.append(highlighted_btn);
-    }
-
+    let highlighted_btn = document.createElement('button');
+    highlighted_btn.classList.add(CLASS_COMMENT_HIGHLIGHTED_TOGGLE);
+    highlighted_btn.innerHTML = '+/- highlight';
+    controls_ele.append(highlighted_btn);
+    
     let edit_btn = document.createElement('button');
     edit_btn.classList.add(CLASS_COMMENT_EDIT_BTN);
     edit_btn.innerHTML = 'edit';
@@ -661,14 +715,10 @@ function create_comment_controls(is_pinned, streamline_comment){
 }
 
 // DOM (Create Comment): JobComment div with the user, timestamp and privacy status inside
-function create_comment_ownership(username, timestamp, is_private){
+function create_comment_ownership(username, timestamp){
     let result = document.createElement('div');
+    result.classList.add('ownership');
     result.innerHTML = `${username} on ${timestamp}`;
-
-    // Placeholder: this bit will probably change when I CSS stuff
-    let privacy_icon = get_comment_privacy_status_ele(is_private);
-    result.append(privacy_icon);
-
     return result;
 }
 
@@ -745,7 +795,7 @@ function update_presence_in_filtered_comment_section(response, section_class){
 // DOM (Update): Dig into a standard comment element and update everything.
 function update_comment_ele(response, comment_ele){
     // Update where the comment contents are displayed
-    let contents_ele = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('span');
+    let contents_ele = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS);
     contents_ele.innerHTML = response['contents'];
 
     // Update toggle-able statuses
@@ -773,18 +823,10 @@ function update_comment_pinned_btn(pinned_btn, want_on){
 
 
 // DOM (Update/Create): Get privacy-status element
-function get_comment_privacy_status_ele(is_private){
-    // PLACEHOLDER: this will probably change when the CSS is setup.
-    let result = document.createElement('span');
-
-    if(is_private){
-        result.classList.add(CLASS_PRIVACY_STATUS);
-        result.innerHTML = '[PRIVATE_ICON]';
-    }
-    else{
-        result.innerHTML += '[public_icon]';
-    }
-
+function get_comment_privacy_status_ele(){
+    let result = document.createElement('div');
+    result.classList.add(CLASS_PRIVACY_STATUS);
+    result.innerHTML = '[PRIVATE]';
     return result;
 }
 
@@ -1019,7 +1061,7 @@ function add_comment_to_section(class_to_find_comment, section_name, comment_dat
         apply_event_listeners_to_comment(section_comment);
     }
     else if(comment_data != null){
-        var section_comment = get_new_comment_div(comment_data, streamline_comment);
+        var section_comment = get_new_comment_ele(comment_data, streamline_comment);
     }
     else{
         return;

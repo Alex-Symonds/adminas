@@ -22,8 +22,10 @@ $c_accent_main: #00D4F5;
 $c_accent_border: #00A8C2; /*#00A4C5;*/
 $c_accent_highlight: #4ADFF7; /*#00E4F5;*/
 $c_accent_lighter: #6bfaff; /* #6bfaff */
+$c_accent_dark: #006675;
 $c_txt_on_accent: black;
 $g_accent_main: linear-gradient(135deg, $c_accent_border 0%, $c_accent_main 50%, $c_accent_lighter 100%);
+$g_accent_main_background: linear-gradient(135deg, rgb(48, 48, 48) 75%,  $c_accent_dark 100%);
 
 $g_button_main: linear-gradient(45deg, $c_accent_highlight 0%, $c_accent_main 33%, $c_accent_border 100%);
 $g_button_hover: linear-gradient(135deg, $c_accent_lighter, $c_accent_highlight 66%, $c_accent_main 100%);
@@ -267,7 +269,7 @@ nav {
         margin-top: 0;
         margin-bottom: 0;
         /*background: $c_accent_main;*/
-        background: $g_bg_main;
+        background: $c_accent_dark;
         color: $c_txt_main;
         padding: 8px 24px;
         /*border-bottom: 1px solid $c_tone_04;*/
@@ -279,17 +281,21 @@ nav {
     }
 
     .one-comment{
-        position: relative;
-        display: flex;
-        flex-direction: column;
         width: calc(100% - 10px);
         padding: 2px 5px 0;
 
+        details{
+            border-left: 2px solid transparent;
+        }
+        details[open]{
+            border-left: 1px solid $c_tone_04;
+        }
         &.highlighted{
             details{
-                border-left: 3px solid yellow;
+                border-left: 2px solid yellow;
             }
         }
+
 
         summary{
             min-height: calc(24px + 8px);
@@ -302,13 +308,17 @@ nav {
 
             .privacy-status{
                 float: right;
-                //margin: 6px 4px 0 0; // setting when it's in the footer
                 margin: 4px 6px;
 
-                // background-repeat: no-repeat;
-                // background-position: center;
-                // background-size: 16px 16px;
-                // text-indent: -9999px;
+                width: 24px;
+                height: 24px;
+                text-indent: -9999px;
+
+                background-image: url(i-private-comment.svg);
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: 24px 24px;
+                text-indent: -9999px;
             }
         }
 

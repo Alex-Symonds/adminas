@@ -106,7 +106,7 @@ def index(request):
         job['currency'] = j.currency
         job['value'] = j.total_value_f()
         job['admin_warnings'] = j.admin_warnings()
-        job['pinned_comments'] = j.get_pinned_comments(request.user, '-created_by')
+        job['pinned_comments'] = j.get_pinned_comments(request.user, '-created_on')
 
         jobs_list.append(job)
 
