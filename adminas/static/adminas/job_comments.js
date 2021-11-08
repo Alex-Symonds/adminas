@@ -17,6 +17,7 @@ const CLASS_COMMENT_MAIN = 'main';
 const CLASS_COMMENT_CONTENTS = 'contents';
 const CLASS_COMMENT_CONTROLS = 'controls';
 const CLASS_COMMENT_FOOTER = 'footer';
+const CLASS_COMMENT_OWNERSHIP = 'ownership';
 
 const CLASS_PINNED_BTN_ON = 'pinned-status-on';
 const CLASS_PINNED_BTN_OFF = 'pinned-status-off';
@@ -41,25 +42,28 @@ const VALUE_FORM_TYPE_FULL = 'full';
 const VALUE_FORM_TYPE_CONTENT_ONLY = 'content-only';
 const CLASS_HOVER_PARENT = 'hover-parent';
 
+const CLASS_BTN_PRIMARY = 'button-primary';
+const CLASS_BTN_WARNING = 'button-warning';
+
 // Assign event listeners onload
 document.addEventListener('DOMContentLoaded', () => {
 
     let add_comment_button = document.getElementById(ID_ADD_COMMENT_WITH_SETTINGS_BTN);
     if(add_comment_button != null){
         add_comment_button.addEventListener('click', (e)=>{
-            open_create_job_comment_ele(e.target);
+            open_jobcomment_editor_for_create(e.target);
         });
     }
 
     document.querySelectorAll('.' + CLASS_ADD_COMMENT_SIMPLIFIED).forEach(btn => {
         btn.addEventListener('click', (e) => {
-            open_create_job_comment_ele(e.target);
+            open_jobcomment_editor_for_create(e.target);
         })
     });
 
     document.querySelectorAll('.' + CLASS_COMMENT_EDIT_BTN).forEach(btn => {
         btn.addEventListener('click', (e) => {
-            open_edit_job_comment(e.target);
+            open_jobcomment_editor_for_update(e.target);
         })
     });
 
@@ -90,16 +94,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Frontend Start: Open Create/Update Mode
 // --------------------------------------------------------------------------------------------
 // Open Create Mode: called onclick on an "add new comment" button
-function open_create_job_comment_ele(btn){
+function open_jobcomment_editor_for_create(btn){
     // There's only supposed to be one instance of the element in existence at a time (it uses IDs, don't want those duplicated),
     // so if the user has somehow managed to open one copy and ask for a second, close the old before opening the new.
-    close_create_job_comment_ele();
+    close_jobcomment_editor();
 
     if(btn.dataset.form_type === VALUE_FORM_TYPE_CONTENT_ONLY){
-        var job_comment_form = create_job_comment_ele_simplified(DEFAULT_COMMENT_ID);
+        var job_comment_form = create_ele_jobcomment_editor(DEFAULT_COMMENT_ID, false);
     }
     else{
-        var job_comment_form = create_job_comment_ele_with_settings(DEFAULT_COMMENT_ID);
+        var job_comment_form = create_ele_jobcomment_editor(DEFAULT_COMMENT_ID, true);
     }
     btn.after(job_comment_form);
 
@@ -112,32 +116,24 @@ function open_create_job_comment_ele(btn){
 // Open Create Mode (also used for Update): function to create input elements for creating a Job comment.
 // This simplified version only allows editing/creation of the content of the comment. All other settings
 // are chosen by the server.
-function create_job_comment_ele_simplified(comment_id){
-    let container = create_job_comment_ele_main_container();
-    container.append(create_job_comment_ele_heading(comment_id));
-    container.append(create_job_comment_ele_input_contents());
-    container.append(create_job_comment_ele_btn_save(comment_id, VALUE_FORM_TYPE_CONTENT_ONLY));
-    container.append(create_job_comment_ele_btn_close());
-
-    // Delete button is only relevant when editing an existing comment, so check before trying to append null.
-    let delete_btn = create_job_comment_ele_btn_delete(comment_id);
-    if(delete_btn != null){
-        container.append(delete_btn);
+function create_ele_jobcomment_editor(comment_id, want_settings){
+    let container = create_ele_jobcomment_main_container();
+    container.append(create_ele_jobcomment_heading(comment_id));
+    container.append(create_ele_jobcomment_input_contents());
+    
+    if(want_settings){
+        container.append(create_ele_jobcomment_checkbox_container());
+        container.append(create_ele_jobcomment_controls_container(comment_id, VALUE_FORM_TYPE_FULL));        
     }
-
+    else {
+        container.append(create_ele_jobcomment_controls_container(comment_id, VALUE_FORM_TYPE_CONTENT_ONLY));        
+    }
     return container;
 }
 
-
-// Open Create Mode (also used for Update): function to create input elements for creating a Job comment.
-// This version also includes checkboxes for private, pinned and highlighted.
-function create_job_comment_ele_with_settings(comment_id){
+function create_ele_jobcomment_checkbox_container(){
+    let container = document.createElement('div');
     
-    // Elements shared with the simplified version
-    let container = create_job_comment_ele_main_container();
-    container.append(create_job_comment_ele_heading(comment_id));
-    container.append(create_job_comment_ele_input_contents());
-
     // Inputs unqiue to this "with settings" version
     let private_label = document.createElement('label');
     private_label.innerHTML = 'Private';
@@ -170,27 +166,18 @@ function create_job_comment_ele_with_settings(comment_id){
     highlighted_checkbox.id = ID_COMMENT_CHECKBOX_HIGHLIGHTED;
     container.append(highlighted_checkbox);
 
-    // More elements shared with the simplified version
-    container.append(create_job_comment_ele_btn_save(comment_id, VALUE_FORM_TYPE_FULL));
-    container.append(create_job_comment_ele_btn_close());
-
-    // Delete button is only relevant when editing an existing comment, so check before trying to append null.
-    let delete_btn = create_job_comment_ele_btn_delete(comment_id);
-    if(delete_btn != null){
-        container.append(delete_btn);
-    }
-
     return container;
 }
 
 
+
 // Create Job Comment Inputs
-function create_job_comment_ele_main_container(){
+function create_ele_jobcomment_main_container(){
     let container = document.createElement('div');
     container.classList.add(CLASS_COMMENT_CU_ELEMENT);
     return container;
 }
-function create_job_comment_ele_heading(comment_id){
+function create_ele_jobcomment_heading(comment_id){
     let h = document.createElement('h4');
     if(comment_id == DEFAULT_COMMENT_ID){
         h.innerHTML = 'Add Comment';
@@ -199,7 +186,7 @@ function create_job_comment_ele_heading(comment_id){
     }
     return h; 
 }
-function create_job_comment_ele_input_contents(){
+function create_ele_jobcomment_input_contents(){
     let main_input = document.createElement('textarea');
     main_input.name = 'contents';
     main_input.id = ID_COMMENT_TEXTAREA;
@@ -207,8 +194,24 @@ function create_job_comment_ele_input_contents(){
     main_input.rows = 5;
     return main_input;
 }
-function create_job_comment_ele_btn_save(comment_id, form_type){
+function create_ele_jobcomment_controls_container(comment_id, form_type){
+    let container = document.createElement('div');
+    container.classList.add(CLASS_COMMENT_CONTROLS);
+
+    container.append(create_ele_jobcomment_btn_save(comment_id, form_type));
+    container.append(create_ele_jobcomment_btn_close());
+
+    // Delete button is only relevant when editing an existing comment, so check before trying to append null.
+    let delete_btn = create_ele_jobcomment_btn_delete(comment_id);
+    if(delete_btn != null){
+        container.append(delete_btn);
+    }
+
+    return container;
+}
+function create_ele_jobcomment_btn_save(comment_id, form_type){
     let save_btn = document.createElement('button');
+    save_btn.classList.add(CLASS_BTN_PRIMARY);
     save_btn.innerHTML = 'save';
     save_btn.setAttribute('data-comment_id', comment_id);
     save_btn.setAttribute('data-form_type', form_type);
@@ -217,20 +220,22 @@ function create_job_comment_ele_btn_save(comment_id, form_type){
     });
     return save_btn;
 }
-function create_job_comment_ele_btn_close(){
+function create_ele_jobcomment_btn_close(){
     let close_btn = document.createElement('button');
+    close_btn.classList.add(CLASS_BTN_PRIMARY);
     close_btn.innerHTML = 'cancel';
     close_btn.addEventListener('click', () => {
-        close_create_job_comment_ele();
+        close_jobcomment_editor();
     });
     return close_btn;
 }
-function create_job_comment_ele_btn_delete(comment_id){
+function create_ele_jobcomment_btn_delete(comment_id){
     // Create and Update forms are the same except there's no need for a delete button on the create form.
     // Check if we're making an edit form (via the comment_id) then return a button or null.
     if(comment_id != DEFAULT_COMMENT_ID){
         let delete_btn = document.createElement('button');
         delete_btn.classList.add(CLASS_COMMENT_DELETE_BTN);
+        delete_btn.classList.add(CLASS_BTN_WARNING);
         delete_btn.innerHTML = 'delete';
         delete_btn.addEventListener('click', (e) => {
             delete_job_comment(e.target);
@@ -246,7 +251,7 @@ function create_job_comment_ele_btn_delete(comment_id){
 
 
 // Cancel Create/Update Mode: called onclick of the "cancel" button located in the JobComment "form"
-function close_create_job_comment_ele(){
+function close_jobcomment_editor(){
     let ele = document.querySelector('.' + CLASS_COMMENT_CU_ELEMENT);
     if(ele == null){
         // It's not open, so there's nothing to close
@@ -270,70 +275,60 @@ function close_create_job_comment_ele(){
 
 
 // Open Edit Mode: called onclick of an edit button
-function open_edit_job_comment(btn){
+function open_jobcomment_editor_for_update(btn){
     let comment_ele = btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_ELE);
-
     let section_ele = comment_ele.closest('.' + CLASS_COMMENTS_CONTAINER);
-    if(section_ele != null && section_ele.classList.contains(CLASS_PINNED_COMMENTS_CONTAINER)){
-        var edit_mode_ele = edit_job_comment_form_streamlined(comment_ele);
-    }
-    else{
-        var edit_mode_ele = edit_job_comment_form_with_settings(comment_ele);        
-    }
+
+    // If this comment is in the "pinned" section, we don't want settings; otherwise we do.
+    let want_settings = !(section_ele != null && section_ele.classList.contains(CLASS_PINNED_COMMENTS_CONTAINER));
+
+    let edit_mode_ele = create_ele_jobcomment_editor(comment_ele.dataset.comment_id, want_settings);
+    edit_mode_ele = populate_ele_jobcomment_editor_with_existing(edit_mode_ele, comment_ele, want_settings);
 
     comment_ele.prepend(edit_mode_ele);
     visibility_comment_content(comment_ele, false);
 }
 
-// Open Edit Mode: borrow the function from "create" mode to get the "form", but this time populate it with the existing comment's contents and settings
-function edit_job_comment_form_with_settings(comment_ele){
-    let comment_id = comment_ele.dataset.comment_id;
-    let base_element = create_job_comment_ele_with_settings(comment_id);
-
-    // Populate the "form" with the existing information for this comment
-    // Contents default = empty, so fill it with the old comment
-    let old_contents = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).querySelector('span').innerHTML;
-    base_element.querySelector('#' + ID_COMMENT_TEXTAREA).value = old_contents;
-
-    // Private status default == true
-    let old_private_status = comment_ele.dataset.is_private;
-    if(old_private_status.toLowerCase() == 'false'){
-        base_element.querySelector('#' + ID_COMMENT_CHECKBOX_PRIVATE).checked = false;
-    }
-
-    // Pinned status default == false
-    let old_pinned_status = comment_ele.dataset.is_pinned;
-    if(old_pinned_status.toLowerCase() == 'true'){
-        base_element.querySelector('#' + ID_COMMENT_CHECKBOX_PINNED).checked = true;
-    }
-
-    // Highlighted status default == false
-    let old_highlighted_status = comment_ele.dataset.is_highlighted;
-    if(old_highlighted_status.toLowerCase() == 'true'){
-        base_element.querySelector('#' + ID_COMMENT_CHECKBOX_HIGHLIGHTED).checked = true;
-    }    
-
-    return base_element;
-}
-
-function edit_job_comment_form_streamlined(comment_ele){
-    let comment_id = comment_ele.dataset.comment_id;
-    let base_element = create_job_comment_ele_simplified(comment_id);
-
+function populate_ele_jobcomment_editor_with_existing(editor_ele, comment_ele, want_settings){
     // Populate the "form" with the existing information for this comment
     // Contents default = empty, so fill it with the old comment
     let old_contents = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).innerHTML.trim();
-    base_element.querySelector('#' + ID_COMMENT_TEXTAREA).value = old_contents;
+    editor_ele.querySelector('#' + ID_COMMENT_TEXTAREA).value = old_contents;
 
-    return base_element;
+    if(want_settings){
+        // Private status default == true
+        let old_private_status = comment_ele.dataset.is_private;
+        if(old_private_status.toLowerCase() == 'false'){
+            editor_ele.querySelector('#' + ID_COMMENT_CHECKBOX_PRIVATE).checked = false;
+        }
+    
+        // Pinned status default == false
+        let old_pinned_status = comment_ele.dataset.is_pinned;
+        if(old_pinned_status.toLowerCase() == 'true'){
+            editor_ele.querySelector('#' + ID_COMMENT_CHECKBOX_PINNED).checked = true;
+        }
+    
+        // Highlighted status default == false
+        let old_highlighted_status = comment_ele.dataset.is_highlighted;
+        if(old_highlighted_status.toLowerCase() == 'true'){
+            editor_ele.querySelector('#' + ID_COMMENT_CHECKBOX_HIGHLIGHTED).checked = true;
+        }        
+    }
+
+    return editor_ele;
 }
-
-
 
 // Open Edit Mode: hide/show the "read" portions of the comments as required
 function visibility_comment_content(comment_ele, want_visibility){
-    visibility_element(comment_ele.querySelector('.' + CLASS_COMMENT_MAIN), want_visibility);
-    visibility_element(comment_ele.querySelector('.' + CLASS_COMMENT_FOOTER), want_visibility);
+    let details_ele = comment_ele.querySelector('details');
+    if(details_ele == null) return;
+
+    visibility_element(comment_ele.querySelector('details'), want_visibility);
+
+    if(want_visibility){
+        // Re-hides the comment footer
+        details_ele.removeAttribute('open');
+    }
     return;
 }
 
@@ -373,11 +368,11 @@ function visibility_add_comment_btn(want_visibility){
 // Sends data to the backend then calls the appropriate page update function.
 
 async function save_job_comment(btn){
-    if(btn.dataset.form_type == 'content-only'){
-        data = get_job_comment_dict_simplified(btn);   
+    if(btn.dataset.form_type == VALUE_FORM_TYPE_CONTENT_ONLY){
+        data = make_jobcomment_dict_simplified(btn);   
     }
     else {
-        data = get_job_comment_dict_with_settings();
+        data = make_jobcomment_dict_with_settings();
     }
 
     let response = await backend_save_job_comment(btn, data);
@@ -399,7 +394,7 @@ async function save_job_comment(btn){
     }    
 }
 
-function get_job_comment_dict_with_settings(){
+function make_jobcomment_dict_with_settings(){
     let result = {};
 
     // Set defaults appropriate to the "with settings" form.
@@ -428,7 +423,7 @@ function get_job_comment_dict_with_settings(){
     return result;
 }
 
-function get_job_comment_dict_simplified(btn){
+function make_jobcomment_dict_simplified(btn){
     // The simplified form only has a textarea, with no way to set status toggles, so we must decide on the status toggles on the user's behalf.
 
     // Assumption/decision:
@@ -553,7 +548,7 @@ async function delete_job_comment_on_server(btn, comment_id){
 // --------------------------------------------------------------------------------------------
 // DOM (Create): main function, managing post-creation frontend changes
 function update_job_page_comments_after_create(response){
-    close_create_job_comment_ele();
+    close_jobcomment_editor();
 
     let class_to_find_comment = get_class_to_find_comment(response['id']);
 
@@ -572,7 +567,7 @@ function update_job_page_comments_after_create(response){
 
 
 // DOM (Create Comment Ele): Make a new comment element. Broken up into multiple functions.
-function get_new_comment_ele(response){
+function create_ele_new_comment(response){
     let container_ele = document.createElement('article');
 
     container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
@@ -588,8 +583,8 @@ function get_new_comment_ele(response){
     container_ele.setAttribute('data-is_highlighted', response['highlighted']);
 
     let details_ele = document.createElement('details');
-    details_ele.append(create_node_comment_summary(response['private'], response['contents']));
-    details_ele.append(create_node_comment_hidden_details(response['username'], response['timestamp'], response['pinned']));
+    details_ele.append(create_ele_comment_summary(response['private'], response['contents']));
+    details_ele.append(create_ele_comment_hidden_details(response['username'], response['timestamp'], response['pinned']));
 
     container_ele.append(details_ele);
     apply_event_listeners_to_comment(container_ele);
@@ -598,83 +593,86 @@ function get_new_comment_ele(response){
 }
 
 
-function create_node_comment_summary(is_private, body_str){
+function create_ele_comment_summary(is_private, body_str){
     let summary_ele = document.createElement('summary');
     let main_ele = document.createElement('span');
     main_ele.classList.add(CLASS_COMMENT_MAIN);
     if(is_private){
         main_ele.append(get_comment_privacy_status_ele());
     }
-    main_ele.append(create_comment_body_streamlined(body_str));
+    main_ele.append(create_ele_comment_body_streamlined(body_str));
     summary_ele.append(main_ele);
     return summary_ele;
 }
 
-function create_node_comment_hidden_details(username, timestamp, is_pinned){
+function create_ele_comment_hidden_details(username, timestamp, is_pinned){
     let footer_ele = document.createElement('section');
     footer_ele.classList.add(CLASS_COMMENT_FOOTER);
-    footer_ele.append(create_comment_ownership(username, timestamp));
-    footer_ele.append(create_comment_controls(is_pinned));
+    footer_ele.append(create_ele_comment_ownership(username, timestamp));
+    footer_ele.append(create_ele_comment_controls(is_pinned));
     return footer_ele;
 }
 
 
 
 
-function get_new_comment_div(response, streamline_comment){
-    let container_ele = document.createElement('article');
 
-    container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
-    container_ele.classList.add(`${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`);
 
-    if(streamline_comment){
-        container_ele.classList.add(CLASS_HOVER_PARENT);
-    }
 
-    if(response['private']){
-        container_ele.classList.add('private');
-    } else {
-        container_ele.classList.add('public');
-    }
+// function get_new_comment_div(response, streamline_comment){
+//     let container_ele = document.createElement('article');
 
-    if(response['highlighted']){
-        container_ele.classList.add(CLASS_HIGHLIGHTED_CSS);
-    }
+//     container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
+//     container_ele.classList.add(`${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`);
 
-    container_ele.setAttribute('data-comment_id', response['id']);
-    container_ele.setAttribute('data-is_private', response['private']);
-    container_ele.setAttribute('data-is_pinned', response['pinned']);
-    container_ele.setAttribute('data-is_highlighted', response['highlighted']);
+//     if(streamline_comment){
+//         container_ele.classList.add(CLASS_HOVER_PARENT);
+//     }
 
-    let upper_ele = document.createElement('section');
-    upper_ele.classList.add(CLASS_COMMENT_MAIN);
-    upper_ele.append(create_comment_body(response['contents']));
-    upper_ele.append(create_comment_controls(response['pinned'], streamline_comment));
-    container_ele.append(upper_ele);
+//     if(response['private']){
+//         container_ele.classList.add('private');
+//     } else {
+//         container_ele.classList.add('public');
+//     }
 
-    let lower_ele = document.createElement('section');
-    lower_ele.classList.add(CLASS_COMMENT_FOOTER);
-    if(streamline_comment){
-        lower_ele.classList.add('hover-child');
-    }
+//     if(response['highlighted']){
+//         container_ele.classList.add(CLASS_HIGHLIGHTED_CSS);
+//     }
 
-    lower_ele.append(create_comment_ownership(response['username'], response['timestamp'], response['private']));
-    container_ele.append(lower_ele);
+//     container_ele.setAttribute('data-comment_id', response['id']);
+//     container_ele.setAttribute('data-is_private', response['private']);
+//     container_ele.setAttribute('data-is_pinned', response['pinned']);
+//     container_ele.setAttribute('data-is_highlighted', response['highlighted']);
 
-    apply_event_listeners_to_comment(container_ele);
+//     let upper_ele = document.createElement('section');
+//     upper_ele.classList.add(CLASS_COMMENT_MAIN);
+//     upper_ele.append(create_comment_body(response['contents']));
+//     upper_ele.append(create_comment_controls(response['pinned'], streamline_comment));
+//     container_ele.append(upper_ele);
 
-    return container_ele;
-}
+//     let lower_ele = document.createElement('section');
+//     lower_ele.classList.add(CLASS_COMMENT_FOOTER);
+//     if(streamline_comment){
+//         lower_ele.classList.add('hover-child');
+//     }
+
+//     lower_ele.append(create_comment_ownership(response['username'], response['timestamp'], response['private']));
+//     container_ele.append(lower_ele);
+
+//     apply_event_listeners_to_comment(container_ele);
+
+//     return container_ele;
+// }
 
 // DOM (Create Comment): JobComment div with the comment itself inside
-function create_comment_body_streamlined(contents){
+function create_ele_comment_body_streamlined(contents){
     let ele = document.createElement('span');
     ele.classList.add(CLASS_COMMENT_CONTENTS);
     ele.innerHTML = contents;
     return ele;
 }
 
-function create_comment_body(contents){
+function create_ele_comment_body(contents){
     let contents_ele = document.createElement('div');
     contents_ele.classList.add(CLASS_COMMENT_CONTENTS);
 
@@ -686,7 +684,7 @@ function create_comment_body(contents){
 }
 
 // DOM (Create Comment): JobComment div with the pinned and edit buttons inside
-function create_comment_controls(is_pinned){
+function create_ele_comment_controls(is_pinned){
     let controls_ele = document.createElement('div');
     controls_ele.classList.add(CLASS_COMMENT_CONTROLS);
 
@@ -715,7 +713,7 @@ function create_comment_controls(is_pinned){
 }
 
 // DOM (Create Comment): JobComment div with the user, timestamp and privacy status inside
-function create_comment_ownership(username, timestamp){
+function create_ele_comment_ownership(username, timestamp){
     let result = document.createElement('div');
     result.classList.add('ownership');
     result.innerHTML = `${username} on ${timestamp}`;
@@ -726,7 +724,7 @@ function create_comment_ownership(username, timestamp){
 function apply_event_listeners_to_comment(comment_div){
 
     add_event_listener_if_element_exists(comment_div.querySelector('.' + CLASS_COMMENT_EDIT_BTN), (e) => {
-        open_edit_job_comment(e.target);
+        open_jobcomment_editor_for_update(e.target);
     });
 
     add_event_listener_if_element_exists(comment_div.querySelector('.' + CLASS_COMMENT_PINNED_TOGGLE), (e) => {
@@ -756,7 +754,7 @@ function add_event_listener_if_element_exists(element, called_function){
 // DOM (Update): called by the handler function
 function update_job_page_comments_after_update(response){
     // Remove the edit form
-    close_create_job_comment_ele();
+    close_jobcomment_editor();
 
     // The user could've updated a status that affects where/how many times the comment appears on the page, so handle that next
     update_presence_in_filtered_comment_sections(response);
@@ -771,9 +769,9 @@ function update_job_page_comments_after_update(response){
 function update_presence_in_filtered_comment_sections(response){
     for(let i = 0; i < SECTION_NAMES.length; i++){
         // "all-comments" is not considered "filtered", so skip that one.
-        if(SECTION_NAMES[i] != CLASS_ALL_COMMENTS_CONTAINER){
+        //if(SECTION_NAMES[i] != CLASS_ALL_COMMENTS_CONTAINER){
             update_presence_in_filtered_comment_section(response, SECTION_NAMES[i]);
-        }
+        //}
     }
     return;
 }
@@ -838,7 +836,7 @@ function get_comment_privacy_status_ele(){
 // --------------------------------------------------------------------------------------------
 // DOM Denied: called by handler function
 function update_job_page_comments_after_denied(response_str, comment_ele){
-    close_create_job_comment_ele();
+    close_jobcomment_editor();
 
     let contents_ele = comment_ele.querySelector('.contents');
     let access_denied_ele = get_access_denied_ele(response_str);
@@ -934,10 +932,9 @@ function toggle_status(btn, toggled_attribute){
     }
 
     var previous = previous_attr.toLowerCase() == 'true';
-    let comment_id = comment_ele.dataset.comment_id;
-
-    update_backend_for_comment_toggle(comment_id, !previous, toggled_attribute);
-    update_frontend_for_comment_toggle(comment_id, !previous, toggled_attribute);
+    
+    update_backend_for_comment_toggle(comment_ele.dataset.comment_id, !previous, toggled_attribute);
+    update_frontend_for_comment_toggle(comment_ele, !previous, toggled_attribute);
 }
 
 function update_backend_for_comment_toggle(comment_id, new_status, toggled_attribute){
@@ -953,12 +950,12 @@ function update_backend_for_comment_toggle(comment_id, new_status, toggled_attri
     })
 }
 
-function update_frontend_for_comment_toggle(comment_id, new_status, toggled_attribute){
+function update_frontend_for_comment_toggle(comment_ele, new_status, toggled_attribute){
     // Depending on toggle status and which page we're on, there could be multiple instances of the
     // same comment displayed on the page: all will need to be updated following a toggle.
     // To avoid worrying about which specific sections are currently visible, we will find the comments
     // via a special class shared by all instances of the same comment.
-    let class_to_find_comment = get_class_to_find_comment(comment_id);
+    let class_to_find_comment = get_class_to_find_comment(comment_ele.dataset.comment_id);
 
     // Some pages display comments in sections based on a particular status being true (e.g. highlighted comments).
     // If a section-y status is toggled to false, the comment should be removed from that section.
@@ -982,6 +979,19 @@ function update_frontend_for_comment_toggle(comment_id, new_status, toggled_attr
     if(new_status){
         add_comment_to_section(class_to_find_comment, toggled_attribute);
     }
+}
+
+
+function get_comment_data_from_ele(ele){
+    let result = {};
+    result['id'] = ele.dataset.comment_id;
+    result['footer_str'] = ele.querySelector(`.${CLASS_COMMENT_OWNERSHIP}`).innerHTML.trim();
+    result['contents'] = ele.querySelector(`.${CLASS_COMMENT_CONTENTS}`).innerHTML.trim();
+    result['private'] = ele.dataset.is_private;
+    result['pinned'] = ele.dataset.is_pinned;
+    result['highlighted'] = ele.dataset.is_highlighted;
+
+    return result;
 }
 
 
@@ -1036,36 +1046,46 @@ function update_frontend_comment_private_status(comment_ele, is_private){
 
 
 function add_comment_to_section(class_to_find_comment, section_name, comment_data=null){
-    let streamline_comment = section_name == CLASS_PINNED_COMMENTS_CONTAINER;
-    let section_ele = document.querySelector(`.${CLASS_COMMENTS_CONTAINER}.${section_name}`);
 
     // If the section doesn't exist at all, there's nowhere to add the comment to, so we're done.
+    let section_ele = document.querySelector(`.${CLASS_COMMENTS_CONTAINER}.${section_name}`);
     if(section_ele == null){
         return;
     }
 
-    // If the comment already exists, don't add it again.
+    // If something's gone askew and the comment already exists in the target section, don't add it again.
     let existing_comment_in_section = section_ele.querySelector(`.${class_to_find_comment}`);
-    if(existing_comment_in_section != null){
+    if(existing_comment_in_section !== null){
         return;
     }
 
-    // Obtain a comment element, one way or another
-    let comment_selector_str = `.${class_to_find_comment}`;
-    if(streamline_comment){
-        comment_selector_str += `.${CLASS_HOVER_PARENT}`;
+    // If a comment is being added to a new section because the user clicked a toggle button, there won't be any comment_data,
+    // but there should be an instance of the same comment on the page (because that's where the user found a toggle button to click),
+    // so try getting the necessary data from there.
+    if(comment_data === null){
+        let existing_comment = document.querySelector(`.${class_to_find_comment}`);
+        if(existing_comment !== null){
+            comment_data = get_comment_data_from_ele(existing_comment);
+        }
+        else {
+            // No data, no comment. Give up.
+            return;
+        }
     }
-    let existing_comment = document.querySelector(comment_selector_str);
-    if(existing_comment != null){
-        var section_comment = existing_comment.cloneNode(true);
-        apply_event_listeners_to_comment(section_comment);
-    }
-    else if(comment_data != null){
-        var section_comment = get_new_comment_ele(comment_data, streamline_comment);
-    }
-    else{
-        return;
-    }
+
+    let want_streamline_comment = section_name == CLASS_PINNED_COMMENTS_CONTAINER;
+    var section_comment = create_ele_new_comment(comment_data, want_streamline_comment);
+
+     
+
+    // if(existing_comment != null){
+    //     var section_comment = existing_comment.cloneNode(true);
+    //     apply_event_listeners_to_comment(section_comment);
+    // }
+    // else 
+    // else{
+    //     return;
+    // }
 
     section_ele.prepend(section_comment);
 
@@ -1092,34 +1112,76 @@ function remove_comment_from_section(class_to_find_comment, section_name){
 
 
 function handle_section_emptiness(comment_section_ele, section_name="?"){
-    if(comment_section_ele.classList.contains(CLASS_PINNED_COMMENTS_CONTAINER)){
-        // Space is at a premium in the pinned section, so we're not going to waste a line just to say "no pinned comments exist"
-        return;
-    }
-
-    if(comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0){
-        // Empty section, so we need to generate a message to indicate the emptiness is intentional.
-        // Message is slightly different depending on the section, so we need to work out which section this is.
-
-        // If the calling function didn't share the section_name, work it out from the element.
-        if(section_name == "?"){
-            section_name = pick_out_comment_section_name(comment_section_ele);
-
-            // If that fails, set a default. The "all-comments" container displays "No comments added.", which is generic enough for use anywhere.
-            if(section_name == null){
-                section_name = CLASS_ALL_COMMENTS_CONTAINER;
-            }
-        }
-
-        var p = get_empty_comment_section_ele(section_name);
-        comment_section_ele.prepend(p);
-    }
-    else{
-        var p = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
-        if(p != null){
-            p.remove();
+    // If the calling function didn't share the section_name, attempt to work it out from the element.
+    if(section_name === "?"){
+        let attempted_section_name = pick_out_comment_section_name(comment_section_ele);
+        if(attempted_section_name !== null){
+            section_name = attempted_section_name;
         }
     }
+
+    let section_is_empty = comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0;
+    let is_streamlined =  comment_section_ele.classList.contains(CLASS_PINNED_COMMENTS_CONTAINER);
+
+    if(is_streamlined){
+        var existing = comment_section_ele.parentElement.querySelector('h5');
+        var want_add = !section_is_empty && existing === null;
+        var want_remove = section_is_empty && existing !== null;
+    }
+    else {
+        var existing = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
+        var want_add = section_is_empty && existing === null;
+        var want_remove = !section_is_empty && existing !== null;
+    }
+
+    if(want_remove){
+        existing.remove();
+    }
+    else if (want_add) {
+        var ele = create_ele_comment_section_emptiness_conditional(section_name);
+        if(is_streamlined){
+            comment_section_ele.before(ele);
+        } else {
+            comment_section_ele.prepend(ele);
+        }
+    }
+
+
+
+
+    // if(comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0){
+
+    //     // Handle an empty section.
+    //     if(is_streamlined){
+    //         // Streamlined = remove the heading, since there are no pinned comments now.
+    //         if(existing !== null){
+    //             existing.remove();
+    //         }
+    //     }
+    //     else {
+    //         // Other sections = add a note to indicate intentional emptiness.
+    //         var ele = create_ele_comment_section_emptiness_conditional(section_name);
+    //         comment_section_ele.prepend(ele);
+    //     }
+    // }
+    // else{
+    //     // Handle a not-empty section
+    //     if(is_streamlined){
+    //         // Streamlined = add a heading, unless it's already there somehow
+    //         let existing = comment_section_ele.querySelector('h5');
+    //         if(existing === null){
+    //             var ele = create_ele_comment_section_emptiness_conditional(section_name);
+    //             comment_section_ele.prepend(ele); 
+    //         }
+           
+    //     }
+    //     else {
+    //         var ele = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
+    //         if(ele != null){
+    //             ele.remove();
+    //         }
+    //     }
+    // }
 }
 
 function pick_out_comment_section_name(ele){
@@ -1146,15 +1208,23 @@ function OLD_pick_out_comment_section_name(class_name){
 
 
 
-function get_empty_comment_section_ele(section_name){
+function create_ele_comment_section_emptiness_conditional(section_name){
+    // Special case: the "pinned" comments show a heading when there are comments and nothing when empty, so return the heading.
+    if(section_name === CLASS_PINNED_COMMENTS_CONTAINER){
+        let h5 = document.createElement('h5');
+        h5.innerHTML = 'PINNED';
+        return h5;
+    }
+
+    // General case: other comment sections have a persistent heading and display a note to indicate intentional emptiness.
     let p = document.createElement('p');
     p.classList.add(CLASS_EMPTY_SECTION_P);
 
-    if(section_name == CLASS_ALL_COMMENTS_CONTAINER){
-        p.innerHTML = 'No comments have been added.';
-    }
-    else if(section_name == CLASS_HIGHLIGHTED_COMMENTS_CONTAINER || section_name == CLASS_PINNED_COMMENTS_CONTAINER){
+    if(section_name == CLASS_HIGHLIGHTED_COMMENTS_CONTAINER){
         p.innerHTML = `No comments have been ${section_name}.`;
+    }
+    else {
+        p.innerHTML = 'No comments have been added.';
     }
     
     return p;

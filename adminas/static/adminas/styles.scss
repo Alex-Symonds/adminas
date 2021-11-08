@@ -30,11 +30,15 @@ $g_accent_main_background: linear-gradient(135deg, rgb(48, 48, 48) 75%,  $c_acce
 $g_button_main: linear-gradient(45deg, $c_accent_highlight 0%, $c_accent_main 33%, $c_accent_border 100%);
 $g_button_hover: linear-gradient(135deg, $c_accent_lighter, $c_accent_highlight 66%, $c_accent_main 100%);
 
-$c_warning_text: white;
-$g_warning: linear-gradient(0deg, rgb(139, 0, 0) 0%, rgb(192, 0, 0) 100%);
+$c_warning: rgb(207, 0, 0);
+//$g_warning: linear-gradient(0deg, rgb(139, 0, 0) 0%, rgb(192, 0, 0) 100%);
+$g_warning_hover: linear-gradient(0deg, rgb(172, 0, 0) 0%, rgb(230, 0, 0) 100%);
+$c_txt_warning_g: white;
+
+$g_secondary_btn: linear-gradient(335deg, rgb(48, 48, 48) 0%,  rgb(60, 60, 60) 100%);
 
 $c_accent_secondary: #0DFA96;
-$c_warning: rgb(207, 0, 0);
+$g_button_secondary: linear-gradient(335deg, #0AC778 0%,  #0DFA96 100%);
 
 $panel_shadow: 0 0 10px 1px rgba(black, 85%);
 $panel_shadow_highlight: 0 0 10px 1px rgba($c_accent_main, 50%);
@@ -262,17 +266,14 @@ nav {
         padding: 12px 10px;
         background: $c_tone_02;
         border-bottom: 1px solid $c_accent_main;
-        /*background: linear-gradient(0deg, $c_tone_02 0%, $c_tone_02 30%, $c_tone_03 100%);*/
     }
 
     ul{
         margin-top: 0;
         margin-bottom: 0;
-        /*background: $c_accent_main;*/
         background: $c_accent_dark;
         color: $c_txt_main;
         padding: 8px 24px;
-        /*border-bottom: 1px solid $c_tone_04;*/
         border-bottom: 1px solid $c_accent_main;
     }
 
@@ -368,9 +369,6 @@ nav {
                 text-indent: -9999px;
 
                 &:hover{
-                    //position: absolute;
-    
-                    //background-position: 4px 4px;
                     background-color: $c_tone_04;
                     border: 1px solid $c_tone_05;
 
@@ -414,8 +412,76 @@ nav {
     }
 }
 
+.job-comment-cu-container{
+    display: block;
+    background: $c_tone_02;
+    border: 1px solid $c_tone_04;
 
-/* Create New ------------------------------------------------------ */
+    width: calc(100% - 10px);
+    padding: 2px 5px 0;
+
+    h4{
+        background: transparent;
+        padding: 5px;
+    }
+
+    textarea{
+        padding: 8px;
+        width: calc(100% - 16px);
+    }
+
+    .controls{
+        width: 100%;
+        height: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+
+        button{
+            float: left;
+            margin: 5px;
+            border-radius: 5px;
+            padding: 5px 10px;
+            width: 4.5rem;
+        }
+
+        .delete-comment-btn{
+            float: right;
+        }
+
+    }
+    
+
+}
+
+
+.comments{
+    h5{
+        margin: 3px 4px;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+
+        border-radius: 6px;
+        border: 1px solid $c_tone_04;
+        color: $c_tone_06;
+
+        width: -moz-fit-content;
+        width: fit-content;
+    }
+
+    .add-job-comment-simplified{
+        margin: 5px;
+        padding: 0.5rem;
+    }
+}
+
+
+
+
+
+
+
+
+/* Create New Job ------------------------------------------------------ */
 .form-row{
     margin-left: 0.5rem;
 
@@ -458,3 +524,53 @@ nav {
     }
 }
 
+
+
+.button-primary{
+    font-weight: bold;
+    border-radius: 0.6rem;
+
+    background: $c_accent_main;
+    background: $g_button_main;
+    color: $c_txt_main;
+    border: 1px solid $c_accent_border;
+
+    &:hover{
+        color: $c_txt_alt;
+        background: $c_accent_highlight;
+        background: $g_button_hover;
+        box-shadow: 0 0 3px 1px $c_tone_02;
+    }
+}
+
+.button-secondary{
+    font-weight: bold;
+    border-radius: 0.6rem;
+
+    background: $c_tone_02;
+    background: $g_secondary_btn;
+    border: 1px solid $c_accent_secondary;
+    color: $c_accent_secondary;
+
+    &:hover{
+        color: $c_txt_alt;
+        background: $c_accent_secondary;
+        background: $g_button_secondary;
+        box-shadow: 0 0 3px 1px $c_tone_02;
+    }
+}
+
+.button-warning{
+    font-weight: bold;
+    border-radius: 0.6rem;
+
+    background: $c_tone_02;
+    background: $g_secondary_btn;
+    border: 1px solid $c_warning;
+    color: $c_warning;
+
+    &:hover{
+        background: $g_warning_hover;
+        color: $c_txt_warning_g;
+    }
+}

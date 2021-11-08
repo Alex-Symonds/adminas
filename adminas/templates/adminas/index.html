@@ -45,6 +45,10 @@
             </section>
             <section class="comments" data-url_comments="{% url 'job_comments' job.id %}">
                 <section class="comment-container pinned">
+                    {% if job.pinned_comments %}
+                    <h5>PINNED</h5>
+                    {% endif %}
+
                     {% for comment in job.pinned_comments %}
                     <article
                         class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if comment.highlighted %}highlighted{% endif %}" 
@@ -83,7 +87,7 @@
                     {% endfor %}
                 </section>
                 <div class="todo-list-add-pinned-comment-container">
-                    <button class="add-job-comment-simplified" data-form_type="content-only">+ comment</button>
+                    <button class="add-job-comment-simplified button-secondary" data-form_type="content-only">+ comment</button>
                 </div>
             </section>
         </article>
