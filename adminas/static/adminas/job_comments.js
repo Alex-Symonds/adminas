@@ -1,5 +1,5 @@
 const ID_ADD_COMMENT_WITH_SETTINGS_BTN = 'id_add_job_comment_with_settings';
-const CLASS_ADD_COMMENT_SIMPLIFIED = 'add-job-comment-simplified';
+const CLASS_ADD_COMMENT_SIMPLIFIED = 'add-job-comment';
 const DEFAULT_COMMENT_ID = '0';
 const CLASS_COMMENT_EDIT_BTN = 'edit-comment';
 const CLASS_COMMENT_DELETE_BTN = 'delete-comment-btn';
@@ -41,6 +41,9 @@ const ATTR_LABEL_FORM_TYPE = 'data-form_type'
 const VALUE_FORM_TYPE_FULL = 'full';
 const VALUE_FORM_TYPE_CONTENT_ONLY = 'content-only';
 const CLASS_HOVER_PARENT = 'hover-parent';
+
+const CLASS_JOB_PANEL = 'job-panel';
+const ID_PREFIX_JOB_PANEL_ON_TODO_LIST = 'todo_panel_job_';
 
 const CLASS_BTN_PRIMARY = 'button-primary';
 const CLASS_BTN_WARNING = 'button-warning';
@@ -551,7 +554,6 @@ function update_job_page_comments_after_create(response){
     close_jobcomment_editor();
 
     let class_to_find_comment = get_class_to_find_comment(response['id']);
-
     add_comment_to_section(class_to_find_comment, CLASS_ALL_COMMENTS_CONTAINER, response);
 
     if(response['pinned']){
@@ -584,7 +586,7 @@ function create_ele_new_comment(response){
 
     let details_ele = document.createElement('details');
     details_ele.append(create_ele_comment_summary(response['private'], response['contents']));
-    details_ele.append(create_ele_comment_hidden_details(response['username'], response['timestamp'], response['pinned']));
+    details_ele.append(create_ele_comment_hidden_details(response));
 
     container_ele.append(details_ele);
     apply_event_listeners_to_comment(container_ele);
@@ -605,11 +607,11 @@ function create_ele_comment_summary(is_private, body_str){
     return summary_ele;
 }
 
-function create_ele_comment_hidden_details(username, timestamp, is_pinned){
+function create_ele_comment_hidden_details(data_dict){
     let footer_ele = document.createElement('section');
     footer_ele.classList.add(CLASS_COMMENT_FOOTER);
-    footer_ele.append(create_ele_comment_ownership(username, timestamp));
-    footer_ele.append(create_ele_comment_controls(is_pinned));
+    footer_ele.append(create_ele_comment_ownership(data_dict));
+    footer_ele.append(create_ele_comment_controls(data_dict['pinned']));
     return footer_ele;
 }
 
@@ -713,10 +715,19 @@ function create_ele_comment_controls(is_pinned){
 }
 
 // DOM (Create Comment): JobComment div with the user, timestamp and privacy status inside
-function create_ele_comment_ownership(username, timestamp){
+function create_ele_comment_ownership(data_dict){
     let result = document.createElement('div');
     result.classList.add('ownership');
-    result.innerHTML = `${username} on ${timestamp}`;
+   
+    let str = 'Unknown user at unknown time';
+    if('display_str' in data_dict){
+        str = data_dict['display_str'];
+    }
+    else if('username' in data_dict && 'timestamp' in data_dict){
+        str = `${data_dict['username']} on ${data_dict['timestamp']}`; 
+    }
+    result.innerHTML = str;
+    
     return result;
 }
 
@@ -991,6 +1002,11 @@ function get_comment_data_from_ele(ele){
     result['pinned'] = ele.dataset.is_pinned;
     result['highlighted'] = ele.dataset.is_highlighted;
 
+    let job_panel = ele.closest(`.${CLASS_JOB_PANEL}`);
+    if(job_panel != null){
+        result['job_id'] = job_panel.id.replace(ID_PREFIX_JOB_PANEL_ON_TODO_LIST, '');
+    }
+
     return result;
 }
 
@@ -1046,22 +1062,15 @@ function update_frontend_comment_private_status(comment_ele, is_private){
 
 
 function add_comment_to_section(class_to_find_comment, section_name, comment_data=null){
-
-    // If the section doesn't exist at all, there's nowhere to add the comment to, so we're done.
-    let section_ele = document.querySelector(`.${CLASS_COMMENTS_CONTAINER}.${section_name}`);
-    if(section_ele == null){
+    console.log('attempting to add comment to page');
+    // Some pages display a subset of the possible comment sections, so begin by checking if the target section even exists on this page.
+    let all_section_instances = document.querySelectorAll(`.${CLASS_COMMENTS_CONTAINER}.${section_name}`);
+    if(all_section_instances.length == 0){
         return;
     }
 
-    // If something's gone askew and the comment already exists in the target section, don't add it again.
-    let existing_comment_in_section = section_ele.querySelector(`.${class_to_find_comment}`);
-    if(existing_comment_in_section !== null){
-        return;
-    }
-
-    // If a comment is being added to a new section because the user clicked a toggle button, there won't be any comment_data,
-    // but there should be an instance of the same comment on the page (because that's where the user found a toggle button to click),
-    // so try getting the necessary data from there.
+    // The backend doesn't return a full data dict in response to toggling a single status on a comment, so there might not be any comment data.
+    // In that case look for an existing copy of the comment in another section and extract comment data from there.
     if(comment_data === null){
         let existing_comment = document.querySelector(`.${class_to_find_comment}`);
         if(existing_comment !== null){
@@ -1073,21 +1082,30 @@ function add_comment_to_section(class_to_find_comment, section_name, comment_dat
         }
     }
 
+    // If there are multiple Jobs on the page, there could be multiple sections of the same type on the page. Find the correct section.
+    let section_ele = all_section_instances[0];
+    if(all_section_instances.length > 1){
+        if('job_id' in comment_data){
+            let id_to_find_job_panel = `${ID_PREFIX_JOB_PANEL_ON_TODO_LIST}${comment_data['job_id']}`;
+            let job_panel = document.getElementById(id_to_find_job_panel);
+            section_ele = job_panel.querySelector(`.${CLASS_COMMENTS_CONTAINER}.${section_name}`);
+        }
+        else {
+            // Give up. Better for the user to reload the page than stick a comment in a random incorrect section.
+            return;
+        }
+    }
+
+    // If something's gone askew and the comment already exists in the target section, don't add it again.
+    let existing_comment_in_section = section_ele.querySelector(`.${class_to_find_comment}`);
+    if(existing_comment_in_section !== null){
+        return;
+    }
+
+    // There. Now we're ready to actually do the thing.
     let want_streamline_comment = section_name == CLASS_PINNED_COMMENTS_CONTAINER;
-    var section_comment = create_ele_new_comment(comment_data, want_streamline_comment);
-
-     
-
-    // if(existing_comment != null){
-    //     var section_comment = existing_comment.cloneNode(true);
-    //     apply_event_listeners_to_comment(section_comment);
-    // }
-    // else 
-    // else{
-    //     return;
-    // }
-
-    section_ele.prepend(section_comment);
+    var comment_ele = create_ele_new_comment(comment_data, want_streamline_comment);
+    section_ele.prepend(comment_ele);
 
     // Adding that comment might've affected the emptiness of this section, so sort out the emptiness paragraph if it did.
     handle_section_emptiness(section_ele, section_name);
@@ -1192,20 +1210,6 @@ function pick_out_comment_section_name(ele){
     }
     return null;
 }
-
-function OLD_pick_out_comment_section_name(class_name){
-    let class_list = class_name.split(' ');
-    for(let s = 0; s < SECTION_NAMES.length; s++){
-        for(let c = 0; c < class_list.length; c++){
-
-            if(SECTION_NAMES[s] == class_list[c]){
-                return SECTION_NAMES[s];
-            }
-        }
-    }
-    return null;
-}
-
 
 
 function create_ele_comment_section_emptiness_conditional(section_name){

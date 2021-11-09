@@ -394,7 +394,8 @@ def job_comments(request, job_id):
                 'contents': comment.contents,
                 'private': comment.private,
                 'pinned': want_pinned,
-                'highlighted': want_highlighted
+                'highlighted': want_highlighted,
+                'job_id': job_id
             }, status=200)
 
     my_job = Job.objects.get(id=job_id)

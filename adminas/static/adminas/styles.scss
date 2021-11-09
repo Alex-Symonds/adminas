@@ -121,6 +121,16 @@ article{
     margin: 0;
 }
 
+
+@media screen and (min-width: 500px){
+    .page_container{
+        width: 90%;
+        margin: 0 auto 0;
+    }   
+}
+
+
+
 /* Visibility functionality ------------------------------------------------------ */
 .hide{
     position: absolute;
@@ -213,18 +223,27 @@ nav {
 
 
 /* Home ------------------------------------------------------ */
+
+#id_todo_list_container{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
 .job-panel{
     display: inline-block;
     position: relative;
     border: 1px solid $c_tone_04;
     border-radius: 8px;
-    margin: 1rem 0 0 0;
+    margin: 1rem 0.5rem 0 0.5rem;
     width: 100%;
+    max-width: 400px;
     box-shadow: $panel_shadow;
 
     &:hover{
         border: 1px solid $c_tone_06;
-        box-shadow: $panel_shadow_highlight;  
+        box-shadow: $panel_shadow_highlight;
     }
 
     a{
@@ -234,19 +253,30 @@ nav {
     .todo-list-remove{
         position: absolute;
         top: 2px;
-        right: 2px;
+        right: 5px;
         color: $c_tone_07;
-        background: transparent;/*$c_tone_04;*/
-        border: 1px solid $c_tone_06;
-        border-radius: 8px;
+
+        width: 30px;
+        height: 30px;
+        background-image: url('i-minus-empty.svg');
+        background-repeat: no-repeat;
+        background-position: right;
+        text-indent: -9999px;
+        border: transparent;
+
+        background-color: transparent;
         padding: 3px 5px;
         font-size: 0.75rem;
         z-index: 2;
 
         &:hover{
-            color: $c_tone_07;
-            background: $c_tone_03;
-            border: 1px solid $c_tone_07;            
+            color: $c_txt_main;
+            font-weight: bold;
+
+            background-image: url('i-minus-filled.svg');
+            width: 6.5rem; 
+            text-indent: 0;
+
         }
     }
 
@@ -394,8 +424,9 @@ nav {
             }
         }
     }
-}
 
+
+}
 @keyframes expand_comment_button {
     from {
         width: 26px;
@@ -408,7 +439,55 @@ nav {
     
     to {
         width: 8rem;
-        text-indent: 1px;
+        text-indent: 0;
+    }
+}
+
+
+.add-job-comment{
+    border: 0;
+    border-radius: 13px;
+    border: 1px solid transparent;
+
+    height: 30px;
+    width: 30px;
+
+    margin: 3px 5px;
+
+    background-image: url(i-plus-empty.svg);
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: 5px 2px;
+    background-size: 24px 24px;
+    text-indent: -9999px;
+
+    &:hover{
+        border: 1px solid $c_tone_05;
+
+        color: $c_txt_main;
+        font-weight: bold;
+
+        background-image: url(i-plus-filled.svg);
+        background-color: $c_tone_02;
+        animation-duration: 0.2s;
+        animation-fill-mode: forwards;
+        animation-name: expand_comment_button_add;
+    }        
+}
+
+@keyframes expand_comment_button_add {
+    from {
+        width: 30px;
+        text-indent: -9999px;
+    }
+
+    95%{
+        text-indent: -9999px;
+    }
+    
+    to {
+        width: 7.5rem;
+        text-indent: 18px;
     }
 }
 
@@ -526,6 +605,9 @@ nav {
 
 
 
+
+
+
 .button-primary{
     font-weight: bold;
     border-radius: 0.6rem;
@@ -572,5 +654,35 @@ nav {
     &:hover{
         background: $g_warning_hover;
         color: $c_txt_warning_g;
+    }
+}
+
+
+.credits{
+    border: 1px solid $c_tone_02;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    margin-top: 5rem;
+    padding: 4px 8px;
+
+    h6{
+        padding: 0;
+        margin: 0;
+        color: $c_tone_05;
+    }
+
+    ul{
+        list-style-type: none;
+        margin: 0;
+        padding: 0.1rem 0.3rem;
+    }
+
+    a{
+        color: $c_tone_03;
+        text-decoration: none;
+        &:hover{
+            color: $c_tone_05;
+            text-decoration: underline;
+        }
     }
 }
