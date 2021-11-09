@@ -311,122 +311,9 @@ nav {
         margin: 0;
     }
 
-    .one-comment{
-        width: calc(100% - 10px);
-        padding: 2px 5px 0;
-
-        details{
-            border-left: 2px solid transparent;
-        }
-        details[open]{
-            border-left: 1px solid $c_tone_04;
-        }
-        &.highlighted{
-            details{
-                border-left: 2px solid yellow;
-            }
-        }
-
-
-        summary{
-            min-height: calc(24px + 8px);
-        }
-        .main{
-            .contents{
-                margin: 0;
-                padding: 5px;
-            }
-
-            .privacy-status{
-                float: right;
-                margin: 4px 6px;
-
-                width: 24px;
-                height: 24px;
-                text-indent: -9999px;
-
-                background-image: url(i-private-comment.svg);
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: 24px 24px;
-                text-indent: -9999px;
-            }
-        }
-
-        .footer{
-            margin: 3px;
-
-            .ownership{
-                display: inline-block;
-                margin: 0;
-                margin-left: 3px;
-                padding-bottom: 3px;
-            }
-        }
-
-
-        .controls{
-
-            .edit-comment{
-                background-image: url(i-edit.svg);
-            }
-    
-            .highlighted-toggle{
-                background-image: url(i-highlight.svg);        
-            }
-    
-            .pinned-status-on{
-                background-image: url(i-pin-filled.svg);
-            }
-        
-            .pinned-status-off{
-                background-image: url(i-pin-unfilled.svg);
-            }
-
-
-            .edit-comment, .highlighted-toggle, .pinned-status-on, .pinned-status-on{
-                border: 0;
-                border-radius: 13px;
-                border: 1px solid transparent;
-
-                height: 26px;
-                width: 26px;
-
-                background-color: transparent;
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: 16px 16px;
-                text-indent: -9999px;
-
-                &:hover{
-                    background-color: $c_tone_04;
-                    border: 1px solid $c_tone_05;
-
-                    color: $c_txt_main;
-                    font-weight: bold;
-
-                    animation-duration: 0.2s;
-                    animation-fill-mode: forwards;
-                    animation-name: expand_comment_button;
-                }
-    
-            }
-            .edit-comment{
-                &:hover{
-                    background-position: 7px 4px;
-                }
-            }
-
-            .highlighted-toggle, .pinned-status-on, .pinned-status-on{
-                &:hover{
-                    background-position: 4px 4px;
-                }
-            }
-        }
-    }
-
-
 }
+
+
 @keyframes expand_comment_button {
     from {
         width: 26px;
@@ -683,6 +570,187 @@ nav {
         &:hover{
             color: $c_tone_05;
             text-decoration: underline;
+        }
+    }
+}
+
+
+
+.comment-types-container{
+    // width: 100%;
+    // display: flex;
+    // flex-direction: row;
+    // align-items: flex-start;
+    // flex-wrap: wrap;
+
+    h2, h3{
+        max-width: 725px;
+    }
+
+    .comment-type-section{
+        margin: 0 0.5rem;
+    }
+}
+
+
+.one-comment{
+    width: calc(100% - 10px);
+    max-width: 700px;
+
+    padding: 2px 5px 0;
+
+    &.highlighted{
+        details, .full-comment-container{
+            border-left: 2px solid yellow;
+        }
+
+        .full-comment-container{
+            background: $c_tone_03;
+            box-shadow: $panel_shadow;
+
+            .comment-body{
+                background: transparent;
+            }
+            .footer{
+                color: $c_tone_06;
+            }
+        }
+    }
+
+    details, .full-comment-container{
+        border-left: 2px solid transparent;
+    }
+    details[open]{
+        border-left: 1px solid $c_tone_04;
+    }
+    summary, .comment-body{
+        min-height: calc(24px + 8px);
+    }
+
+    /* --- full version ---- */
+    .full-comment-container{
+        margin: 1rem 0 0 0;
+
+        background: transparent;
+        border: 1px solid $c_tone_02;
+
+        border-top-right-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+
+        .comment-body{
+            padding: 0.3rem;
+            border-bottom: 1px solid $c_tone_02;
+
+            background: $g_bg_main;
+            border-top-right-radius: 0.4rem;
+
+            .main{
+                .contents{
+                    display: block;
+                    margin: 0;
+                    padding: 0.3rem;
+                }
+            }
+        }  
+        
+        .footer{
+            margin: 0;
+            padding: 3px;
+            font-size: 0.9rem;
+            color: $c_tone_05;
+        }
+
+    }
+
+    .main{
+        .contents{
+            margin: 0;
+            padding: 5px;
+        }
+
+        .privacy-status{
+            float: right;
+            margin: 4px 6px;
+
+            width: 24px;
+            height: 24px;
+            text-indent: -9999px;
+
+            background-image: url(i-private-comment.svg);
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 24px 24px;
+            text-indent: -9999px;
+        }
+    }
+
+    .footer{
+        margin: 3px;
+
+        .ownership{
+            display: inline-block;
+            margin: 0;
+            margin-left: 3px;
+            padding-bottom: 3px;
+        }
+    }
+
+    .controls{
+
+        .edit-comment{
+            background-image: url(i-edit.svg);
+        }
+
+        .highlighted-toggle{
+            background-image: url(i-highlight.svg);        
+        }
+
+        .pinned-status-on{
+            background-image: url(i-pin-filled.svg);
+        }
+    
+        .pinned-status-off{
+            background-image: url(i-pin-unfilled.svg);
+        }
+
+
+        .edit-comment, .highlighted-toggle, .pinned-status-on, .pinned-status-off{
+            border: 0;
+            border-radius: 13px;
+            border: 1px solid transparent;
+
+            height: 26px;
+            width: 26px;
+
+            background-color: transparent;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 16px 16px;
+            text-indent: -9999px;
+
+            &:hover{
+                background-color: $c_tone_04;
+                border: 1px solid $c_tone_05;
+
+                color: $c_txt_main;
+                font-weight: bold;
+
+                animation-duration: 0.2s;
+                animation-fill-mode: forwards;
+                animation-name: expand_comment_button;
+            }
+
+        }
+        .edit-comment{
+            &:hover{
+                background-position: 7px 4px;
+            }
+        }
+
+        .highlighted-toggle, .pinned-status-on, .pinned-status-off{
+            &:hover{
+                background-position: 4px 4px;
+            }
         }
     }
 }
