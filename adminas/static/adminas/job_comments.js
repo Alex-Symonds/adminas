@@ -48,6 +48,9 @@ const ID_PREFIX_JOB_PANEL_ON_TODO_LIST = 'todo_panel_job_';
 const CLASS_BTN_PRIMARY = 'button-primary';
 const CLASS_BTN_WARNING = 'button-warning';
 
+const CLASS_JOB_IDENTIFIER_PANEL = 'job-identifier-pane';
+const CLASS_COMMENT_INPUT_CHECKBOX_CONTAINER = 'checkbox-container';
+
 // Assign event listeners onload
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -136,6 +139,7 @@ function create_ele_jobcomment_editor(comment_id, want_settings){
 
 function create_ele_jobcomment_checkbox_container(){
     let container = document.createElement('div');
+    container.classList.add(CLASS_COMMENT_INPUT_CHECKBOX_CONTAINER);
     
     // Inputs unqiue to this "with settings" version
     let private_label = document.createElement('label');
@@ -569,7 +573,7 @@ function update_job_page_comments_after_create(response){
 
 
 // DOM (Create Comment Ele): Make a new comment element. Broken up into multiple functions.
-function create_ele_new_comment(response){
+function create_ele_new_comment(response, want_streamlined_comment){
     let container_ele = document.createElement('article');
 
     container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
@@ -584,30 +588,39 @@ function create_ele_new_comment(response){
     container_ele.setAttribute('data-is_pinned', response['pinned']);
     container_ele.setAttribute('data-is_highlighted', response['highlighted']);
 
-    let details_ele = document.createElement('details');
-    details_ele.append(create_ele_comment_summary(response['private'], response['contents']));
-    details_ele.append(create_ele_comment_hidden_details(response));
+    if(want_streamlined_comment){
+        var details_like_ele = document.createElement('details');
+        var summary_like_ele = document.createElement('summary');
+    }
+    else {
+        var details_like_ele = document.createElement('div');
+        details_like_ele.classList.add('full-comment-container');
+        var summary_like_ele = document.createElement('div');
+        summary_like_ele.classList.add('comment-body');
+    }
 
-    container_ele.append(details_ele);
+    summary_like_ele.append(create_ele_comment_main_contents(response['private'], response['contents']));
+    details_like_ele.append(summary_like_ele);
+    details_like_ele.append(create_ele_comment_footer(response));
+
+    container_ele.append(details_like_ele);
     apply_event_listeners_to_comment(container_ele);
 
     return container_ele;    
 }
 
 
-function create_ele_comment_summary(is_private, body_str){
-    let summary_ele = document.createElement('summary');
+function create_ele_comment_main_contents(is_private, body_str){
     let main_ele = document.createElement('span');
     main_ele.classList.add(CLASS_COMMENT_MAIN);
     if(is_private){
         main_ele.append(get_comment_privacy_status_ele());
     }
     main_ele.append(create_ele_comment_body_streamlined(body_str));
-    summary_ele.append(main_ele);
-    return summary_ele;
+    return main_ele;
 }
 
-function create_ele_comment_hidden_details(data_dict){
+function create_ele_comment_footer(data_dict){
     let footer_ele = document.createElement('section');
     footer_ele.classList.add(CLASS_COMMENT_FOOTER);
     footer_ele.append(create_ele_comment_ownership(data_dict));
@@ -720,8 +733,8 @@ function create_ele_comment_ownership(data_dict){
     result.classList.add('ownership');
    
     let str = 'Unknown user at unknown time';
-    if('display_str' in data_dict){
-        str = data_dict['display_str'];
+    if('footer_str' in data_dict){
+        str = data_dict['footer_str'];
     }
     else if('username' in data_dict && 'timestamp' in data_dict){
         str = `${data_dict['username']} on ${data_dict['timestamp']}`; 
@@ -768,7 +781,7 @@ function update_job_page_comments_after_update(response){
     close_jobcomment_editor();
 
     // The user could've updated a status that affects where/how many times the comment appears on the page, so handle that next
-    update_presence_in_filtered_comment_sections(response);
+    update_comment_presence_in_all_filtered_sections(response);
 
     // Update all remaining copies of this comment to reflect the changes the user just made
     document.querySelectorAll(`.${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`).forEach(ele =>{
@@ -777,20 +790,19 @@ function update_job_page_comments_after_update(response){
 }
 
 // DOM (Update): Loop through all "special" comment sections, ensuring the updated comment appears where it should.
-function update_presence_in_filtered_comment_sections(response){
+function update_comment_presence_in_all_filtered_sections(response){
     for(let i = 0; i < SECTION_NAMES.length; i++){
-        // "all-comments" is not considered "filtered", so skip that one.
-        //if(SECTION_NAMES[i] != CLASS_ALL_COMMENTS_CONTAINER){
-            update_presence_in_filtered_comment_section(response, SECTION_NAMES[i]);
-        //}
+        if(SECTION_NAMES[i] != CLASS_ALL_COMMENTS_CONTAINER){
+            update_comment_presence_in_one_filtered_section(response, SECTION_NAMES[i]);
+        }
     }
     return;
 }
 
 // DOM (Update/Delete): Check if the updated comment should appear in this one specific section and update accordingly.
-function update_presence_in_filtered_comment_section(response, section_class){
+function update_comment_presence_in_one_filtered_section(response, section_class){
+    // The assumption is that all filtered sections will have a single name that's used for both a CSS class and a key in the response dict to a boolean value.
     let class_to_find_comment = `${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`;
-
     if(!response[section_class]){
         remove_comment_from_section(class_to_find_comment, section_class);
     }
@@ -998,9 +1010,9 @@ function get_comment_data_from_ele(ele){
     result['id'] = ele.dataset.comment_id;
     result['footer_str'] = ele.querySelector(`.${CLASS_COMMENT_OWNERSHIP}`).innerHTML.trim();
     result['contents'] = ele.querySelector(`.${CLASS_COMMENT_CONTENTS}`).innerHTML.trim();
-    result['private'] = ele.dataset.is_private;
-    result['pinned'] = ele.dataset.is_pinned;
-    result['highlighted'] = ele.dataset.is_highlighted;
+    result['private'] = ele.dataset.is_private.toLowerCase() == 'true';
+    result['pinned'] = ele.dataset.is_pinned.toLowerCase() == 'true';
+    result['highlighted'] = ele.dataset.is_highlighted.toLowerCase() == 'true';
 
     let job_panel = ele.closest(`.${CLASS_JOB_PANEL}`);
     if(job_panel != null){
@@ -1045,16 +1057,16 @@ function update_frontend_comment_private_status(comment_ele, is_private){
         comment_ele.classList.add('private');
     }
 
-    // Update where private/public status is displayed
-    // Note: I'd prefer to only update the DOM if this /needs/ to change, but the placeholder version doesn't support that well.
-    // If later on there ends up being a telling CSS class or something, add something smarter. :)
     let privacy_ele = comment_ele.querySelector('.' + CLASS_PRIVACY_STATUS);
-    if(privacy_ele == null){
-        return;
-    }
+    let have_privacy_ele = privacy_ele != null;
 
-    privacy_ele.before(get_comment_privacy_status_ele(is_private));
-    privacy_ele.remove();
+    if(have_privacy_ele && !is_private){
+        privacy_ele.remove();
+    }
+    else if(!have_privacy_ele && is_private){
+        let container_ele = comment_ele.querySelector(`.${CLASS_COMMENT_MAIN}`);
+        container_ele.prepend(get_comment_privacy_status_ele());
+    }
     return;
 }
 
@@ -1062,7 +1074,6 @@ function update_frontend_comment_private_status(comment_ele, is_private){
 
 
 function add_comment_to_section(class_to_find_comment, section_name, comment_data=null){
-    console.log('attempting to add comment to page');
     // Some pages display a subset of the possible comment sections, so begin by checking if the target section even exists on this page.
     let all_section_instances = document.querySelectorAll(`.${CLASS_COMMENTS_CONTAINER}.${section_name}`);
     if(all_section_instances.length == 0){
@@ -1130,7 +1141,6 @@ function remove_comment_from_section(class_to_find_comment, section_name){
 
 
 function handle_section_emptiness(comment_section_ele, section_name="?"){
-    // If the calling function didn't share the section_name, attempt to work it out from the element.
     if(section_name === "?"){
         let attempted_section_name = pick_out_comment_section_name(comment_section_ele);
         if(attempted_section_name !== null){
@@ -1145,6 +1155,7 @@ function handle_section_emptiness(comment_section_ele, section_name="?"){
         var existing = comment_section_ele.parentElement.querySelector('h5');
         var want_add = !section_is_empty && existing === null;
         var want_remove = section_is_empty && existing !== null;
+        set_visibility_of_job_identifier_panel_pinned(section_is_empty)
     }
     else {
         var existing = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
@@ -1156,51 +1167,33 @@ function handle_section_emptiness(comment_section_ele, section_name="?"){
         existing.remove();
     }
     else if (want_add) {
-        var ele = create_ele_comment_section_emptiness_conditional(section_name);
+        var ele = create_ele_comment_section_emptiness(section_name);
         if(is_streamlined){
             comment_section_ele.before(ele);
         } else {
             comment_section_ele.prepend(ele);
         }
     }
-
-
-
-
-    // if(comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0){
-
-    //     // Handle an empty section.
-    //     if(is_streamlined){
-    //         // Streamlined = remove the heading, since there are no pinned comments now.
-    //         if(existing !== null){
-    //             existing.remove();
-    //         }
-    //     }
-    //     else {
-    //         // Other sections = add a note to indicate intentional emptiness.
-    //         var ele = create_ele_comment_section_emptiness_conditional(section_name);
-    //         comment_section_ele.prepend(ele);
-    //     }
-    // }
-    // else{
-    //     // Handle a not-empty section
-    //     if(is_streamlined){
-    //         // Streamlined = add a heading, unless it's already there somehow
-    //         let existing = comment_section_ele.querySelector('h5');
-    //         if(existing === null){
-    //             var ele = create_ele_comment_section_emptiness_conditional(section_name);
-    //             comment_section_ele.prepend(ele); 
-    //         }
-           
-    //     }
-    //     else {
-    //         var ele = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
-    //         if(ele != null){
-    //             ele.remove();
-    //         }
-    //     }
-    // }
 }
+
+function set_visibility_of_job_identifier_panel_pinned(section_is_empty){
+    let job_identifier_panel = document.querySelector(`.${CLASS_JOB_IDENTIFIER_PANEL}`);
+    if(job_identifier_panel != null){
+        let pinned_section = job_identifier_panel.querySelector(`.${CLASS_COMMENT_SECTION}`);
+
+        let have_hide = pinned_section.classList.contains('hide');
+        let want_hide = section_is_empty;
+
+        if(want_hide && !have_hide){
+            pinned_section.classList.add('hide');
+        }
+        else if(!want_hide && have_hide){
+            pinned_section.classList.remove('hide');
+        }  
+    }
+    return;
+}
+
 
 function pick_out_comment_section_name(ele){
     for(let s = 0; s < SECTION_NAMES.length; s++){
@@ -1212,7 +1205,7 @@ function pick_out_comment_section_name(ele){
 }
 
 
-function create_ele_comment_section_emptiness_conditional(section_name){
+function create_ele_comment_section_emptiness(section_name){
     // Special case: the "pinned" comments show a heading when there are comments and nothing when empty, so return the heading.
     if(section_name === CLASS_PINNED_COMMENTS_CONTAINER){
         let h5 = document.createElement('h5');

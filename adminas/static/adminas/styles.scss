@@ -43,6 +43,8 @@ $g_button_secondary: linear-gradient(335deg, #0AC778 0%,  #0DFA96 100%);
 $panel_shadow: 0 0 10px 1px rgba(black, 85%);
 $panel_shadow_highlight: 0 0 10px 1px rgba($c_accent_main, 50%);
 
+$MAX_WIDTH: 700px;
+
 html, body{
     min-height: 100%;
 }
@@ -98,7 +100,7 @@ input, select, textarea{
 
     &:active, &:focus{
         outline: thin dotted;
-        background: $c_tone_02;
+        background: $c_tone_01;
     }        
 }
 
@@ -136,29 +138,6 @@ article{
     position: absolute;
     visibility: hidden;
 }
-
-/* Details for comments */
-details {
-    padding: 0;
-    border: 1px solid transparent;
-    border-bottom: 1px solid $c_tone_03;
-}
-
-summary {
-    padding: 0 5px 5px 5px;
-}
-
-details[open] {
-    background: $c_tone_03;
-    border: 1px solid $c_tone_04;
-}
-
-details[open] summary {
-    background: $c_tone_02;
-    border-bottom: 1px solid transparent;
-    padding-bottom: 5px;
-}
-
 
 .hover-parent{
     display: inline-block;
@@ -221,6 +200,88 @@ nav {
     }
 }
 
+/* Layout stuff --------------------------------------------------------------- */
+.button-primary{
+    font-weight: bold;
+    border-radius: 0.6rem;
+
+    background: $c_accent_main;
+    background: $g_button_main;
+    color: $c_txt_main;
+    border: 1px solid $c_accent_border;
+
+    &:hover{
+        color: $c_txt_alt;
+        background: $c_accent_highlight;
+        background: $g_button_hover;
+        box-shadow: 0 0 3px 1px $c_tone_02;
+    }
+}
+
+// .button-secondary{
+//     font-weight: bold;
+//     border-radius: 0.6rem;
+
+//     background: $c_tone_02;
+//     background: $g_secondary_btn;
+//     border: 1px solid $c_accent_secondary;
+//     color: $c_accent_secondary;
+
+//     &:hover{
+//         color: $c_txt_alt;
+//         background: $c_accent_secondary;
+//         background: $g_button_secondary;
+//         box-shadow: 0 0 3px 1px $c_tone_02;
+//     }
+// }
+
+.button-warning{
+    font-weight: bold;
+    border-radius: 0.6rem;
+
+    background: $c_tone_02;
+    background: $g_secondary_btn;
+    border: 1px solid $c_warning;
+    color: $c_warning;
+
+    &:hover{
+        background: $g_warning_hover;
+        color: $c_txt_warning_g;
+    }
+}
+
+
+.credits{
+    border: 1px solid $c_tone_02;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    margin-top: 5rem;
+    padding: 4px 8px;
+
+    h6{
+        padding: 0;
+        margin: 0;
+        color: $c_tone_05;
+    }
+
+    ul{
+        list-style-type: none;
+        margin: 0;
+        padding: 0.1rem 0.3rem;
+    }
+
+    a{
+        color: $c_tone_03;
+        text-decoration: none;
+        &:hover{
+            color: $c_tone_05;
+            text-decoration: underline;
+        }
+    }
+}
+
+
+
 
 /* Home ------------------------------------------------------ */
 
@@ -231,14 +292,28 @@ nav {
     flex-wrap: wrap;
 }
 
-.job-panel{
+.return-to-job{
+    display: block;
+    border: 1px solid $c_accent_main;
+    border-radius: 8px;
+    padding: 6px 8px;
+    width: fit-content;
+    margin: 0.5rem 0 0 0.5rem;
+
+    &:hover{
+        border: 1px solid $c_accent_border;
+        background: $g_button_main;
+        color: $c_txt_on_accent;
+    }
+}
+
+.job-panel, .job-identifier-pane{
     display: inline-block;
     position: relative;
     border: 1px solid $c_tone_04;
     border-radius: 8px;
     margin: 1rem 0.5rem 0 0.5rem;
     width: 100%;
-    max-width: 400px;
     box-shadow: $panel_shadow;
 
     &:hover{
@@ -295,7 +370,7 @@ nav {
         margin: 0;
         padding: 12px 10px;
         background: $c_tone_02;
-        border-bottom: 1px solid $c_accent_main;
+        
     }
 
     ul{
@@ -304,15 +379,27 @@ nav {
         background: $c_accent_dark;
         color: $c_txt_main;
         padding: 8px 24px;
+        border-top: 1px solid $c_accent_main;
         border-bottom: 1px solid $c_accent_main;
     }
 
+}
+.job-panel{
+    max-width: 400px;
     .comments{
         margin: 0;
     }
-
 }
+.job-identifier-pane{
+    max-width: $MAX_WIDTH;
+    padding-bottom: 0.6rem;
 
+    .comments{
+        border-top: 1px solid $c_tone_03;
+        margin: 0.8rem 0 0;
+        padding-top: 3px;
+    }
+}
 
 @keyframes expand_comment_button {
     from {
@@ -378,22 +465,54 @@ nav {
     }
 }
 
+.todo-list-add-pinned-comment-container{
+    display: block;
+    width: 100%;
+}
+
+.jobcomment-add-pinned-comment-container{
+    display: block;
+    width: 100%;
+    margin-top: 2rem;
+
+    .job-comment-cu-container{
+        margin: 0 0 1rem 0.5rem;
+    }
+}
+
 .job-comment-cu-container{
     display: block;
     background: $c_tone_02;
     border: 1px solid $c_tone_04;
-
-    width: calc(100% - 10px);
+    border-radius: 8px;
     padding: 2px 5px 0;
+    max-width: $MAX_WIDTH;
 
     h4{
+        margin: 5px 0 0;
         background: transparent;
         padding: 5px;
     }
 
     textarea{
         padding: 8px;
-        width: calc(100% - 16px);
+        width: calc(100% - 18px);
+    }
+
+    .checkbox-container{
+        background: $c_tone_01;
+        border: 1px solid $c_tone_00;
+        border-radius: 3px;
+        
+        display: flex;
+        flex-direction: row;
+
+        label{
+            margin: 0.25rem 0 0.25rem 0.4rem;
+        }
+        input{
+            margin: 3px 2.25rem 0 7px;
+        }
     }
 
     .controls{
@@ -415,8 +534,6 @@ nav {
         }
 
     }
-    
-
 }
 
 
@@ -495,109 +612,58 @@ nav {
 
 
 
-.button-primary{
-    font-weight: bold;
-    border-radius: 0.6rem;
 
-    background: $c_accent_main;
-    background: $g_button_main;
-    color: $c_txt_main;
-    border: 1px solid $c_accent_border;
-
-    &:hover{
-        color: $c_txt_alt;
-        background: $c_accent_highlight;
-        background: $g_button_hover;
-        box-shadow: 0 0 3px 1px $c_tone_02;
-    }
-}
-
-.button-secondary{
-    font-weight: bold;
-    border-radius: 0.6rem;
-
-    background: $c_tone_02;
-    background: $g_secondary_btn;
-    border: 1px solid $c_accent_secondary;
-    color: $c_accent_secondary;
-
-    &:hover{
-        color: $c_txt_alt;
-        background: $c_accent_secondary;
-        background: $g_button_secondary;
-        box-shadow: 0 0 3px 1px $c_tone_02;
-    }
-}
-
-.button-warning{
-    font-weight: bold;
-    border-radius: 0.6rem;
-
-    background: $c_tone_02;
-    background: $g_secondary_btn;
-    border: 1px solid $c_warning;
-    color: $c_warning;
-
-    &:hover{
-        background: $g_warning_hover;
-        color: $c_txt_warning_g;
-    }
-}
-
-
-.credits{
-    border: 1px solid $c_tone_02;
-    border-radius: 0.3rem;
-    font-size: 0.8rem;
-    margin-top: 5rem;
-    padding: 4px 8px;
-
-    h6{
-        padding: 0;
-        margin: 0;
-        color: $c_tone_05;
-    }
-
-    ul{
-        list-style-type: none;
-        margin: 0;
-        padding: 0.1rem 0.3rem;
-    }
-
-    a{
-        color: $c_tone_03;
-        text-decoration: none;
-        &:hover{
-            color: $c_tone_05;
-            text-decoration: underline;
-        }
-    }
-}
 
 
 
 .comment-types-container{
-    // width: 100%;
-    // display: flex;
-    // flex-direction: row;
-    // align-items: flex-start;
-    // flex-wrap: wrap;
-
-    h2, h3{
-        max-width: 725px;
-    }
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
 
     .comment-type-section{
         margin: 0 0.5rem;
+        flex:1;
+    }
+
+    h3{
+        margin-top: 5px;
+    }
+}
+@media screen and (min-width: 713px){//696px){
+    .all-comments{
+        order: 1;
+    }
+    .highlighted{
+        order: 2;
     }
 }
 
 
 .one-comment{
     width: calc(100% - 10px);
-    max-width: 700px;
+    min-width: 280px;
+    max-width: $MAX_WIDTH;
 
     padding: 2px 5px 0;
+
+
+    details {
+        padding: 0;
+        border: 1px solid transparent;
+        border-bottom: 1px solid $c_tone_03;
+    }
+
+    details, .full-comment-container{
+        border-left: 2px solid transparent;
+    }
+
+    summary, .comment-body{
+        padding: 0 5px 5px 5px;
+        min-height: calc(24px + 8px);
+    }
 
     &.highlighted{
         details, .full-comment-container{
@@ -617,14 +683,15 @@ nav {
         }
     }
 
-    details, .full-comment-container{
-        border-left: 2px solid transparent;
-    }
     details[open]{
+        background: $c_tone_03;
+        border: 1px solid $c_tone_04;
         border-left: 1px solid $c_tone_04;
     }
-    summary, .comment-body{
-        min-height: calc(24px + 8px);
+    details[open] summary {
+        background: $c_tone_02;
+        border-bottom: 1px solid transparent;
+        padding-bottom: 5px;
     }
 
     /* --- full version ---- */
@@ -754,3 +821,23 @@ nav {
         }
     }
 }
+
+
+// .job-identifier-pane{
+//     border: 1px solid $c_tone_05;
+//     background: $c_tone_02;
+//     padding: 10px 12px;
+//     border-radius: 8px;
+//     margin-top: 1rem;
+    
+
+//     h4{
+//         margin: 0;
+//         padding: 0;
+//         border-bottom: 1px solid $c_tone_04;
+//     }
+//     p{
+//         padding: 0;
+//         margin: 0;
+//     }
+// }
