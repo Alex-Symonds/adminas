@@ -11,7 +11,6 @@
         const JOB_ID = '{{ job.id }}';
         const URL_JOB_COMMENTS = '{% url "job_comments" job.id %}';
         const URL_COMMENT_STATUS = '{% url "comment_status" %}';
-        //const WANT_STREAMLINED_COMMENTS = false;
     </script>
     <script src="{% static 'adminas/job_comments.js' %}" type="text/javascript"></script>
 {% endblock %}
@@ -19,11 +18,8 @@
 
 {% block body %}
     <h2>Comments</h2>
-    <div class="subheading">Job {{ job.name }}</div>
-
-    <section class="job-identifier-pane">
-        <h4>{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
-        <p>
+    <div class="subheading">Job {{ job.name }} 
+        <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}">
     {% if job.customer != None %}
             {{ job.customer }} 
         {% if job.agent != None %}
@@ -37,10 +33,11 @@
     )
     {% endif %}
         @ {{ job.currency }}&nbsp;{{ job.value }}
-        </p>
+    </div>
 
-        <a class="return-to-job" href="{% url 'job' job.id %}">&laquo; return to Job</a>
+    <a class="return-to-job" href="{% url 'job' job.id %}">&laquo; return to Job</a>
 
+    <!-- <section class="job-identifier-pane">
         <section class="comments
         {% if pinned %}
         ">
@@ -83,7 +80,7 @@
         {% endfor %}
             </section>
         </section>
-    </section>
+    </section> -->
 
     <div class="jobcomment-add-pinned-comment-container">
         <button class="add-job-comment" data-form_type="full">comment</button>

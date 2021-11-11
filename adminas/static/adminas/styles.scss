@@ -632,12 +632,15 @@ nav {
         margin-top: 5px;
     }
 }
-@media screen and (min-width: 713px){//696px){
+@media screen and (min-width: 1053px){//1036px){//713px){//696px){
     .all-comments{
         order: 1;
     }
-    .highlighted{
+    .pinned{
         order: 2;
+    }
+    .highlighted{
+        order: 3;
     }
 }
 
