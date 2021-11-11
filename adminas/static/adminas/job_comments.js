@@ -51,6 +51,11 @@ const CLASS_BTN_WARNING = 'button-warning';
 const CLASS_JOB_IDENTIFIER_PANEL = 'job-identifier-pane';
 const CLASS_COMMENT_INPUT_CHECKBOX_CONTAINER = 'checkbox-container';
 
+const CLASS_WANT_STREAMLINED = 'streamlined';
+const CLASS_WANT_TOGGLE_H5 = 'toggle-heading';
+const CLASS_WANT_EMPTY_P = 'empty-paragraph';
+const STR_FALLBACK = '???';
+
 // Assign event listeners onload
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -1114,7 +1119,7 @@ function add_comment_to_section(class_to_find_comment, section_name, comment_dat
     }
 
     // There. Now we're ready to actually do the thing.
-    let want_streamline_comment = section_name == CLASS_PINNED_COMMENTS_CONTAINER;
+    let want_streamline_comment = section_ele.classList.contains(CLASS_WANT_STREAMLINED);
     var comment_ele = create_ele_new_comment(comment_data, want_streamline_comment);
     section_ele.prepend(comment_ele);
 
@@ -1140,58 +1145,91 @@ function remove_comment_from_section(class_to_find_comment, section_name){
 }
 
 
-function handle_section_emptiness(comment_section_ele, section_name="?"){
-    if(section_name === "?"){
+function handle_section_emptiness(comment_section_ele, section_name=STR_FALLBACK){
+
+    let section_is_empty = comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0;
+
+    // Assumption: sometimes there'll be a conditional comment section that appears when there are comments and disappears when there aren't, which means
+    // using JS to add the stuff around the comments (i.e. an <h5> above them) when the first comment is added; sometimes there'll be a persistent comment section, 
+    // where the headings and such don't change, but when the last comment is removed we'd like to use JS to add a <p> to explain the emptiness is intentional.
+    //
+    // Presumably these are mutually exclusive behaviours: either the section is persistent (in which case it should already have a persistent <h#> tag, so why
+    // would anyone want to use JS to add another underneath?) or it's not (in which case, why would we add a comment explaining emptiness when we're removing the
+    // entire section?). She wrote, tempting fate, wondering exactly how this would come back to haunt her later...
+
+    if(comment_section_ele.classList.contains(CLASS_WANT_TOGGLE_H5)){
+        // <h5> is there to label the comments which suddenly appeared, so it should appear when there are comments and disappear when there aren't.
+        var existing = comment_section_ele.parentElement.querySelector('h5');
+        var want_add = !section_is_empty;
+        var want_remove = section_is_empty;
+        var class_indicating_task = CLASS_WANT_TOGGLE_H5;
+    }
+    else if(comment_section_ele.classList.contains(CLASS_WANT_EMPTY_P)){
+        // <p> is there to explain the intentional emptiness of a section with a persistent heading, so it should appear when the section 
+        // is empty and disappear otherwise.
+        var existing = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
+        var want_add = section_is_empty;
+        var want_remove = !section_is_empty;
+        var class_indicating_task = CLASS_WANT_EMPTY_P;
+    }
+
+    if(want_add && existing === null){
+        add_new_comment_emptiness_element(comment_section_ele, section_name, class_indicating_task);
+    }
+    else if(want_remove && existing !== null){
+        existing.remove();
+    }
+
+    return;
+}
+
+
+function add_new_comment_emptiness_element(comment_section_ele, section_name, class_indicating_task){
+
+    // Some "paths" to this function don't need to work out section_name for their own purposes, so the argument will be missing. Handle that first.
+    if(section_name === STR_FALLBACK){
         let attempted_section_name = pick_out_comment_section_name(comment_section_ele);
         if(attempted_section_name !== null){
             section_name = attempted_section_name;
         }
     }
 
-    let section_is_empty = comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0;
-    let is_streamlined =  comment_section_ele.classList.contains(CLASS_PINNED_COMMENTS_CONTAINER);
-
-    if(is_streamlined){
-        var existing = comment_section_ele.parentElement.querySelector('h5');
-        var want_add = !section_is_empty && existing === null;
-        var want_remove = section_is_empty && existing !== null;
-        set_visibility_of_job_identifier_panel_pinned(section_is_empty)
+    if(class_indicating_task === CLASS_WANT_TOGGLE_H5){
+        var ele = create_ele_h5_comment_uppercase(section_name);
+        comment_section_ele.before(ele);
     }
-    else {
-        var existing = comment_section_ele.querySelector(`.${CLASS_EMPTY_SECTION_P}`);
-        var want_add = section_is_empty && existing === null;
-        var want_remove = !section_is_empty && existing !== null;
+    else if(class_indicating_task === CLASS_WANT_EMPTY_P){
+        var ele = create_ele_p_empty_comment_section(section_name);
+        comment_section_ele.prepend(ele);
     }
 
-    if(want_remove){
-        existing.remove();
-    }
-    else if (want_add) {
-        var ele = create_ele_comment_section_emptiness(section_name);
-        if(is_streamlined){
-            comment_section_ele.before(ele);
-        } else {
-            comment_section_ele.prepend(ele);
-        }
-    }
+    return;      
 }
 
-function set_visibility_of_job_identifier_panel_pinned(section_is_empty){
-    let job_identifier_panel = document.querySelector(`.${CLASS_JOB_IDENTIFIER_PANEL}`);
-    if(job_identifier_panel != null){
-        let pinned_section = job_identifier_panel.querySelector(`.${CLASS_COMMENT_SECTION}`);
+function create_ele_h5_comment_uppercase(section_name){        
+    let h5 = document.createElement('h5');
 
-        let have_hide = pinned_section.classList.contains('hide');
-        let want_hide = section_is_empty;
-
-        if(want_hide && !have_hide){
-            pinned_section.classList.add('hide');
-        }
-        else if(!want_hide && have_hide){
-            pinned_section.classList.remove('hide');
-        }  
+    if(section_name === STR_FALLBACK){
+        h5.innerHTML = 'COMMENTS';
     }
-    return;
+    else{
+        h5.innerHTML = section_name.toUpperCase();
+    }
+
+    return h5;
+}
+
+function create_ele_p_empty_comment_section(section_name){
+    let p = document.createElement('p');
+    p.classList.add(CLASS_EMPTY_SECTION_P);
+
+    if(section_name == CLASS_HIGHLIGHTED_COMMENTS_CONTAINER || section_name == CLASS_PINNED_COMMENTS_CONTAINER){
+        p.innerHTML = `No comments have been ${section_name}.`;
+    }
+    else {
+        p.innerHTML = 'No comments have been added.';
+    }
+    return p;
 }
 
 
@@ -1203,32 +1241,5 @@ function pick_out_comment_section_name(ele){
     }
     return null;
 }
-
-
-function create_ele_comment_section_emptiness(section_name){
-    // Special case: the "pinned" comments show a heading when there are comments and nothing when empty, so return the heading.
-    if(section_name === CLASS_PINNED_COMMENTS_CONTAINER){
-        let h5 = document.createElement('h5');
-        h5.innerHTML = 'PINNED';
-        return h5;
-    }
-
-    // General case: other comment sections have a persistent heading and display a note to indicate intentional emptiness.
-    let p = document.createElement('p');
-    p.classList.add(CLASS_EMPTY_SECTION_P);
-
-    if(section_name == CLASS_HIGHLIGHTED_COMMENTS_CONTAINER){
-        p.innerHTML = `No comments have been ${section_name}.`;
-    }
-    else {
-        p.innerHTML = 'No comments have been added.';
-    }
-    
-    return p;
-}
-
-
-
-
 
 

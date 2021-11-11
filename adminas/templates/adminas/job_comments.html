@@ -1,7 +1,6 @@
 {% extends 'adminas/layout.html' %}
 {% load static %}
 
-
 {% block title %}
     - Comments on Job {{ job.name }}
 {% endblock %}
@@ -37,127 +36,77 @@
 
     <a class="return-to-job" href="{% url 'job' job.id %}">&laquo; return to Job</a>
 
-    <!-- <section class="job-identifier-pane">
-        <section class="comments
-        {% if pinned %}
-        ">
-            <h5>PINNED</h5>
-        {% else %}
-        hide">
-        {% endif %}
-            <section class="comment-container pinned">
-        {% for p in pinned %}
-                <article
-                    class="one-comment {% if p.private %}private{% else %}public{% endif %} id-{{ p.id }} {% if p.highlighted %}highlighted{% endif %}" 
-                    data-comment_id="{{ p.id }}"
-                    data-is_private="{{ p.private|lower }}"
-                    data-is_pinned="true"
-                    data-is_highlighted="{{ p.highlighted }}"
-                >
-                    <details>
-                        <summary>
-                            <span class="main">
-            {% if p.user_is_owner %}{% if p.private %}
-                                <div class="privacy-status">[PRIVATE]</div>
-            {% endif %}{% endif %}
-                                <span class="contents">{{ p.contents }}</span>
-                            </span>
-                        </summary>
-                        <section class="footer">
-                            <div class="ownership">
-                                {{ p.created_by }} on {{ p.created_on }}
-                            </div>
-                            <div class="controls">
-                                <button class="pinned-toggle pinned-status-on">unpin</button>
-                                <button class="highlighted-toggle">+/- highlight</button>
-            {% if p.user_is_owner %}
-                                <button class="edit-comment">edit</button>
-            {% endif %}
-                            </div>
-                        </section>
-                    </details>
-                </article>  
-        {% endfor %}
-            </section>
-        </section>
-    </section> -->
+    <div class="comment-types-container">
 
-    <div class="jobcomment-add-pinned-comment-container">
-        <button class="add-job-comment" data-form_type="full">comment</button>
-    </div>
-
-<div class="comment-types-container">
-    {% for section in comment_data %}
-    <section class="comment-type-section {{ section.class_suffix }}">
-        <h3>{{ section.title }}</h3>
-        <div class="comment-container {{ section.class_suffix }}">
-        {% for comment in section.comments %}
-            <article
-            class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if comment.highlighted %}highlighted{% endif %}" 
-            data-comment_id="{{ comment.id }}"
-            data-is_private="{{ comment.private|lower }}"
-            data-is_pinned="{{ comment.pinned|lower }}"
-            data-is_highlighted="{{ comment.highlighted|lower  }}"
-            >
-                <div class="full-comment-container">
-                    <section class="comment-body">
-                        <span class="main">
-            {% if comment.user_is_owner %}{% if comment.private %}
-                            <div class="privacy-status">[PRIVATE]</div>
-            {% endif %}{% endif %}
-                            <span class="contents">{{ comment.contents }}</span>
-                        </span>
-                    </section>
-
-                    <section class="footer">
-                        <div class="ownership">
-                            {{ comment.created_by }} on {{ comment.created_on }}
-                        </div>
-                        <div class="controls">
-                            <button class="pinned-toggle pinned-status-{% if comment.pinned %}on">unpin{% else %}off">pin{% endif %}</button>
-                            <button class="highlighted-toggle">+/- highlight</button>
-            {% if comment.user_is_owner %}
-                            <button class="edit-comment">edit</button>
-            {% endif %}
-                        </div>
-                    </section>
+        <div class="comment-type-section filtered-comments">
+            
+            <section>
+                <h3>Pinned</h3>
+                <div class="jobcomment-add-pinned-comment-container">
+                    <button class="add-job-comment" data-form_type="content-only">comment</button>
                 </div>
-            </article>        
-        {% empty %}
-            <p class="empty-section-notice">No comments have been {{ section.empty_message_suffix }}.</p>
-        {% endfor %}
-        </div>
-        {% if section.title == 'All' %}
+                <div class="comment-container pinned streamlined empty-paragraph">
+    {% for p in pinned %}
+                    {% include "adminas/comment_collapse.html" with comment=p %}
+    {% empty %}
+                    <p class="empty-section-notice">No comments have been pinned.</p>
+    {% endfor %}
+                </div>
+            </section>
 
-            {% if page_data.has_other_pages %}
-            <section id="comment_pagination_controls">
-                {% if page_data.has_previous %}
+            <section>
+                <h3>Highlighted</h3>
+                <div class="comment-container highlighted empty-paragraph">
+    {% for h in highlighted %}
+                    {% include "adminas/comment_full.html" with comment=h %}
+    {% empty %}
+                    <p class="empty-section-notice">No comments have been highlighted.</p>
+    {% endfor %}
+                </div>
+            </section>
+
+        </div>
+
+        <section class="comment-type-section all-comments">
+            <h3>All</h3>
+    {% if page_data.has_other_pages %}
+            <div class="subheading">page {{ page_data.number }} of {{ page_data.paginator.num_pages }}</div>
+    {% endif %}
+            <div class="jobcomment-add-pinned-comment-container">
+                <button class="add-job-comment" data-form_type="full">comment</button>
+            </div>
+            <div class="comment-container all-comments empty-paragraph">
+    {% for comment in all_comments %}
+                {% include "adminas/comment_full.html" with comment=comment %}
+    {% empty %}
+                <p class="empty-section-notice">No comments have been added.</p>
+    {% endfor %}
+            </div>
+
+    {% if page_data.has_other_pages %}
+            <section class="pagination_controls">
+        {% if page_data.has_previous %}
                 <a href="?page=1">&laquo; first</a>
                 <a href="?page={{ page_data.previous_page_number }}">previous</a>
-                {% else %}
+        {% else %}
                 <span class="disabled-link">&laquo; first</span>
                 <span class="disabled-link">previous</span>
-                {% endif %}
+        {% endif %}
         
-                <span>page {{ page_data.number }} of {{ page_data.paginator.num_pages }}</span>
+                <span>{{ page_data.number }} of {{ page_data.paginator.num_pages }}</span>
         
-                {% if page_data.has_next %}
+        {% if page_data.has_next %}
                 <a href="?page={{ page_data.next_page_number }}">next</a>
                 <a href="?page={{ page_data.paginator.num_pages }}">last &raquo;</a>
-                {% else %}
+        {% else %}
                 <span class="disabled-link">next</span>
                 <span class="disabled-link">last &raquo;</span>
-                {% endif %}
+        {% endif %}
         
             </section>
-            {% endif %}
+    {% endif %}
 
-        {% endif %}
-    </section> 
-    {% endfor %}
-
-
-</div>
-
+        </section> 
+    </div>
 
 {% endblock %}

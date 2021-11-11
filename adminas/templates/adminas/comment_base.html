@@ -1,0 +1,35 @@
+<article
+    class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if comment.highlighted %}highlighted{% endif %}" 
+    data-comment_id="{{ comment.id }}"
+    data-is_private="{{ comment.private|lower }}"
+    data-is_pinned="{{ comment.pinned|lower }}"
+    data-is_highlighted="{{ comment.highlighted|lower  }}"
+>
+{% block wrapper_start %}
+{% endblock %}
+
+            <span class="main">
+{% if comment.user_is_owner %}{% if comment.private %}
+                <div class="privacy-status">[PRIVATE]</div>
+{% endif %}{% endif %}
+                <span class="contents">{{ comment.contents }}</span>
+            </span>
+
+{% block wrapper_middle %}
+{% endblock %}
+
+        <section class="footer">
+            <div class="ownership">
+                {{ comment.created_by }} on {{ comment.created_on }}
+            </div>
+            <div class="controls">
+                <button class="pinned-toggle pinned-status-{% if comment.pinned %}on">unpin{% else %}off">pin{% endif %}</button>
+                <button class="highlighted-toggle">+/- highlight</button>
+{% if comment.user_is_owner %}
+                <button class="edit-comment">edit</button>
+{% endif %}
+            </div>
+        </section>
+{% block wrapper_end %}
+{% endblock %}
+</article>   

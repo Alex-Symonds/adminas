@@ -43,52 +43,21 @@
                     </ul>
                 </a>
             </section>
+
             <section class="comments" data-url_comments="{% url 'job_comments' job.id %}">
-                {% if job.pinned_comments %}
+            {% if job.pinned_comments %}
                 <h5>PINNED</h5>
-                {% endif %}
-                <section class="comment-container pinned">
-                    {% for comment in job.pinned_comments %}
-                    <article
-                        class="one-comment {% if comment.private %}private{% else %}public{% endif %} id-{{ comment.id }} {% if comment.highlighted %}highlighted{% endif %}" 
-                        data-comment_id="{{ comment.id }}"
-                        data-is_private="{{ comment.private|lower }}"
-                        data-is_pinned="true"
-                        data-is_highlighted="{{ comment.highlighted }}"
-                    >
-                        <details>
-                            <summary>
-                                <span class="main">
-                        {% if comment.user_is_owner %}{% if comment.private %}
-                                    <div class="privacy-status">
-                                        [PRIVATE]
-                                    </div>
-                        {% endif %}{% endif %}
-                                    <span class="contents">{{ comment.contents }}</span>
-                                </span>
-                            </summary>
-
-                            <section class="footer">
-                                <div class="ownership">
-                                    {{ comment.created_by }} on {{ comment.created_on }}
-                                </div>
-                                <div class="controls">
-                                    <button class="pinned-toggle pinned-status-on">unpin</button>
-                                    <button class="highlighted-toggle">+/- highlight</button>
-                            {% if comment.user_is_owner %}
-                                    <button class="edit-comment">edit</button>
-                            {% endif %}
-                                </div>
-                            </section>
-
-                        </details>
-                    </article>  
-                    {% endfor %}
+            {% endif %}
+                <section class="comment-container pinned streamlined toggle-heading">
+            {% for comment in job.pinned_comments %}
+                    {% include "adminas/comment_collapse.html" with comment=comment %}
+            {% endfor %}
                 </section>
                 <div class="todo-list-add-pinned-comment-container">
                     <button class="add-job-comment" data-form_type="content-only">comment</button>
                 </div>
             </section>
+
         </article>
     {% endfor %}
     </div>

@@ -449,16 +449,17 @@ def job_comments(request, job_id):
         requested_page = None
 
     comment_data = []
-    comment_data.append(pinned_dict)
     comment_data.append(highlighted_dict)
     comment_data.append(all_dict)
 
-    #pinned = my_job.get_pinned_comments(request.user, setting_for_order_by)
+    pinned = my_job.get_pinned_comments(request.user, setting_for_order_by)
 
     return render(request, 'adminas/job_comments.html', {
         'job': job,
         'comment_data': comment_data,
-        #'pinned': pinned,
+        'pinned': pinned,
+        'highlighted': my_job.get_highlighted_comments(request.user, setting_for_order_by),
+        'all_comments': all_dict['comments'],
         'page_data': requested_page
     })
 
