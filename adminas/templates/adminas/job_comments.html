@@ -42,9 +42,9 @@
             
             <section>
                 <h3>Pinned</h3>
-                <div class="jobcomment-add-pinned-comment-container">
-                    <button class="add-job-comment" data-form_type="content-only">comment</button>
-                </div>
+                <!-- <div class="jobcomment-add-pinned-comment-container">
+                    <button class="add-button" data-form_type="content-only">comment</button>
+                </div> -->
                 <div class="comment-container pinned streamlined empty-paragraph">
     {% for p in pinned %}
                     {% include "adminas/comment_collapse.html" with comment=p %}
@@ -73,7 +73,7 @@
             <div class="subheading">page {{ page_data.number }} of {{ page_data.paginator.num_pages }}</div>
     {% endif %}
             <div class="jobcomment-add-pinned-comment-container">
-                <button class="add-job-comment" data-form_type="full">comment</button>
+                <button class="add-button comment" data-form_type="full">comment</button>
             </div>
             <div class="comment-container all-comments empty-paragraph">
     {% for comment in all_comments %}

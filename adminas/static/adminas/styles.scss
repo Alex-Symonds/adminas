@@ -1,7 +1,7 @@
 $f_heading: 'Arial', sans-serif;
 $f_contents: 'Calibri', sans-serif;
 
-$c_bg_main: rgb(24, 25, 26);
+$c_bg_main: rgb(34, 35, 36);
 /*$g_bg_main: linear-gradient(45deg, rgb(24, 25, 26) 0%, rgb(30, 30, 31) 35%, rgb(46, 48, 48) 100%);*/
 $g_bg_main: linear-gradient(45deg, rgb(34, 35, 36) 0%, rgb(40, 40, 41) 35%, rgb(56, 58, 58) 100%);
 $c_txt_main: #F6F6F6;/* rgb(233, 247, 255); */
@@ -18,17 +18,17 @@ $c_tone_05: #AAA;
 $c_tone_06: #BBB;
 $c_tone_07: #F6F6F6;
 
-$c_accent_main: #00D4F5;
-$c_accent_border: #00A8C2; /*#00A4C5;*/
-$c_accent_highlight: #4ADFF7; /*#00E4F5;*/
-$c_accent_lighter: #6bfaff; /* #6bfaff */
-$c_accent_dark: #006675;
+$c_accent: #00D4F5;
+$c_accent_04: #6bfaff; /* #6bfaff */
+$c_accent_03: #4ADFF7; /*#00E4F5;*/
+$c_accent_02: #00A8C2; /*#00A4C5;*/
+$c_accent_01: #006675;
 $c_txt_on_accent: black;
-$g_accent_main: linear-gradient(135deg, $c_accent_border 0%, $c_accent_main 50%, $c_accent_lighter 100%);
-$g_accent_main_background: linear-gradient(135deg, rgb(48, 48, 48) 75%,  $c_accent_dark 100%);
+$g_accent_main: linear-gradient(135deg, $c_accent_02 0%, $c_accent 50%, $c_accent_04 100%);
+$g_accent_main_background: linear-gradient(135deg, rgb(48, 48, 48) 75%,  $c_accent_01 100%);
 
-$g_button_main: linear-gradient(45deg, $c_accent_highlight 0%, $c_accent_main 33%, $c_accent_border 100%);
-$g_button_hover: linear-gradient(135deg, $c_accent_lighter, $c_accent_highlight 66%, $c_accent_main 100%);
+$g_button_main: linear-gradient(45deg, $c_accent_03 0%, $c_accent 33%, $c_accent_02 100%);
+$g_button_hover: linear-gradient(135deg, $c_accent_04, $c_accent_03 66%, $c_accent 100%);
 
 $c_warning: rgb(207, 0, 0);
 //$g_warning: linear-gradient(0deg, rgb(139, 0, 0) 0%, rgb(192, 0, 0) 100%);
@@ -38,10 +38,12 @@ $c_txt_warning_g: white;
 $g_secondary_btn: linear-gradient(335deg, rgb(48, 48, 48) 0%,  rgb(60, 60, 60) 100%);
 
 $c_accent_secondary: #0DFA96;
+$c_accent_secondary_03: #09BA70;
+
 $g_button_secondary: linear-gradient(335deg, #0AC778 0%,  #0DFA96 100%);
 
 $panel_shadow: 0 0 10px 1px rgba(black, 85%);
-$panel_shadow_highlight: 0 0 10px 1px rgba($c_accent_main, 50%);
+$panel_shadow_highlight: 0 0 10px 1px rgba($c_accent, 50%);
 
 $MAX_WIDTH: 700px;
 
@@ -57,10 +59,9 @@ body {
 }
 
 a{
-    color: $c_accent_main;
-
+    color: $c_accent;
     &:hover{
-        color: $c_accent_highlight;
+        color: $c_accent_04;
     }
 }
 
@@ -85,6 +86,7 @@ h2 {
 
 h3{
     margin-top: 1.7rem;
+    margin-bottom: 0;
     width: 100%;
     padding: 0.4rem 0 0.3rem 0;
     border-bottom: 1px solid $c_tone_03;
@@ -94,7 +96,7 @@ input, select, textarea{
     max-width: 100%;
     margin-top: 3px;
     background: $c_tone_00;/*$c_tone_01;*/
-    border: 1px solid $c_accent_border;
+    border: 1px solid $c_accent_02;
     border-radius: 3px;
     color: $c_txt_main;
 
@@ -115,6 +117,8 @@ select{
 }
 
 textarea{
+    font-family: $f_contents;
+    font-size: 0.9rem;
     padding: 3px 5px;
 }
 
@@ -195,7 +199,7 @@ nav {
         &:hover{
             color: $c_txt_main_highlight;
             background: $c_tone_02;
-            border-bottom: 3px solid $c_accent_main;
+            border-bottom: 3px solid $c_accent;
         }
     }
 }
@@ -205,14 +209,14 @@ nav {
     font-weight: bold;
     border-radius: 0.6rem;
 
-    background: $c_accent_main;
+    background: $c_accent;
     background: $g_button_main;
     color: $c_txt_main;
-    border: 1px solid $c_accent_border;
+    border: 1px solid $c_accent_02;
 
     &:hover{
         color: $c_txt_alt;
-        background: $c_accent_highlight;
+        background: $c_accent_03;
         background: $g_button_hover;
         box-shadow: 0 0 3px 1px $c_tone_02;
     }
@@ -360,11 +364,11 @@ nav {
     ul{
         margin-top: 0;
         margin-bottom: 0;
-        background: $c_accent_dark;
+        background: $c_accent_01;
         color: $c_txt_main;
         padding: 8px 24px;
-        border-top: 1px solid $c_accent_main;
-        border-bottom: 1px solid $c_accent_main;
+        border-top: 1px solid $c_accent;
+        border-bottom: 1px solid $c_accent;
     }
 
 }
@@ -402,7 +406,10 @@ nav {
 }
 
 
-.add-job-comment{
+
+
+
+.add-button{
     border: 0;
     border-radius: 13px;
     border: 1px solid transparent;
@@ -410,7 +417,16 @@ nav {
     height: 30px;
     width: 30px;
 
-    margin: 3px 5px;
+    &.comment{
+        margin: 0;
+    }
+    &.comment-to-todolist{
+        margin: 3px 5px;
+    }
+    &.job-to-todolist{
+        margin: 0.6rem 0 0 0;
+    }
+    
 
     background-image: url(i-plus-empty.svg);
     background-color: transparent;
@@ -430,7 +446,12 @@ nav {
         animation-duration: 0.2s;
         animation-fill-mode: forwards;
         animation-name: expand_comment_button_add;
-    }        
+
+        &.job-to-todolist{
+            animation-name: expand_todo_button_add;
+        }
+        
+    }   
 }
 
 @keyframes expand_comment_button_add {
@@ -445,6 +466,22 @@ nav {
     
     to {
         width: 7.5rem;
+        text-indent: 18px;
+    }
+}
+
+@keyframes expand_todo_button_add {
+    from {
+        width: 30px;
+        text-indent: -9999px;
+    }
+
+    95%{
+        text-indent: -9999px;
+    }
+    
+    to {
+        width: 10rem;
         text-indent: 18px;
     }
 }
@@ -570,7 +607,7 @@ nav {
     display: block;
     margin: 1rem auto 0;
     font-size: 1.2rem;
-    background: $c_accent_main;
+    background: $c_accent;
     background: $g_button_main;
     color: $c_txt_main;
     font-weight: bold;
@@ -578,11 +615,11 @@ nav {
     width: 98%;
     max-width: 15rem;
     border-radius: 0.4rem;
-    border: 1px solid $c_accent_border;
+    border: 1px solid $c_accent_02;
 
     &:hover{
         color: $c_txt_alt;
-        background: $c_accent_highlight;
+        background: $c_accent_03;
         background: $g_button_hover;
         box-shadow: 0 0 3px 1px $c_tone_02;
     }
@@ -597,7 +634,7 @@ nav {
 /* JobComments -------------------------------------------- */
 .return-to-job{
     display: block;
-    border: 1px solid $c_accent_border;
+    border: 1px solid $c_accent_02;
     border-radius: 8px;
     padding: 6px 8px;
     width: fit-content;
@@ -606,7 +643,7 @@ nav {
     
 
     &:hover{
-        border: 1px solid $c_accent_border;
+        border: 1px solid $c_accent_02;
         background: $g_button_main;
         font-weight: bold;
         color: $c_txt_on_accent;
@@ -675,7 +712,7 @@ nav {
     }
 
     a:hover{
-        border: 1px solid $c_accent_border;
+        border: 1px solid $c_accent_02;
         background: $g_button_main;
         color: $c_txt_on_accent;
         font-weight: bold;
@@ -892,3 +929,170 @@ nav {
 //         margin: 0;
 //     }
 // }
+
+/* Job page  -----------------------------------------*/
+.status-indicator{
+    display: flex;
+    flex: row;
+    width: 100%;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: $c_tone_04;
+    font-weight:bold;
+
+    :first-child, :last-child{
+        border: 1px solid $c_tone_03;
+    }
+    :first-child{
+        border-top-left-radius: 0.2rem;
+        border-bottom-left-radius: 0.2rem;
+    }
+    :last-child{
+        border-top-right-radius: 0.95rem;
+        border-bottom-right-radius: 0.95rem;  
+    }
+
+    .status-name{
+        display: block;
+        padding: 0.1rem 0.5rem 0.1rem 1rem;
+        width: fit-content;
+        color: white;
+    }
+
+    .toggle-todolist{
+        display: block;
+        padding: 0.1rem 1rem 0.1rem 0.7rem;
+        background: transparent;
+
+        color: $c_tone_06;
+        border: 1px solid $c_tone_03;
+        border-left: 3px solid $c_tone_05;
+
+        &:hover{
+            background: $c_tone_03;
+        }
+    }
+
+    &.on{
+        .toggle-todolist{
+            color: $c_accent_secondary;
+            border: 1px solid $c_accent_secondary_03;
+            border-left: 3px solid $c_accent_secondary;
+
+            &:hover{
+                background: $g_button_secondary;
+                color: black;
+                font-weight: bold;
+            }
+        }
+
+
+    }
+
+}
+
+.extended-subheading{
+    display: block;
+    position: relative;
+    width: 100%;
+
+    a{
+        display: block;
+        position: absolute;
+        height: 1.5rem;
+        bottom: 0;
+        right: 0.8rem;
+        font-size: 1.2rem;
+        text-decoration: none;
+
+        &:hover{
+            text-decoration: underline;
+        }
+    }
+}
+
+.job-page-sections-wrapper{
+    display: flex;
+    flex: row;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+
+    h3{
+        margin-bottom: 0;
+    }
+    h4{
+        display: block;
+        padding: 0.3rem 0.4rem 0.15rem;
+        margin-bottom: 0.1rem;
+        width: fit-content;
+        border-bottom: 1px solid $c_tone_03;
+
+        // margin: 14px 0 4px;
+        // padding: 3px 8px;
+        // font-size: 0.75rem;
+
+        // border-radius: 4px;
+        // border: 1px solid $c_tone_03;
+        // color: $c_tone_06;
+
+        // width: -moz-fit-content;
+        // width: fit-content;
+    }
+
+    .po-row{
+        display: block;
+        border: 1px solid $c_tone_03;
+        padding: 0.3rem;
+        margin-top: 0.5rem;
+        border-radius: 5px;
+    }
+}
+#job_details{
+    max-width: $MAX_WIDTH;
+
+    .read_row{
+        border-bottom: 1px solid $c_tone_02;
+        padding: 0.2rem 0;
+
+        display: flex;
+        flex: row;
+
+        .row-label{
+            display: inline-block;
+            min-width: 8rem;
+            max-width: 8rem;
+
+            margin-left: calc(0.3rem + 6px);
+        }
+    }
+}
+
+.edit-comment{
+    border: 0;
+    //border-radius: 13px;
+
+    border-radius: 4px;
+    border: 1px solid $c_accent;
+
+    height: 26px;
+    width: 26px;
+
+    background-image: url(i-edit.svg);
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px 16px;
+    text-indent: -9999px;
+
+
+    &:hover{
+        background-position: 4px 4px;
+        //background-color: $c_tone_04;
+        //border: 1px solid $c_tone_05;
+        background-color: $c_accent;
+        border: 1px solid $c_accent_04;
+
+    }
+}
+
+

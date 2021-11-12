@@ -1,5 +1,5 @@
 const ID_ADD_COMMENT_WITH_SETTINGS_BTN = 'id_add_job_comment_with_settings';
-const CLASS_ADD_COMMENT_SIMPLIFIED = 'add-job-comment';
+const CLASS_ADD_COMMENT_SIMPLIFIED = 'comment-to-todolist';
 const DEFAULT_COMMENT_ID = '0';
 const CLASS_COMMENT_EDIT_BTN = 'edit-comment';
 const CLASS_COMMENT_DELETE_BTN = 'delete-comment-btn';
@@ -1151,11 +1151,11 @@ function handle_section_emptiness(comment_section_ele, section_name=STR_FALLBACK
 
     // Assumption: sometimes there'll be a conditional comment section that appears when there are comments and disappears when there aren't, which means
     // using JS to add the stuff around the comments (i.e. an <h5> above them) when the first comment is added; sometimes there'll be a persistent comment section, 
-    // where the headings and such don't change, but when the last comment is removed we'd like to use JS to add a <p> to explain the emptiness is intentional.
+    // where the headings and such are always there, but when the last comment is removed we'd like to use JS to add a <p> to explain the emptiness is intentional.
     //
     // Presumably these are mutually exclusive behaviours: either the section is persistent (in which case it should already have a persistent <h#> tag, so why
-    // would anyone want to use JS to add another underneath?) or it's not (in which case, why would we add a comment explaining emptiness when we're removing the
-    // entire section?). She wrote, tempting fate, wondering exactly how this would come back to haunt her later...
+    // would anyone want to use JS to add another?) or it's not (in which case, why would we add a comment explaining emptiness when we're removing the
+    // entire section?)... she wrote, tempting fate, wondering exactly how this would come back to haunt her later.
 
     if(comment_section_ele.classList.contains(CLASS_WANT_TOGGLE_H5)){
         // <h5> is there to label the comments which suddenly appeared, so it should appear when there are comments and disappear when there aren't.

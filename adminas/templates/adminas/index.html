@@ -17,6 +17,7 @@
 
 {% block body %}
     <h2>Home</h2>
+    <h3>To-do List</h3>
     <div id="id_todo_list_container">
     {% for job in data %}
         <article id="todo_panel_job_{{ job.id }}" class="job-panel">
@@ -54,7 +55,7 @@
             {% endfor %}
                 </section>
                 <div class="todo-list-add-pinned-comment-container">
-                    <button class="add-job-comment" data-form_type="content-only">comment</button>
+                    <button class="add-button comment-to-todolist" data-form_type="content-only">comment</button>
                 </div>
             </section>
 
