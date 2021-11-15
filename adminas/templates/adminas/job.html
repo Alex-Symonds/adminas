@@ -53,7 +53,7 @@
             <h3>Comments</h3>
             <a href="{% url 'job_comments' job.id %}?page=1">See all {{ num_comments }} comments</a>
             {% for section in comment_data %}
-            <section>
+            <section class="subsection">
                 <h4>{{ section.title }}</h3>
                 <div class="comment-container {{ section.class_suffix }} empty-paragraph">
                 {% for comment in section.comments %}
@@ -70,10 +70,10 @@
         <section id="job_details">
             <h3>General Details</h3>
             <div class="extended-subheading">
-                <a href="{% url 'edit_job' %}?job={{job.id}}">Edit</a>
+                <a href="{% url 'edit_job' %}?job={{job.id}}" class="edit-icon">edit</a>
             </div>
 
-            <section>
+            <section class="subsection">
                 <h4>Identification</h4>
                 <div class="read_row">
                     <span class="row-label">Agent: </span>{{ job.agent.name }}
@@ -92,7 +92,7 @@
                 </div>
             </section>
 
-            <section id="job_payment_section">
+            <section id="job_payment_section" class="subsection">
                 <h4>Payment</h4>
                 <div class="read_row">
                     <span class="row-label">Invoice address: </span>{{ job.invoice_to.address }}, {{ job.invoice_to.region }}, {{ job.invoice_to.postcode }}, {{ job.invoice_to.country.name }}
@@ -105,7 +105,7 @@
                 </div>
             </section>
 
-            <section id="job_delivery_section">
+            <section id="job_delivery_section" class="subsection">
                 <h4>Delivery</h4>
                 <div class="read_row">
                     <span class="row-label">Delivery address: </span>{{ job.delivery_to.address }}, {{ job.delivery_to.region }}, {{ job.delivery_to.postcode }}, {{ job.delivery_to.country.name }}
@@ -118,83 +118,84 @@
         </section>
 
         <section id="job_po_section">
-            <h3>Purchase Order</h3>
+            <h3>Purchase Orders</h3>
             <div class="job-po-container">
         {% for po in job.related_po %}
                     <div class="po-row">
                         <div class="details">
                             <span class="reference">{{ po.reference }}</span> dated <span class="date_on_po">{{ po.date_on_po }}</span> for <span class="currency">{{ po.currency }}</span> <span class="value">{{ po.value_f }}</span> (received <span class="date_received">{{ po.date_received }}</span>)
-                            <button class="po-edit edit-comment" data-po="{{ po.id }}">edit</button>
+                            <button class="po-edit edit-icon" data-po="{{ po.id }}">edit</button>
                         </div>
                     </div>
         {% endfor %}
             </div>
             <div class="job-po-form-container">
-                <button id="toggle_po_form_btn">Add PO</button>
+                <button id="toggle_po_form_btn" class="add-button">New PO</button>
                 <form method="POST" action="{% url 'purchase_order' %}" class="hide" id="po_form">
                     {% csrf_token %}
                     {{ po_form }}
                     <input type='submit' action='submit' id='po_submit_button' value='submit'>
                 </form>
             </div>
+
         {% if job.total_difference_value_po_vs_line != 0 %}
-            <div class="job-po-check">
+            <div class="warning subsection">
                 <h4>Discrepancy</h4>
                 <p>Sum of PO values does not match sum of line item selling prices.</p>
-                <table>
-                    <tr><th>PO Total</th><td>{{ job.currency }}</td><td class="po-total-price-f">{{ job.total_po_value_f }}</td><td></td></tr>
-                    <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price">{{ job.total_line_value_f }}</td><td></td></tr>
-                    <tr><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
+                <table class="difference">
+                    <tr><th>PO Total</th><td>{{ job.currency }}</td><td class="po-total-price-f number">{{ job.total_po_value_f }}</td><td></td></tr>
+                    <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price number">{{ job.total_line_value_f }}</td><td></td></tr>
+                    <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
                 </table>
             </div>
         {% endif %}
         </section>
 
-        <section class="job_doc_section">
+        <section class="job-doc-section">
             <h3>Documents</h3>
-            <h4>Works Order</h4>
-            <ul>
+            <div class="subsection">
+                <h4>Works Order</h4>
+                <ul>
         {% for doc_version in job.related_documents %}
             {% if doc_version.document.doc_type == 'WO' %}
-                <li>
-                    <a href="{% url 'doc_main' doc_version.id %}"
-                        {% if doc_version.issue_date != None %}
-                            class="issued-document">
-                            <span class="issue-icon">(i)</span>
-                        {% else %}
-                            class="saved-document">
-                            <span class="saved-icon">(s)</span>
-                        {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
-                    </a>
-                </li>
+                    <li>
+                        <a href="{% url 'doc_main' doc_version.id %}"
+                            {% if doc_version.issue_date != None %}
+                                class="issued-document">
+                                <span class="issue-icon">I</span>
+                            {% else %}
+                                class="saved-document">
+                                <span class="saved-icon">S</span>
+                            {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
+                        </a>
+                    </li>
             {% endif %}
         {% endfor %}
-                <li>
-                    <a href="{% url 'doc_builder' %}?job={{job.id}}&type=WO">New WO</a>
-                </li>
-            </ul>
+                </ul>
+                <a href="{% url 'doc_builder' %}?job={{job.id}}&type=WO" class="add-button">New WO</a>
+            </div>
 
-            <h4>Order Confirmation</h4>
-            <ul>
+            <div class="subsection">
+                <h4>Order Confirmation</h4>
+                <ul>
         {% for doc_version in job.related_documents %}
             {% if doc_version.document.doc_type == 'OC' %}
-                <li>
-                    <a href="{% url 'doc_main' doc_version.id %}"
+                    <li>
+                        <a href="{% url 'doc_main' doc_version.id %}"
                         {% if doc_version.issue_date != None %}
-                            class="issued-document">
-                            <span class="issue-icon">(i)</span>
+                                class="issued-document">
+                                <span class="issued-icon">I</span>
                         {% else %}
-                            class="saved-document">
-                            <span class="saved-icon">(s)</span>
+                                class="saved-document">
+                                <span class="saved-icon">S</span>
                         {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
-                    </a>
-                </li>
+                        </a>
+                    </li>
             {% endif %}
         {% endfor %}
-                <li>
-                    <a href="{% url 'doc_builder' %}?job={{job.id}}&type=OC">New OC</a>
-                </li>
-            </ul>
+                </ul>
+                <a href="{% url 'doc_builder' %}?job={{job.id}}&type=OC" class="add-button">New OC</a>
+            </div>
         </section>
 
         <section id="job_items_section">
@@ -205,12 +206,19 @@
                 <div class="existing-items-container">
 
             {% for it in job.main_item_list %}
-                    <div class="job-item-container">
-                        <div class="what">
-                            <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span>                       
-                        </div>
+                    <div class="panel job-item-container">
+                        <button class="ji-delete delete-panel" data-jiid="{{ it.id }}">delete</button>
+                        <h5 class="what">
+                            <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span> 
+                            <div class="desc">{% get_item_description it.product job.language %}</div>                      
+                        </h5>
 
-                        <div class="desc">{% get_item_description it.product job.language %}</div>
+                        <div class="money">
+                            <span class="currency">{{ job.currency }}</span>
+                            <span class="selling_price">{{ it.selling_price_f }}</span>
+                            <span class="price_list secondary-icon">{{ it.price_list }}</span>
+                            <button class="ji-edit edit-icon" data-jiid="{{ it.id }}" >edit</button>
+                        </div>
 
                         <div class="std-accs-container">
                 {% if it.includes.count > 0 %}
@@ -226,17 +234,19 @@
                         </div>
 
                 {% if it.product.is_modular == True %}
-                        <div class="mod-req-status">
-                            <p><span class="details-hider"><<< Modules:
+                        <div class="module-status-section subsection {% if it.all_required_modules_assigned == True %}modules-ok{% else %}warning{% endif %}">
+                            <div class="intro-line">
+                                <span class="display-text">&raquo; 
                     {% if it.all_required_modules_assigned == True %}
-                                    ok
+                                    Assigned
                     {% else %}
                                     INCOMPLETE
                     {% endif %}
+                                Modules
                                 </span>
-                                <a href="{% url 'manage_modules' job.id %}">[edit]</a>
-                            </p>
-                            <ul class="details hidden">
+                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon">edit</a>
+                            </div>
+                            <ul class="details">
                     {% for module in it.modules.all %}
                                 <li>{{ module.quantity }} x [{{ module.child.product.part_number }}] {{ module.child.product.name }}</li>
                     {% endfor %}
@@ -244,13 +254,14 @@
                         </div>
                 {% endif %}
         
-                        <div class="money"><span class="currency">{{ job.currency }}</span><span class="selling_price">{{ it.selling_price_f }}</span></div>
-                        <div class="price-list-info"><span class="price_list">{{ it.price_list }}</span></div>
-                        <button class="ji-edit" data-jiid="{{ it.id }}">edit</button>
-                        <button class="ji-delete" data-jiid="{{ it.id }}">delete</button>
                 {% if it.module_of.all.count != 0 %}
-                        <div>
-                            <p>>>> {{ it.module_of.all.count }} assignment{% if it.module_of.all.count > 1 %}s{% endif %} ({{ it.num_unassigned }} unassigned)<a href="{% url 'manage_modules' job.id %}">[edit]</a></p>
+                        <div class="module-status-section assignments">
+                            <div class="intro-line">
+                                <span class="display-text">
+                                    &laquo; {{ it.module_of.all.count }} assignment{% if it.module_of.all.count > 1 %}s{% endif %} ({{ it.num_unassigned }} unassigned)
+                                </span>
+                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon">edit</a>
+                            </div>
                             <ul>
                     {% for module in it.module_of.all %}
                                 <li>{{ module.quantity }} to [{{ module.parent.product.part_number }}] {{ module.parent.product.name }}</li>
@@ -262,7 +273,7 @@
             {% endfor %}
                 </div>
 
-                <button id="toggle_item_form_btn">add items</button>
+                <button id="toggle_item_form_btn" class="add-button">add items</button>
                 <div id="new_items_container" class="hide">
         {% else %}
 
@@ -302,9 +313,26 @@
             <p>Activates upon entering items.</p>
 
         {% else %}
-            <div id="price_summary">
-                <h4>Overall</h4>
-                <table>
+            <div id="price_confirmation_status">
+                <div class="status-indicator {% if job.price_is_ok %}on{% else %}off{% endif %}">
+                    <span class="status-name">
+                        selling price is
+                    </span>
+                    <button id="price_confirmation_button" data-current_status=
+            {% if job.price_is_ok %}
+                    "true">
+                    confirmed
+            {% else %}
+                    "false">
+                    NOT CONFIRMED
+            {% endif %}   
+                    </button>
+                </div>
+            </div>
+
+            <div id="price_summary" class="subsection">
+                <h4>Calculations</h4>
+                <table class="difference">
                     <tr>
                         <th>Line Item Sum</th>
                         <td>{{ job.currency }}</td>
@@ -317,7 +345,7 @@
                         <td class="list-price">{{ job.total_list_price_f }}</td>
                         <td></td>
                     </tr>
-                    <tr>
+                    <tr class="conclusion">
                         <th>Difference</th>
                         <td>{{ job.currency }}</td>
                         <td class="diff-val">{{ job.total_list_difference_value_f }}</td>
@@ -329,61 +357,46 @@
                 </table>
             </div>
 
-            <div id="price_confirmation_status">
-                {% if job.price_is_ok %}
-                    <p>Confirmed</p>
-                {% else %}
-                    <p class="warning">UNCONFIRMED</p>
-                {% endif %}
-                    <button id="price_confirmation_button" data-current_status=
-                {% if job.price_is_ok %}
-                        "true">
-                        Wrong Price
-                {% else %}
-                        "false">
-                        Confirm Price
-                {% endif %}     
-                    </button>
-                </div>
-
-            <h4>Details</h4>
-            <table id="price_check_table">
-                <tr class="upper-h-row">
-                    <th colspan=3></th>
-                    <th colspan=4>vs. Price List</th>
-                    <th colspan=4>vs. Resale</th>
-                </tr>
-                <tr class="lower-h-row">
-                    <th>qty</th>
-                    <th>part #</th>
-                    <th>sold @</th>
-                    <th>version</th>
-                    <th>value</th>
-                    <th colspan=2>diff</th>
-                    <th>perc</th>
-                    <th>value</th>
-                    <th colspan=2>diff</th>
-                </tr>
+            <div class="subsection">
+                <h4>Details</h4>
+                <table id="price_check_table">
+                    <tr class="upper-h-row">
+                        <th colspan=3></th>
+                        <th colspan=4>vs. Price List</th>
+                        <th colspan=4>vs. Resale</th>
+                    </tr>
+                    <tr class="lower-h-row">
+                        <th>qty</th>
+                        <th>part #</th>
+                        <th>sold @</th>
+                        <th>version</th>
+                        <th>value</th>
+                        <th colspan=2>diff</th>
+                        <th>perc</th>
+                        <th>value</th>
+                        <th colspan=2>diff</th>
+                    </tr>
 
             {% for item in job.main_item_list %}
                 {% if item.included_with == None %}
-                <tr id="price_check_row_{{ item.id }}">
-                    <td class="qty">{{ item.quantity }}</td>
-                    <td class="description"><span class="details-toggle">{{ item.product.part_number }}</span> <span class="details hide">{{ item.product.name }}</span></td>
-                    <td><span class="selling-price">{{ item.selling_price_f }}</span><button class="edit-btn" data-jiid="{{ item.id }}">edit</button></td>
-                    <td class="version">{{ item.price_list }}</td>
-                    <td class="list-price">{{ item.list_price_f }}</td>
-                    <td class="list-diff-val">{{ item.list_difference_value_f }}</td>
-                    <td class="list-diff-perc">{{ item.list_difference_perc_f }}%</td>
-                    <td class="resale-percentage">{{ item.resale_percentage }}%</td>
-                    <td class="resale-price">{{ item.resale_price_f }}</td>
-                    <td class="resale-diff-val">{{ item.resale_difference_value_f }}</td>
-                    <td class="resale-diff-perc">{{ item.resale_difference_perc_f }}%</td>
+                    <tr id="price_check_row_{{ item.id }}">
+                        <td class="qty">{{ item.quantity }}</td>
+                        <td class="description"><span class="details-toggle">{{ item.product.part_number }}</span> <span class="details hide">{{ item.product.name }}</span></td>
+                        <td><span class="selling-price">{{ item.selling_price_f }}</span><button class="edit-btn" data-jiid="{{ item.id }}">edit</button></td>
+                        <td class="version">{{ item.price_list }}</td>
+                        <td class="list-price">{{ item.list_price_f }}</td>
+                        <td class="list-diff-val">{{ item.list_difference_value_f }}</td>
+                        <td class="list-diff-perc">{{ item.list_difference_perc_f }}%</td>
+                        <td class="resale-percentage">{{ item.resale_percentage }}%</td>
+                        <td class="resale-price">{{ item.resale_price_f }}</td>
+                        <td class="resale-diff-val">{{ item.resale_difference_value_f }}</td>
+                        <td class="resale-diff-perc">{{ item.resale_difference_perc_f }}%</td>
 
-                </tr>
+                    </tr>
                 {% endif %}
             {% endfor %}
-            </table>
+                </table>
+            </div>
         {% endif %}
         </section>
     </div>

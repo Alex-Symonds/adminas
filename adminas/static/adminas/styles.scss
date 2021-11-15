@@ -34,10 +34,13 @@ $c_warning: rgb(207, 0, 0);
 //$g_warning: linear-gradient(0deg, rgb(139, 0, 0) 0%, rgb(192, 0, 0) 100%);
 $g_warning_hover: linear-gradient(0deg, rgb(172, 0, 0) 0%, rgb(230, 0, 0) 100%);
 $c_txt_warning_g: white;
+//$warning_shadow: 0 0 10px 1px rgba($c_warning, 50%);
+$warning_shadow: 0 0 2px 2px rgba(white, 80%);
 
 $g_secondary_btn: linear-gradient(335deg, rgb(48, 48, 48) 0%,  rgb(60, 60, 60) 100%);
 
 $c_accent_secondary: #0DFA96;
+$c_accent_secondary_02: #067A4A;
 $c_accent_secondary_03: #09BA70;
 
 $g_button_secondary: linear-gradient(335deg, #0AC778 0%,  #0DFA96 100%);
@@ -56,6 +59,11 @@ body {
     background: $c_bg_main;
     background: $g_bg_main;
     color: $c_txt_main;
+}
+
+button{
+    font-size: 1rem;
+    font-family: $f_contents;
 }
 
 a{
@@ -295,52 +303,13 @@ nav {
     flex-wrap: wrap;
 }
 
-.job-panel{//, .job-identifier-pane{
-    display: inline-block;
-    position: relative;
-    border: 1px solid $c_tone_04;
-    border-radius: 8px;
-    margin: 1rem 0.5rem 0 0.5rem;
-    width: 100%;
+.job-panel{
+    max-width: 400px;
     box-shadow: $panel_shadow;
 
     &:hover{
         border: 1px solid $c_tone_06;
         box-shadow: $panel_shadow_highlight;
-    }
-
-    a{
-        text-decoration: none;
-    }
-
-    .todo-list-remove{
-        position: absolute;
-        top: 2px;
-        right: 5px;
-        color: $c_tone_07;
-
-        width: 30px;
-        height: 30px;
-        background-image: url('i-minus-empty.svg');
-        background-repeat: no-repeat;
-        background-position: right;
-        text-indent: -9999px;
-        border: transparent;
-
-        background-color: transparent;
-        padding: 3px 5px;
-        font-size: 0.75rem;
-        z-index: 2;
-
-        &:hover{
-            color: $c_txt_main;
-            font-weight: bold;
-
-            background-image: url('i-minus-filled.svg');
-            width: 6.5rem; 
-            text-indent: 0;
-
-        }
     }
 
     h4{
@@ -371,23 +340,11 @@ nav {
         border-bottom: 1px solid $c_accent;
     }
 
-}
-.job-panel{
-    max-width: 400px;
     .comments{
         margin: 0;
     }
 }
-// .job-identifier-pane{
-//     max-width: $MAX_WIDTH;
-//     padding-bottom: 0.6rem;
 
-//     .comments{
-//         border-top: 1px solid $c_tone_03;
-//         margin: 0.8rem 0 0;
-//         padding-top: 3px;
-//     }
-// }
 
 @keyframes expand_comment_button {
     from {
@@ -427,7 +384,6 @@ nav {
         margin: 0.6rem 0 0 0;
     }
     
-
     background-image: url(i-plus-empty.svg);
     background-color: transparent;
     background-repeat: no-repeat;
@@ -450,7 +406,6 @@ nav {
         &.job-to-todolist{
             animation-name: expand_todo_button_add;
         }
-        
     }   
 }
 
@@ -485,6 +440,23 @@ nav {
         text-indent: 18px;
     }
 }
+
+@keyframes expand_document_button_add{
+    from {
+        width: 30px;
+        text-indent: -9999px;
+    }
+
+    95%{
+        text-indent: -9999px;
+    }
+    
+    to {
+        width: 8rem;
+        text-indent: 44px;
+    }
+}
+
 
 .todo-list-add-pinned-comment-container{
     display: block;
@@ -959,7 +931,7 @@ nav {
         color: white;
     }
 
-    .toggle-todolist{
+    #price_confirmation_button, .toggle-todolist{
         display: block;
         padding: 0.1rem 1rem 0.1rem 0.7rem;
         background: transparent;
@@ -974,7 +946,7 @@ nav {
     }
 
     &.on{
-        .toggle-todolist{
+        #price_confirmation_button, .toggle-todolist{
             color: $c_accent_secondary;
             border: 1px solid $c_accent_secondary_03;
             border-left: 3px solid $c_accent_secondary;
@@ -997,18 +969,35 @@ nav {
     width: 100%;
 
     a{
-        display: block;
+        color: $c_txt_main;
+    }
+
+    .edit-icon{
         position: absolute;
         height: 1.5rem;
         bottom: 0;
         right: 0.8rem;
-        font-size: 1.2rem;
         text-decoration: none;
 
         &:hover{
-            text-decoration: underline;
-        }
+            text-indent: -30px;
+            background-position: 5px 4px;
+        }   
     }
+
+    // a{
+    //     display: block;
+    //     position: absolute;
+    //     height: 1.5rem;
+    //     bottom: 0;
+    //     right: 0.8rem;
+    //     font-size: 1.2rem;
+    //     text-decoration: none;
+
+    //     &:hover{
+    //         text-decoration: underline;
+    //     }
+    // }
 }
 
 .job-page-sections-wrapper{
@@ -1020,33 +1009,70 @@ nav {
     h3{
         margin-bottom: 0;
     }
-    h4{
-        display: block;
-        padding: 0.3rem 0.4rem 0.15rem;
-        margin-bottom: 0.1rem;
-        width: fit-content;
-        border-bottom: 1px solid $c_tone_03;
-
-        // margin: 14px 0 4px;
-        // padding: 3px 8px;
-        // font-size: 0.75rem;
-
-        // border-radius: 4px;
-        // border: 1px solid $c_tone_03;
-        // color: $c_tone_06;
-
-        // width: -moz-fit-content;
-        // width: fit-content;
-    }
+    // h4{
+    //     display: block;
+    //     padding: 0.3rem 0.4rem 0.15rem;
+    //     margin-bottom: 1rem;
+    //     width: fit-content;
+    //     border-bottom: 2px solid $c_tone_03;
+    // }
 
     .po-row{
-        display: block;
+        display: flex;
+        justify-content: space-between;
+
         border: 1px solid $c_tone_03;
         padding: 0.3rem;
         margin-top: 0.5rem;
         border-radius: 5px;
     }
+
+    .subsection{
+        margin: 0.5rem 0 0 3px;
+        border-bottom: 1px solid $c_tone_03;
+        border-left: 3px solid $c_tone_04;
+
+        h4{
+            padding: 0.4rem 0 0.4rem 0.4rem;
+            width: calc(100% - 0.4rem);
+            background: $c_tone_02; 
+            margin: 0;
+            border-bottom: 0;
+        }
+
+        &.warning{
+            border-left: 3px solid $c_warning;
+
+
+            .intro-line, h4{
+                background: $c_warning;
+            }
+
+            p{
+                margin: 0;
+                padding: 0.5rem;
+            }
+
+        }
+    }
+
+
 }
+
+
+
+#job_po_section{
+    .warning{
+        box-shadow: $warning_shadow;
+    }
+}
+
+#toggle_po_form_btn{
+    margin-top: 0.4rem;
+}
+
+
+
 #job_details{
     max-width: $MAX_WIDTH;
 
@@ -1067,12 +1093,11 @@ nav {
     }
 }
 
-.edit-comment{
-    border: 0;
-    //border-radius: 13px;
+.edit-icon{
+    float: right;
 
-    border-radius: 4px;
-    border: 1px solid $c_accent;
+    border: 0;
+    border-bottom: 2px solid transparent;
 
     height: 26px;
     width: 26px;
@@ -1084,15 +1109,352 @@ nav {
     background-size: 16px 16px;
     text-indent: -9999px;
 
+    margin-left: 1rem;
+    margin-right: 3px;
+    max-width: 26px;
 
     &:hover{
-        background-position: 4px 4px;
-        //background-color: $c_tone_04;
-        //border: 1px solid $c_tone_05;
-        background-color: $c_accent;
-        border: 1px solid $c_accent_04;
-
+        background-position: 5px 5px;
+        background-color: transparent;
+        border-bottom: 2px solid white;
     }
 }
 
 
+.po-edit{
+    color: white;
+    margin-right: 0;
+    max-width: 26px;
+
+    // this margin-left gives the "edit" text an empty space to go into
+    margin-left: 50px;
+    &:hover{
+        text-indent: -60px;
+        background-position: 5px 4px;
+    }    
+}
+
+
+
+.ji-edit{
+    margin-right: 0;
+
+    &:hover{
+        background-position: 5px 4px;
+    }
+}
+
+.job-doc-section{
+    a{
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+    }
+
+    ul{
+        list-style-type: none;
+        margin: 5px 3px 0;
+        padding: 0 0 0 0.2rem;
+        border-bottom: 1px solid $c_tone_02;
+    }
+
+    li{
+        border-top: 1px solid $c_tone_02;
+        a{
+            padding: 0.2rem 0.2rem;
+            margin: 0;
+            &:hover{
+                background: $c_tone_02;
+            }
+        }
+
+    }
+
+    .add-button{
+        color: $c_txt_main;
+        margin: 3px 5px;
+        padding: 0;
+        text-decoration: none;
+        font-size: 1rem;
+
+        &:hover{
+            animation-name: expand_document_button_add;
+        }
+    }
+
+    .issued-icon, .saved-icon{
+        display: block;
+        width: 1rem;
+        text-align: center;
+        padding: 0.04rem 0 0.02rem;
+        border-radius: 2px;
+        font-weight: bold;
+        font-family: 'Times New Roman', serif;
+        margin: 3px 0.5rem 0 0;
+        font-size: 0.9rem;
+        border: 1px solid $c_tone_00;
+    }
+    .issued-icon{
+        color: white;
+        background: $c_tone_01;
+    }
+    .saved-icon{
+        color: black;
+        background:white;
+    }
+}
+
+
+
+.existing-items-container{
+    display: flex;
+    flex-flow: row wrap;
+    align-items: flex-start;
+
+    padding-bottom: 1rem;
+    border-bottom: 1px solid $c_tone_01;
+
+    width: 100%;
+}
+
+
+
+.panel{
+    display: inline-block;
+    position: relative;
+    border: 1px solid $c_tone_04;
+    border-radius: 8px;
+    margin: 1rem 0.5rem 0 0.5rem;
+    width: 100%;
+
+    a{
+        text-decoration: none;
+    }
+
+    .delete-panel{
+        position: absolute;
+        top: 2px;
+        right: 5px;
+        color: $c_tone_07;
+
+        width: 30px;
+        height: 30px;
+        background-image: url('i-minus-empty.svg');
+        background-repeat: no-repeat;
+        background-position: right;
+        text-indent: -9999px;
+        border: transparent;
+
+        background-color: transparent;
+        padding: 3px 5px;
+        font-size: 0.75rem;
+        z-index: 2;
+
+        &:hover{
+            color: $c_txt_main;
+            font-size: 1rem;
+            background-image: url('i-minus-filled.svg');
+            width: 6.5rem; 
+            text-indent: 0;
+        }
+    }
+
+
+}
+
+
+
+
+.job-item-container{
+    max-width: $MAX_WIDTH;
+    box-shadow: $panel_shadow;
+
+    h5{
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        font-size: 1rem;
+        margin: 0;
+        padding: 12px 8px;
+        width: calc(100% - 16px);
+        color: $c_txt_main;
+        background: $c_tone_02;
+        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
+
+        .desc{
+            &:before, &:after{
+                content: '"';
+            }
+
+            font-style: italic;
+            font-weight: normal;
+            font-size: 0.95rem;
+            color: $c_tone_06;
+        }
+    }
+
+    ul{
+        margin: 3px 0 0 0;
+        padding-bottom: 0.3rem;
+    }
+
+    li{
+        color: $c_tone_06;
+    }
+
+    .money{
+        margin: 0 3px;
+        padding: 4px 2px 10px 8px;
+        border-top: 1px solid $c_tone_04;
+        border-left: 3px solid transparent;
+
+        .currency, .selling_price{
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .selling_price{
+            margin-right: 0.5rem;
+        }
+
+    }
+
+    .std-accs-container{
+        margin-left: 3px;
+        border-left: 3px solid $c_tone_04;
+
+        p{
+            padding: 0.2rem 0 0.2rem 0.4rem;
+            width: calc(100% - 0.4rem);
+            background: $c_tone_02; 
+            margin: 0;
+        }
+    }
+
+    .module-status-section{
+        margin: 3px 0 1px 3px;
+        border-bottom-left-radius: 3px;
+
+        .intro-line{
+            display: flex;
+            align-items: center;
+            padding: 0.2rem 0 0.2rem 0.4rem;
+            width: calc(100% - 0.4rem - 3px);
+            background: $c_accent_02;
+
+            .display-text{
+                flex-grow: 2;
+            }
+            .edit-icon:hover{
+                line-height: 26px;
+                text-indent: -2rem;
+            }
+            &:after{
+                content: '';
+                display: table;
+                clear: both;
+            }
+        }
+    }
+
+    .assignments{
+        border-left: 3px solid $c_accent;
+        .intro-line{
+            background: $c_tone_02;
+        }
+
+        // border-left: 3px solid $c_accent;
+        // .intro-line{
+        //     background: $c_accent_02;
+        // }
+    }
+
+    .modules-ok{
+        border-left: 3px solid $c_accent_secondary;
+        .intro-line{
+            background: $c_tone_02;
+        }
+        // border-left: 3px solid $c_accent_secondary;
+        // .intro-line{
+        //     background: $c_accent_secondary_02;
+        // }
+    }  
+
+    .edit-icon:hover{
+        color: $c_txt_main;
+        text-indent: -4rem;
+    }
+}
+
+.secondary-icon{
+    margin: 3px 4px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+
+    border-radius: 6px;
+    border: 1px solid $c_tone_04;
+    color: $c_tone_06;
+
+    width: -moz-fit-content;
+    width: fit-content;
+}
+
+#toggle_item_form_btn{
+    margin-top: 3px;
+}
+
+table.difference{
+    margin: 0.5rem;
+    border-spacing: 0;
+
+    th{
+        text-align: right;
+        padding: 0.1rem 0.3rem;
+        border-right: 2px solid $c_tone_02;
+    }
+    td{
+        padding: 0.3rem;
+    }
+
+    th, td{
+        border-top: 1px solid $c_tone_02;
+    }
+
+    .number{
+        text-align: right;
+    }
+
+    .conclusion{
+        background: $c_tone_01;
+
+        th{
+            border-right: 2px solid $c_accent_secondary; 
+        }
+
+        th, td{
+            border-top: 1px solid $c_tone_03;//$c_tone_00;
+            //border-bottom: 1px solid $c_tone_00;
+        }
+    }
+}
+
+.confirmed, .unconfirmed{
+    margin: 1rem 0.5rem;
+}
+
+.status-toggle-indicator{
+    display: block;
+    padding: 0.1rem 1rem 0.1rem 0.7rem;
+    background: transparent;
+
+    color: $c_tone_06;
+    border: 1px solid $c_tone_03;
+    border-left: 3px solid $c_tone_05;
+
+    &:hover{
+        background: $c_tone_03;
+    }
+}
+
+#price_check_table{
+    
+}
