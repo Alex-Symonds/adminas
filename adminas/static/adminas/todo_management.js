@@ -116,13 +116,6 @@ function replace_todo_btn(btn){
         btn.remove();
         td.innerHTML = '-';
     }
-    // else if(REPLACE_TODO_BTN == 'div'){
-    //     div = document.createElement('div');
-    //     div.classList.add('on-todo-list');
-    //     div.innerHTML = 'on todo list';
-    //     btn.before(div);
-    //     btn.remove();
-    // }
 }
 
 function frontend_update_todo_toggle_btn(btn, is_on_todo_list){

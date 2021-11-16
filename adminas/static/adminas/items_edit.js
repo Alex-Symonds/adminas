@@ -121,6 +121,8 @@ function edit_mode_form(display_div, edit_btn){
     let edit_mode_ele = document.createElement('div');
     edit_mode_ele.id = EDIT_ITEM_CONTAINER_ID;
 
+    edit_mode_ele.append(create_ele_jobitem_editor_heading());
+
     // Here's the inputs
     for(let i=0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
         // Add a label to the new_item div
@@ -147,10 +149,24 @@ function edit_mode_form(display_div, edit_btn){
     
     // Open the doors and here's all the... people? P-imputs?
     // Buttons. Here are the buttons.
-    edit_mode_ele.append(edit_item_cancel_btn(edit_btn))
-    edit_mode_ele.append(edit_item_submit_btn(edit_btn));
+    edit_mode_ele.append(create_ele_jobitem_editor_button_container(edit_btn));
     return edit_mode_ele;
 }
+
+function create_ele_jobitem_editor_button_container(edit_btn){
+    let container_ele = document.createElement('div');
+    container_ele.classList.add('button-container');
+    container_ele.append(edit_item_submit_btn(edit_btn));
+    container_ele.append(edit_item_cancel_btn())
+    return container_ele;
+}
+
+function create_ele_jobitem_editor_heading(){
+    let heading = document.createElement('h5');
+    heading.innerHTML = 'Edit Item';
+    return heading;
+}
+
 
 // Edit JobItem (before): Create a label element for the edit form
 function edit_item_label(field_name){
@@ -181,8 +197,9 @@ function edit_item_preset_input(field, value){
 }
 
 // Edit JobItem (before): Create a cancel button element for the edit form
-function edit_item_cancel_btn(edit_btn){
+function edit_item_cancel_btn(){
     let cancel_btn = document.createElement('button');
+    cancel_btn.classList.add('button-primary-hollow');
     cancel_btn.innerHTML = 'cancel';
     cancel_btn.id = 'id_btn_cancel_edit_item';
     cancel_btn.dataset.jiid = cancel_btn.dataset.jiid;
@@ -202,6 +219,7 @@ function cancel_item_edit(e){
 // Edit JobItem (before): Create a submit button element for the edit form
 function edit_item_submit_btn(edit_btn){
     let submit_btn = document.createElement('button');
+    submit_btn.classList.add('button-primary');
     submit_btn.innerHTML = 'submit';
     submit_btn.id = 'id_btn_edit_item';
     submit_btn.dataset.jiid =edit_btn.dataset.jiid;
@@ -413,6 +431,14 @@ function update_price_check_section_in_dom(server_data, jobitem_id){
     summary_div.querySelector('.list-price').innerHTML = server_data['total_list_f'];
     summary_div.querySelector('.diff-val').innerHTML = server_data['total_list_difference_value_f'];
     summary_div.querySelector('.diff-perc').innerHTML = server_data['total_list_difference_perc'];
+
+    // If the PO discrepancy panel is there, update that too.
+    let po_discrepancy_ele = document.querySelector('.po-discrepancy');
+    if(po_discrepancy_ele != null){
+        po_discrepancy_ele.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
+        po_discrepancy_ele.querySelector('.diff-val').innerHTML = server_data['total_po_difference_value_f'];
+        po_discrepancy_ele.querySelector('.diff-perc').innerHTML = server_data['total_po_difference_perc'];
+    }
 
     // Update the Price Check table
     let item_row = find_price_check_tr(jobitem_id);
@@ -650,29 +676,39 @@ function cancel_price_edit_mode(){
 
 // Price check edit (action): onclick of a preset button, calls the edit function based on the preset value
 function edit_price_preset(e){
-    let tr = e.target.closest('tr');
-    let jiid = extract_jiid_from_price_check_tr_id(tr.id);
+    // let tr = e.target.closest('tr');
+    // let jiid = extract_jiid_from_price_check_tr_id(tr.id);
 
     let new_price = e.target.dataset.new_price.replaceAll(',', '');
     
-    edit_price_on_server(jiid, new_price);
+    // edit_price_on_server(jiid, new_price);
+    edit_price(e.target, new_price);
 }
 
 // Price check edit (action): onclick of the submit button following the input, calls the edit function based on the input value
 function edit_price_custom(e){
-    let tr = e.target.closest('tr');
-    let jiid = extract_jiid_from_price_check_tr_id(tr.id);
+    // let tr = e.target.closest('tr');
+    // let jiid = extract_jiid_from_price_check_tr_id(tr.id);
 
     let input = e.target.previousElementSibling;
     let new_price = input.value.trim();
 
+    // edit_price_on_server(jiid, new_price);
+    edit_price(e.target, new_price);
+}
+
+function edit_price(btn, new_price){
+    let tr = btn.closest('tr');
+    let jiid = tr.id.trim().replace(ID_PREFIX_PRICE_CHECK_ROW, '');
+
     edit_price_on_server(jiid, new_price);
 }
 
+
 // Price check edit (action): take a tr element ID, return the jobitem ID
-function extract_jiid_from_price_check_tr_id(tr_id){
-    return tr_id.trim().replace(ID_PREFIX_PRICE_CHECK_ROW, '');
-}
+// function extract_jiid_from_price_check_tr_id(tr_id){
+//     return tr_id.trim().replace(ID_PREFIX_PRICE_CHECK_ROW, '');
+// }
 
 // Price check edit (action): PUTs the data to the server and calls for the page update
 function edit_price_on_server(jiid, new_price){

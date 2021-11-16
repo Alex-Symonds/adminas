@@ -387,16 +387,11 @@ def job_comments(request, job_id):
 
                 comment.save()
             
-            return JsonResponse({
-                'id': comment.id,
-                'username': comment.created_by.username,
-                'timestamp': formats.date_format(comment.created_on, "DATETIME_FORMAT"),
-                'contents': comment.contents,
-                'private': comment.private,
-                'pinned': want_pinned,
-                'highlighted': want_highlighted,
-                'job_id': job_id
-            }, status=200)
+            data = comment.get_display_dict(request.user)
+            data['job_id'] = job_id
+            data['created_on'] = formats.date_format(comment.created_on, "DATETIME_FORMAT")
+
+            return JsonResponse(data, status=200)
 
     my_job = Job.objects.get(id=job_id)
 

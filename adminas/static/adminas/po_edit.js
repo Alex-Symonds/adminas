@@ -4,13 +4,12 @@ const CLASS_PO_EDIT_BTN = 'po-edit';
 document.addEventListener('DOMContentLoaded', (e) => {
     document.querySelectorAll('.' + CLASS_PO_EDIT_BTN).forEach(btn => {
         btn.addEventListener('click', (e) => {
-            edit_mode_po(e);
+            open_po_editor(e);
         });
     });
 });
 
-
-function edit_mode_po(e){
+function open_po_editor(e){
     // Grab existing edit form for existence check and usage
     let edit_po_form = document.querySelector('#' + ID_PO_EDIT_FORM);
 
@@ -25,30 +24,41 @@ function edit_mode_po(e){
         wipe_data_from_form(edit_po_form);
         var form_div = edit_po_form;
     } else {
-        var form_div = get_edit_po_div(e.target);
+        var form_div = get_ele_edit_po_div(e.target);
     }
 
     // Add to DOM
     e.target.after(form_div);
-    form_div.after(get_edit_po_delete_btn(e.target.dataset.po));
+
+    //form_div.after(get_edit_po_delete_btn(e.target.dataset.po));
+    let button_container = form_div.querySelector('.button-container');
+    button_container.append(get_edit_po_delete_btn(e.target.dataset.po));
 
     populate_po_edit_form(form_div);
 }
 
-function get_edit_po_div(edit_btn){
+function get_ele_edit_po_div(edit_btn){
     let create_po_form = document.querySelector('#po_form');
     let div = create_po_form.cloneNode(true);
+
     div.id = ID_PO_EDIT_FORM;
     div.action = `/purchase_order?id=${edit_btn.dataset.po}`;
     if(div.classList.contains('hide')){
         div.classList.remove('hide');
     }
-    div.append(get_edit_po_cancel_btn());
+    
+    let heading = div.querySelector('h5');
+    heading.innerHTML = "Edit PO";
+
+    let cancel_btn = div.querySelector('.cancel-po-form');
+    cancel_btn.addEventListener('click', close_edit_form);
+
     return div;
 }
 
 function get_edit_po_cancel_btn(){
     let btn = document.createElement('button');
+    btn.classList.add('button-primary-hollow');
     btn.innerHTML = 'cancel';
     btn.addEventListener('click', (e) => {
         close_edit_form();
@@ -60,6 +70,7 @@ function get_edit_po_delete_btn(po_id){
     let btn = document.createElement('button');
     btn.innerHTML = 'delete';
     btn.id = 'delete_po_btn';
+    btn.classList.add('button-warning');
     btn.setAttribute('data-po', po_id);
     btn.addEventListener('click', (e) => {
         delete_po(e);
@@ -69,10 +80,9 @@ function get_edit_po_delete_btn(po_id){
 
 function close_edit_form(){
     let form = document.querySelector('#' + ID_PO_EDIT_FORM);
-    form.remove();
-
-    let delete_btn = document.querySelector('#delete_po_btn');
-    delete_btn.remove();
+    if(form != null){
+        form.remove();
+    }
 }
 
 function populate_po_edit_form(edit_form){

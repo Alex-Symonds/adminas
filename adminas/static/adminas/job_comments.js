@@ -1,5 +1,6 @@
-const ID_ADD_COMMENT_WITH_SETTINGS_BTN = 'id_add_job_comment_with_settings';
-const CLASS_ADD_COMMENT_SIMPLIFIED = 'comment-to-todolist';
+const CLASS_ADD_BUTTON = 'add-button';
+const CLASS_ADD_COMMENT = 'comment';
+
 const DEFAULT_COMMENT_ID = '0';
 const CLASS_COMMENT_EDIT_BTN = 'edit-comment';
 const CLASS_COMMENT_DELETE_BTN = 'delete-comment-btn';
@@ -59,14 +60,7 @@ const STR_FALLBACK = '???';
 // Assign event listeners onload
 document.addEventListener('DOMContentLoaded', () => {
 
-    let add_comment_button = document.getElementById(ID_ADD_COMMENT_WITH_SETTINGS_BTN);
-    if(add_comment_button != null){
-        add_comment_button.addEventListener('click', (e)=>{
-            open_jobcomment_editor_for_create(e.target);
-        });
-    }
-
-    document.querySelectorAll('.' + CLASS_ADD_COMMENT_SIMPLIFIED).forEach(btn => {
+    document.querySelectorAll(`.${CLASS_ADD_BUTTON}.${CLASS_ADD_COMMENT}`).forEach(btn => {
         btn.addEventListener('click', (e) => {
             open_jobcomment_editor_for_create(e.target);
         })
@@ -108,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function open_jobcomment_editor_for_create(btn){
     // There's only supposed to be one instance of the element in existence at a time (it uses IDs, don't want those duplicated),
     // so if the user has somehow managed to open one copy and ask for a second, close the old before opening the new.
+    console.log('called');
     close_jobcomment_editor();
 
     if(btn.dataset.form_type === VALUE_FORM_TYPE_CONTENT_ONLY){
@@ -348,13 +343,11 @@ function visibility_comment_content(comment_ele, want_visibility){
 function visibility_add_comment_btn(want_visibility){
 
     if(want_visibility){
-        unhide_all_by_class(CLASS_ADD_COMMENT_SIMPLIFIED);
+        unhide_all_by_class(`.${CLASS_ADD_BUTTON}.${CLASS_ADD_COMMENT}`);
     }
     else {
-        hide_all_by_class(CLASS_ADD_COMMENT_SIMPLIFIED);
+        hide_all_by_class(`.${CLASS_ADD_BUTTON}.${CLASS_ADD_COMMENT}`);
     }
-    
-    visibility_element(document.getElementById(ID_ADD_COMMENT_WITH_SETTINGS_BTN), want_visibility);
 }
 
 
@@ -595,17 +588,17 @@ function create_ele_new_comment(response, want_streamlined_comment){
 
     if(want_streamlined_comment){
         var details_like_ele = document.createElement('details');
-        var summary_like_ele = document.createElement('summary');
+        var summary_like_div = document.createElement('summary');
     }
     else {
         var details_like_ele = document.createElement('div');
         details_like_ele.classList.add('full-comment-container');
-        var summary_like_ele = document.createElement('div');
-        summary_like_ele.classList.add('comment-body');
+        var summary_like_div = document.createElement('div');
+        summary_like_div.classList.add('comment-body');
     }
 
-    summary_like_ele.append(create_ele_comment_main_contents(response['private'], response['contents']));
-    details_like_ele.append(summary_like_ele);
+    summary_like_div.append(create_ele_comment_main_contents(response['private'], response['contents']));
+    details_like_ele.append(summary_like_div);
     details_like_ele.append(create_ele_comment_footer(response));
 
     container_ele.append(details_like_ele);
@@ -633,56 +626,6 @@ function create_ele_comment_footer(data_dict){
     return footer_ele;
 }
 
-
-
-
-
-
-
-// function get_new_comment_div(response, streamline_comment){
-//     let container_ele = document.createElement('article');
-
-//     container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
-//     container_ele.classList.add(`${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`);
-
-//     if(streamline_comment){
-//         container_ele.classList.add(CLASS_HOVER_PARENT);
-//     }
-
-//     if(response['private']){
-//         container_ele.classList.add('private');
-//     } else {
-//         container_ele.classList.add('public');
-//     }
-
-//     if(response['highlighted']){
-//         container_ele.classList.add(CLASS_HIGHLIGHTED_CSS);
-//     }
-
-//     container_ele.setAttribute('data-comment_id', response['id']);
-//     container_ele.setAttribute('data-is_private', response['private']);
-//     container_ele.setAttribute('data-is_pinned', response['pinned']);
-//     container_ele.setAttribute('data-is_highlighted', response['highlighted']);
-
-//     let upper_ele = document.createElement('section');
-//     upper_ele.classList.add(CLASS_COMMENT_MAIN);
-//     upper_ele.append(create_comment_body(response['contents']));
-//     upper_ele.append(create_comment_controls(response['pinned'], streamline_comment));
-//     container_ele.append(upper_ele);
-
-//     let lower_ele = document.createElement('section');
-//     lower_ele.classList.add(CLASS_COMMENT_FOOTER);
-//     if(streamline_comment){
-//         lower_ele.classList.add('hover-child');
-//     }
-
-//     lower_ele.append(create_comment_ownership(response['username'], response['timestamp'], response['private']));
-//     container_ele.append(lower_ele);
-
-//     apply_event_listeners_to_comment(container_ele);
-
-//     return container_ele;
-// }
 
 // DOM (Create Comment): JobComment div with the comment itself inside
 function create_ele_comment_body_streamlined(contents){
@@ -741,8 +684,8 @@ function create_ele_comment_ownership(data_dict){
     if('footer_str' in data_dict){
         str = data_dict['footer_str'];
     }
-    else if('username' in data_dict && 'timestamp' in data_dict){
-        str = `${data_dict['username']} on ${data_dict['timestamp']}`; 
+    else if('created_by' in data_dict && 'created_on' in data_dict){
+        str = `${data_dict['created_by']} on ${data_dict['created_on']}`; 
     }
     result.innerHTML = str;
     

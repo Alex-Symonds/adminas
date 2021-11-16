@@ -145,34 +145,7 @@ article{
 
 
 
-/* Visibility functionality ------------------------------------------------------ */
-.hide{
-    position: absolute;
-    visibility: hidden;
-}
 
-.hover-parent{
-    display: inline-block;
-    position: relative;
-
-    .hover-child{
-        display: none;
-        position: absolute;
-        top: -0.75rem;
-        left: 1rem;
-        width: 18rem;
-        font-size: 0.8rem;
-        padding: 3px 5px 3px 3px;
-        color: $c_txt_alt;
-        background: $c_tone_05;
-        border: 1px solid $c_tone_06;
-        border-radius: 2px;
-    }
-
-    &:hover .hover-child{
-        display: block;
-    }
-}
 
 
 
@@ -226,6 +199,20 @@ nav {
         color: $c_txt_alt;
         background: $c_accent_03;
         background: $g_button_hover;
+        box-shadow: 0 0 3px 1px $c_tone_02;
+    }
+}
+.button-primary-hollow{
+    font-weight: bold;
+    border-radius: 0.6rem;
+
+    background: transparent;
+    color: $c_accent;
+    border: 1px solid $c_accent_02;
+
+    &:hover{
+        color: $c_txt_alt;
+        background: $c_accent_03;
         box-shadow: 0 0 3px 1px $c_tone_02;
     }
 }
@@ -303,7 +290,8 @@ nav {
     flex-wrap: wrap;
 }
 
-.job-panel{
+
+.job-panel {
     max-width: 400px;
     box-shadow: $panel_shadow;
 
@@ -963,42 +951,7 @@ nav {
 
 }
 
-.extended-subheading{
-    display: block;
-    position: relative;
-    width: 100%;
 
-    a{
-        color: $c_txt_main;
-    }
-
-    .edit-icon{
-        position: absolute;
-        height: 1.5rem;
-        bottom: 0;
-        right: 0.8rem;
-        text-decoration: none;
-
-        &:hover{
-            text-indent: -30px;
-            background-position: 5px 4px;
-        }   
-    }
-
-    // a{
-    //     display: block;
-    //     position: absolute;
-    //     height: 1.5rem;
-    //     bottom: 0;
-    //     right: 0.8rem;
-    //     font-size: 1.2rem;
-    //     text-decoration: none;
-
-    //     &:hover{
-    //         text-decoration: underline;
-    //     }
-    // }
-}
 
 .job-page-sections-wrapper{
     display: flex;
@@ -1009,13 +962,6 @@ nav {
     h3{
         margin-bottom: 0;
     }
-    // h4{
-    //     display: block;
-    //     padding: 0.3rem 0.4rem 0.15rem;
-    //     margin-bottom: 1rem;
-    //     width: fit-content;
-    //     border-bottom: 2px solid $c_tone_03;
-    // }
 
     .po-row{
         display: flex;
@@ -1025,6 +971,10 @@ nav {
         padding: 0.3rem;
         margin-top: 0.5rem;
         border-radius: 5px;
+
+        .edit-icon:hover{
+            background-position: 5px 4px;
+        }
     }
 
     .subsection{
@@ -1042,7 +992,6 @@ nav {
 
         &.warning{
             border-left: 3px solid $c_warning;
-
 
             .intro-line, h4{
                 background: $c_warning;
@@ -1095,6 +1044,7 @@ nav {
 
 .edit-icon{
     float: right;
+    position: relative;
 
     border: 0;
     border-bottom: 2px solid transparent;
@@ -1107,31 +1057,58 @@ nav {
     background-repeat: no-repeat;
     background-position: center;
     background-size: 16px 16px;
-    text-indent: -9999px;
 
-    margin-left: 1rem;
+    //margin-left: 1rem;
+    margin-left: 3px;
     margin-right: 3px;
     max-width: 26px;
+
+    span{
+        color: transparent;
+        text-align: center;
+    }
 
     &:hover{
         background-position: 5px 5px;
         background-color: transparent;
         border-bottom: 2px solid white;
+
+        span{
+            color: white;
+            border-radius: 5px;
+            background: rgba($c_tone_00, 80%);
+            border: 1px solid $c_tone_00;
+
+            display: block;
+            width: 3rem;
+
+            position: absolute;
+            top:0;
+            right:26px;
+        }
     }
 }
 
+.extended-subheading{
+    display: block;
+    position: relative;
+    width: 100%;
 
-.po-edit{
-    color: white;
-    margin-right: 0;
-    max-width: 26px;
+    a{
+        color: $c_txt_main;
+    }
 
-    // this margin-left gives the "edit" text an empty space to go into
-    margin-left: 50px;
-    &:hover{
-        text-indent: -60px;
-        background-position: 5px 4px;
-    }    
+    .edit-icon{
+        position: absolute;
+        height: 1.5rem;
+        bottom: 0;
+        right: 0.8rem;
+        text-decoration: none;
+
+        &:hover{
+            background-position: 5px 4px;
+        }
+    }
 }
 
 
@@ -1218,7 +1195,6 @@ nav {
 }
 
 
-
 .panel{
     display: inline-block;
     position: relative;
@@ -1242,7 +1218,6 @@ nav {
         background-image: url('i-minus-empty.svg');
         background-repeat: no-repeat;
         background-position: right;
-        text-indent: -9999px;
         border: transparent;
 
         background-color: transparent;
@@ -1257,10 +1232,132 @@ nav {
             width: 6.5rem; 
             text-indent: 0;
         }
+
+        span{
+            color: transparent;
+            text-align: center;
+        }
+
+        &:hover{
+            span{
+                color: white;
+                border-radius: 5px;
+                background: rgba($c_tone_00, 80%);
+                border: 1px solid $c_tone_00;
+    
+                display: block;
+                width: 4rem;
+    
+                position: absolute;
+                top:0;
+                right:26px;
+            }
+        }
     }
 
 
 }
+
+
+#container_edit_item, #po_edit_form, #po_form{
+    // shared with panel
+    display: inline-block;
+    position: relative;
+    border: 1px solid $c_tone_04;
+    border-radius: 8px;
+    margin: 1rem 0.5rem 0 0.5rem;
+    width: 100%;
+    max-width: $MAX_WIDTH;
+
+    // shared with job item container
+    h5{
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        font-size: 1rem;
+        margin: 0;
+        padding: 12px 8px;
+        width: calc(100% - 16px);
+        color: $c_txt_main;
+        background: $c_tone_02;
+        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
+        border-bottom: 1px solid $c_tone_04;
+    }
+
+    // Not necessariy shared with anything
+    label, input, select, span, .button-container{
+        margin: 0;
+        margin-left: 0.7rem;
+    }
+
+    label{
+        display: block;
+        margin-top: 1rem;
+        margin-bottom: 6px;
+        margin-right: 0.7rem;
+        padding-top:0.3rem;
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-top: 1px solid $c_tone_02;
+    }
+
+    #id_edit_item_selling_price{
+        // This has a span in front indicating the currency, so it doesn't want the full margin
+        margin-left: 0.5rem;
+    }
+
+    .button-container{
+        display: flex;
+        justify-content: center;
+        gap: 5%;
+
+        margin-top: 1.2rem;
+        margin-bottom: 1rem;
+        margin-left: 0;
+
+        border-top: 1px solid $c_tone_02;
+        padding-top: 0.7rem;
+
+        button, #po_submit_button{
+            max-width: 10rem;
+            width: 30%;
+            height: 2rem;
+        }
+    }
+
+    &.hide{
+        display:none;
+    }
+
+}
+
+#po_edit_form{
+    width: calc(100% - 1rem);
+    margin-bottom: 1.1rem;
+
+    .button-container{
+        gap: 5%;
+
+        button, #po_submit_button{
+            max-width: 10rem;
+            width: 25%;
+            height: 2rem;
+        }
+    }
+
+
+}
+
+#new_items_container{
+
+
+
+
+    &.hide{
+        display:none;
+    }
+}
+
+
 
 
 
@@ -1303,7 +1400,7 @@ nav {
 
     .money{
         margin: 0 3px;
-        padding: 4px 2px 10px 8px;
+        padding: 4px 2px 10px 5px;
         border-top: 1px solid $c_tone_04;
         border-left: 3px solid transparent;
 
@@ -1313,7 +1410,7 @@ nav {
         }
 
         .selling_price{
-            margin-right: 0.5rem;
+            margin-left: 0.5rem;
         }
 
     }
@@ -1344,10 +1441,6 @@ nav {
             .display-text{
                 flex-grow: 2;
             }
-            .edit-icon:hover{
-                line-height: 26px;
-                text-indent: -2rem;
-            }
             &:after{
                 content: '';
                 display: table;
@@ -1361,11 +1454,6 @@ nav {
         .intro-line{
             background: $c_tone_02;
         }
-
-        // border-left: 3px solid $c_accent;
-        // .intro-line{
-        //     background: $c_accent_02;
-        // }
     }
 
     .modules-ok{
@@ -1373,16 +1461,7 @@ nav {
         .intro-line{
             background: $c_tone_02;
         }
-        // border-left: 3px solid $c_accent_secondary;
-        // .intro-line{
-        //     background: $c_accent_secondary_02;
-        // }
     }  
-
-    .edit-icon:hover{
-        color: $c_txt_main;
-        text-indent: -4rem;
-    }
 }
 
 .secondary-icon{
@@ -1394,6 +1473,8 @@ nav {
     border: 1px solid $c_tone_04;
     color: $c_tone_06;
 
+    white-space: nowrap;
+
     width: -moz-fit-content;
     width: fit-content;
 }
@@ -1402,7 +1483,11 @@ nav {
     margin-top: 3px;
 }
 
-table.difference{
+.warning.subsection{
+    margin: 1rem 0;
+}
+
+table.po-discrepancy{
     margin: 0.5rem;
     border-spacing: 0;
 
@@ -1437,10 +1522,6 @@ table.difference{
     }
 }
 
-.confirmed, .unconfirmed{
-    margin: 1rem 0.5rem;
-}
-
 .status-toggle-indicator{
     display: block;
     padding: 0.1rem 1rem 0.1rem 0.7rem;
@@ -1455,6 +1536,148 @@ table.difference{
     }
 }
 
+#price_summary{
+    margin-top: 1.5rem;
+}
+
 #price_check_table{
+    margin: 0.3rem;
+    border-collapse: collapse;
     
+    tr:nth-of-type(even) { 
+        background: $c_tone_02;
+    }
+    th, td{
+        padding: 0.1rem 0.5rem;
+    }
+    th{
+        border: 1px solid $c_tone_02;
+        background: $c_tone_03;
+    }
+    td{
+        border: 1px solid $c_tone_03;
+        text-align: right;
+        height: 2rem;
+    }
+
+    .selling-price{
+        display: inline-block;
+        margin-top: 0.25rem;
+    }
+
+    .edit-icon{
+        margin: 0 0 0 0.3rem;
+    }
+    .edit-icon:hover{
+        background-position: 5px 4px;
+    }
+}
+
+@media only screen and (max-width: 930px) { //1010px
+    #price_check_section{
+        max-width: 475px;
+        width: 100%;
+    }
+
+    // https://css-tricks.com/responsive-data-tables/
+    #price_check_table{
+        display: block; 
+
+        /* Force table to not be like tables anymore */
+        thead, tbody, th, td, tr { 
+            display: block; 
+        }
+        
+        /* Hide table headers (but not display: none;, for accessibility) */
+        thead tr { 
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+        
+        tr { 
+            margin-top: 0.3rem;
+            border: 1px solid $c_tone_04; 
+        }
+        
+        td { 
+            /* Behave  like a "row" */
+            border: none;
+            border-bottom: 1px solid $c_tone_03; 
+            position: relative;
+            padding-left: 50%; 
+            padding-top: 10px;
+
+            height: 1.75rem;
+        }
+       
+        td:before { 
+            /* Now like a table header */
+            position: absolute;
+            /* Top/left values mimic padding */
+            top: 10px;
+            left: 6px;
+            width: 47%; 
+            padding-right: 10px; 
+            white-space: nowrap;
+        }
+
+        .selling-price{
+            margin-top: 0;
+        }
+        
+        /*
+        Label the data
+        */
+        td:nth-of-type(2):before { content: "Quantity"; }
+        td:nth-of-type(1):before { content: "Part Number"; }
+        td:nth-of-type(3):before { content: "Sold @"; }
+        td:nth-of-type(4):before { content: "Price List: Version"; }
+        td:nth-of-type(5):before { content: "Price List: Value"; }
+        td:nth-of-type(6):before { content: "Price List vs. Sold"; }
+        td:nth-of-type(7):before { content: "Price List vs. Sold (%)"; }
+        td:nth-of-type(8):before { content: "Resale: Discount"; }
+        td:nth-of-type(9):before { content: "Resale: Value"; }
+        td:nth-of-type(10):before { content: "Resale vs. Sold"; }
+        td:nth-of-type(11):before { content: "Resale vs. Sold (%)"; }
+    }
+
+}
+
+
+
+
+
+/* Visibility functionality ------------------------------------------------------ */
+.hide{
+    // position: absolute;
+    // width: 1px;
+    // height: 1px;
+    // top: -9999px;
+    // left: -9999px;
+
+    display: none;
+}
+
+.hover-parent{
+    display: inline-block;
+    position: relative;
+
+    .hover-child{
+        display: none;
+        position: absolute;
+        top: -0.75rem;
+        left: 1rem;
+        width: 18rem;
+        font-size: 0.8rem;
+        padding: 3px 5px 3px 3px;
+        color: $c_txt_alt;
+        background: $c_tone_05;
+        border: 1px solid $c_tone_06;
+        border-radius: 2px;
+    }
+
+    &:hover .hover-child{
+        display: block;
+    }
 }

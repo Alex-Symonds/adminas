@@ -35,7 +35,7 @@ function update_price_check_on_page(btn, current_status){
         var wanted_class = 'on';
         var unwanted_class = 'off';
     } else {
-        btn.innerHTML = 'UNCONFIRMED';
+        btn.innerHTML = 'NOT CONFIRMED';
         var unwanted_class = 'on';
         var wanted_class = 'off';
     }

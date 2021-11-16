@@ -49,28 +49,10 @@
 
     <div class="job-page-sections-wrapper">
 
-        <section id="job_comments">
-            <h3>Comments</h3>
-            <a href="{% url 'job_comments' job.id %}?page=1">See all {{ num_comments }} comments</a>
-            {% for section in comment_data %}
-            <section class="subsection">
-                <h4>{{ section.title }}</h3>
-                <div class="comment-container {{ section.class_suffix }} empty-paragraph">
-                {% for comment in section.comments %}
-                    {% include "adminas/comment_collapse.html" with comment=comment %}
-                {% empty %}
-                    <p class="empty-section-notice">No comments have been {{ section.class_suffix }}</p>
-                {% endfor %}
-                </div>
-            </section>
-            {% endfor %}
-        </section>
-
-
         <section id="job_details">
             <h3>General Details</h3>
             <div class="extended-subheading">
-                <a href="{% url 'edit_job' %}?job={{job.id}}" class="edit-icon">edit</a>
+                <a href="{% url 'edit_job' %}?job={{job.id}}" class="edit-icon"><span>edit</span></a>
             </div>
 
             <section class="subsection">
@@ -117,39 +99,29 @@
 
         </section>
 
-        <section id="job_po_section">
-            <h3>Purchase Orders</h3>
-            <div class="job-po-container">
-        {% for po in job.related_po %}
-                    <div class="po-row">
-                        <div class="details">
-                            <span class="reference">{{ po.reference }}</span> dated <span class="date_on_po">{{ po.date_on_po }}</span> for <span class="currency">{{ po.currency }}</span> <span class="value">{{ po.value_f }}</span> (received <span class="date_received">{{ po.date_received }}</span>)
-                            <button class="po-edit edit-icon" data-po="{{ po.id }}">edit</button>
-                        </div>
-                    </div>
-        {% endfor %}
-            </div>
-            <div class="job-po-form-container">
-                <button id="toggle_po_form_btn" class="add-button">New PO</button>
-                <form method="POST" action="{% url 'purchase_order' %}" class="hide" id="po_form">
-                    {% csrf_token %}
-                    {{ po_form }}
-                    <input type='submit' action='submit' id='po_submit_button' value='submit'>
-                </form>
-            </div>
 
-        {% if job.total_difference_value_po_vs_line != 0 %}
-            <div class="warning subsection">
-                <h4>Discrepancy</h4>
-                <p>Sum of PO values does not match sum of line item selling prices.</p>
-                <table class="difference">
-                    <tr><th>PO Total</th><td>{{ job.currency }}</td><td class="po-total-price-f number">{{ job.total_po_value_f }}</td><td></td></tr>
-                    <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price number">{{ job.total_line_value_f }}</td><td></td></tr>
-                    <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
-                </table>
-            </div>
-        {% endif %}
+
+
+
+        <section id="job_comments">
+            <h3>Comments</h3>
+            <a href="{% url 'job_comments' job.id %}?page=1">See all {{ num_comments }} comments</a>
+            {% for section in comment_data %}
+            <section class="subsection">
+                <h4>{{ section.title }}</h3>
+                <div class="comment-container {{ section.class_suffix }} empty-paragraph">
+                {% for comment in section.comments %}
+                    {% include "adminas/comment_collapse.html" with comment=comment %}
+                {% empty %}
+                    <p class="empty-section-notice">No comments have been {{ section.class_suffix }}</p>
+                {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
         </section>
+
+
+
 
         <section class="job-doc-section">
             <h3>Documents</h3>
@@ -198,6 +170,8 @@
             </div>
         </section>
 
+
+
         <section id="job_items_section">
             <h3>Items</h3>
             <div class="job-items-container">
@@ -207,17 +181,17 @@
 
             {% for it in job.main_item_list %}
                     <div class="panel job-item-container">
-                        <button class="ji-delete delete-panel" data-jiid="{{ it.id }}">delete</button>
+
+                        <button class="ji-delete delete-panel" data-jiid="{{ it.id }}"><span>delete</span></button>
                         <h5 class="what">
                             <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span> 
                             <div class="desc">{% get_item_description it.product job.language %}</div>                      
                         </h5>
 
                         <div class="money">
-                            <span class="currency">{{ job.currency }}</span>
-                            <span class="selling_price">{{ it.selling_price_f }}</span>
+                            <span class="currency">{{ job.currency }}</span><span class="selling_price">{{ it.selling_price_f }}</span>
                             <span class="price_list secondary-icon">{{ it.price_list }}</span>
-                            <button class="ji-edit edit-icon" data-jiid="{{ it.id }}" >edit</button>
+                            <button class="ji-edit edit-icon" data-jiid="{{ it.id }}" ><span>edit</span></button>
                         </div>
 
                         <div class="std-accs-container">
@@ -244,7 +218,7 @@
                     {% endif %}
                                 Modules
                                 </span>
-                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon">edit</a>
+                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon"><span>edit</span></a>
                             </div>
                             <ul class="details">
                     {% for module in it.modules.all %}
@@ -260,7 +234,7 @@
                                 <span class="display-text">
                                     &laquo; {{ it.module_of.all.count }} assignment{% if it.module_of.all.count > 1 %}s{% endif %} ({{ it.num_unassigned }} unassigned)
                                 </span>
-                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon">edit</a>
+                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon"><span>edit</span></a>
                             </div>
                             <ul>
                     {% for module in it.module_of.all %}
@@ -280,6 +254,7 @@
                 <button id="toggle_item_form_btn" class="hide">add items</button>
                 <div id="new_items_container">
         {% endif %}
+                    <h5>Add New Items</h5>
                     <div class="add-multiple">
                         Add <input type="number" id="add_multi_items"> items <button id="add_multi_items_btn">add items</button>
                     </div>
@@ -306,8 +281,52 @@
             </div>
         </section>
 
+
+        <section id="job_po_section">
+            <h3>Purchase Orders</h3>
+            {% if job.total_difference_value_po_vs_line != 0 %}
+            <div class="warning subsection">
+                <h4>Discrepancy</h4>
+                <p>Sum of PO values does not match sum of line item selling prices.</p>
+                <table class="po-discrepancy">
+                    <tr><th>PO Total</th><td>{{ job.currency }}</td><td class="po-total-price-f number">{{ job.total_po_value_f }}</td><td></td></tr>
+                    <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price number">{{ job.total_line_value_f }}</td><td></td></tr>
+                    <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
+                </table>
+            </div>
+        {% endif %}
+
+
+            <div class="job-po-container">
+        {% for po in job.related_po %}
+                    <div class="po-row">
+                        <div class="details">
+                            <span class="reference">{{ po.reference }}</span> dated <span class="date_on_po">{{ po.date_on_po }}</span> for <span class="currency">{{ po.currency }}</span> <span class="value">{{ po.value_f }}</span> (received <span class="date_received">{{ po.date_received }}</span>)
+                            <button type="button" class="po-edit edit-icon" data-po="{{ po.id }}"><span>edit</span></button>
+                        </div>
+                    </div>
+        {% endfor %}
+            </div>
+            <div class="job-po-form-container">
+                <button id="toggle_po_form_btn" class="add-button">New PO</button>
+                <form method="POST" action="{% url 'purchase_order' %}" class="hide" id="po_form">
+                    <h5>Add PO</h5>
+                    {% csrf_token %}
+                    {{ po_form }}
+                    <div class="button-container">
+                        <input type='submit' action='submit' id='po_submit_button' value='submit' class='button-primary'>
+                        <button type="button" class="cancel-po-form button-primary-hollow">cancel</button>
+                    </div>
+                </form>
+            </div>
+
+
+        </section>
+
+
+
         <section id="price_check_section">
-            <h3>Price List Check</h3>
+            <h3>Prices</h3>
 
         {% if job.main_item_list == None %}
             <p>Activates upon entering items.</p>
@@ -331,16 +350,16 @@
             </div>
 
             <div id="price_summary" class="subsection">
-                <h4>Calculations</h4>
+                <h4>Comparison to List Price</h4>
                 <table class="difference">
                     <tr>
-                        <th>Line Item Sum</th>
+                        <th>Items Sum</th>
                         <td>{{ job.currency }}</td>
                         <td class="selling-price">{{ job.total_line_value_f }}</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <th>List Price Sum</th>
+                        <th>List Prices Sum</th>
                         <td>{{ job.currency }}</td>
                         <td class="list-price">{{ job.total_list_price_f }}</td>
                         <td></td>
@@ -360,41 +379,43 @@
             <div class="subsection">
                 <h4>Details</h4>
                 <table id="price_check_table">
-                    <tr class="upper-h-row">
-                        <th colspan=3></th>
-                        <th colspan=4>vs. Price List</th>
-                        <th colspan=4>vs. Resale</th>
-                    </tr>
-                    <tr class="lower-h-row">
-                        <th>qty</th>
-                        <th>part #</th>
-                        <th>sold @</th>
-                        <th>version</th>
-                        <th>value</th>
-                        <th colspan=2>diff</th>
-                        <th>perc</th>
-                        <th>value</th>
-                        <th colspan=2>diff</th>
-                    </tr>
-
+                    <thead>
+                        <tr class="upper-h-row">
+                            <th colspan=3></th>
+                            <th colspan=4>vs. Price List</th>
+                            <th colspan=4>vs. Resale</th>
+                        </tr>
+                        <tr class="lower-h-row">
+                            <th>part #</th>
+                            <th>qty</th>
+                            <th>sold @</th>
+                            <th>version</th>
+                            <th>value</th>
+                            <th colspan=2>difference</th>
+                            <th>perc</th>
+                            <th>value</th>
+                            <th colspan=2>difference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
             {% for item in job.main_item_list %}
                 {% if item.included_with == None %}
-                    <tr id="price_check_row_{{ item.id }}">
-                        <td class="qty">{{ item.quantity }}</td>
-                        <td class="description"><span class="details-toggle">{{ item.product.part_number }}</span> <span class="details hide">{{ item.product.name }}</span></td>
-                        <td><span class="selling-price">{{ item.selling_price_f }}</span><button class="edit-btn" data-jiid="{{ item.id }}">edit</button></td>
-                        <td class="version">{{ item.price_list }}</td>
-                        <td class="list-price">{{ item.list_price_f }}</td>
-                        <td class="list-diff-val">{{ item.list_difference_value_f }}</td>
-                        <td class="list-diff-perc">{{ item.list_difference_perc_f }}%</td>
-                        <td class="resale-percentage">{{ item.resale_percentage }}%</td>
-                        <td class="resale-price">{{ item.resale_price_f }}</td>
-                        <td class="resale-diff-val">{{ item.resale_difference_value_f }}</td>
-                        <td class="resale-diff-perc">{{ item.resale_difference_perc_f }}%</td>
-
-                    </tr>
+                        <tr id="price_check_row_{{ item.id }}">
+                            <td class="description"><span class="details-toggle">{{ item.product.part_number }}</span> <span class="details hide">{{ item.product.name }}</span></td>
+                            <td class="qty">{{ item.quantity }}</td>
+                            <td><span class="selling-price">{{ item.selling_price_f }}</span><button class="edit-btn edit-icon" data-jiid="{{ item.id }}"><span>edit</span></button></td>
+                            <td class="version">{{ item.price_list }}</td>
+                            <td class="list-price">{{ item.list_price_f }}</td>
+                            <td class="list-diff-val">{{ item.list_difference_value_f }}</td>
+                            <td class="list-diff-perc">{{ item.list_difference_perc_f }}%</td>
+                            <td class="resale-percentage">{{ item.resale_percentage }}%</td>
+                            <td class="resale-price">{{ item.resale_price_f }}</td>
+                            <td class="resale-diff-val">{{ item.resale_difference_value_f }}</td>
+                            <td class="resale-diff-perc">{{ item.resale_difference_perc_f }}%</td>
+                        </tr>
                 {% endif %}
             {% endfor %}
+                    </tbody>
                 </table>
             </div>
         {% endif %}
