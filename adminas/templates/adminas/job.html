@@ -216,7 +216,7 @@
                     {% else %}
                                     INCOMPLETE
                     {% endif %}
-                                Modules
+                                modules
                                 </span>
                                 <a href="{% url 'manage_modules' job.id %}" class="edit-icon"><span>edit</span></a>
                             </div>
@@ -247,22 +247,20 @@
             {% endfor %}
                 </div>
 
-                <button id="toggle_item_form_btn" class="add-button">add items</button>
+                <button id="open_item_form_btn" class="add-button">Add Items</button>
                 <div id="new_items_container" class="hide">
         {% else %}
 
-                <button id="toggle_item_form_btn" class="hide">add items</button>
+                <button id="open_item_form_btn" class="add-button hide">Add Items</button>
                 <div id="new_items_container">
         {% endif %}
+                    <button id="close_item_form_btn" class="close"><span>close</span></button>
                     <h5>Add New Items</h5>
-                    <div class="add-multiple">
-                        Add <input type="number" id="add_multi_items"> items <button id="add_multi_items_btn">add items</button>
-                    </div>
                     <form method="POST" action="{% url 'items' %}" id="items_form">
                         {% csrf_token %}
                         {{ item_formset.management_form }}
         {% for form in item_formset %}
-                        <div class="form-row">
+                        <div class="form-row panel">
                             <label for="{{ form.quantity.auto_id }}">{{ form.quantity.label }}</label>
                             {{ form.quantity }}
                             <label for="{{ form.product.auto_id }}">{{ form.product.label }}</label>
@@ -272,10 +270,14 @@
                             <label for="{{ form.price_list.auto_id }}">{{ form.price_list.label }}</label>
                             {{ form.price_list }}
                             {{ form.job }}
-                            <button class="remove-item-btn btn-danger">-</button><button id="add_item_btn" class="btn-success">+</button>
+                            <button class="remove-item-btn delete-panel"><span>remove</span></button>
                         </div>
         {% endfor %}
-                        <input type="submit" action="submit" id="items_submit_button" value="submit">
+                        <button id="add_item_btn" class="add-button"><span>add 1 more</span></button>
+                        <div class="add-multiple">
+                            Add <input type="number" id="add_multi_items"> more <button id="add_multi_items_btn" class="button-primary">ok</button>
+                        </div>
+                        <input type="submit" action="submit" id="items_submit_button" class="button-primary" value="submit">
                     </form>
                 </div>
             </div>
@@ -288,7 +290,7 @@
             <div class="warning subsection">
                 <h4>Discrepancy</h4>
                 <p>Sum of PO values does not match sum of line item selling prices.</p>
-                <table class="po-discrepancy">
+                <table id="po-discrepancy" class="price-comparison">
                     <tr><th>PO Total</th><td>{{ job.currency }}</td><td class="po-total-price-f number">{{ job.total_po_value_f }}</td><td></td></tr>
                     <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price number">{{ job.total_line_value_f }}</td><td></td></tr>
                     <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
@@ -308,14 +310,15 @@
         {% endfor %}
             </div>
             <div class="job-po-form-container">
+
                 <button id="toggle_po_form_btn" class="add-button">New PO</button>
                 <form method="POST" action="{% url 'purchase_order' %}" class="hide" id="po_form">
+                    <button type="button" class="cancel-po-form close"><span>cancel</span></button>
                     <h5>Add PO</h5>
                     {% csrf_token %}
                     {{ po_form }}
                     <div class="button-container">
                         <input type='submit' action='submit' id='po_submit_button' value='submit' class='button-primary'>
-                        <button type="button" class="cancel-po-form button-primary-hollow">cancel</button>
                     </div>
                 </form>
             </div>
@@ -351,7 +354,7 @@
 
             <div id="price_summary" class="subsection">
                 <h4>Comparison to List Price</h4>
-                <table class="difference">
+                <table class="price-comparison">
                     <tr>
                         <th>Items Sum</th>
                         <td>{{ job.currency }}</td>
@@ -403,7 +406,7 @@
                         <tr id="price_check_row_{{ item.id }}">
                             <td class="description"><span class="details-toggle">{{ item.product.part_number }}</span> <span class="details hide">{{ item.product.name }}</span></td>
                             <td class="qty">{{ item.quantity }}</td>
-                            <td><span class="selling-price">{{ item.selling_price_f }}</span><button class="edit-btn edit-icon" data-jiid="{{ item.id }}"><span>edit</span></button></td>
+                            <td class="selling-price-container"><span class="selling-price">{{ item.selling_price_f }}</span><button class="edit-btn edit-icon" data-jiid="{{ item.id }}"><span>edit</span></button></td>
                             <td class="version">{{ item.price_list }}</td>
                             <td class="list-price">{{ item.list_price_f }}</td>
                             <td class="list-diff-val">{{ item.list_difference_value_f }}</td>

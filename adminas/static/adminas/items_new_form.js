@@ -6,24 +6,27 @@
 */
 
 // Event listeners
-document.addEventListener('DOMContentLoaded', function(e){
-    document.querySelector('#add_multi_items_btn').addEventListener('click', function(e) {
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('#add_multi_items_btn').addEventListener('click', (e) => {
         e.preventDefault();
-        add_multiple_items(e);
+        add_multiple_items();
         return false;
     });
-    document.querySelector('#add_item_btn').addEventListener('click', function(e) {
+
+    document.querySelector('#add_item_btn').addEventListener('click', (e) => {
         e.preventDefault();
-        add_single_item(e);
+        add_single_item();
         return false;
     });
+
     document.querySelectorAll('.remove-item-btn').forEach(btn => {
         add_delete_event(btn);
     });
+
 });
 
 function add_delete_event(btn){
-    btn.addEventListener('click', function(e){
+    btn.addEventListener('click', (e) => {
         e.preventDefault();
         delete_this_form_row(e, 'form');
         return false;
@@ -33,9 +36,10 @@ function add_delete_event(btn){
 // Utils
 
 // Add one item form
-function clone_item_form(original, prefix){
-    let new_item = original.cloneNode(true);
-    
+function clone_item_form(original_ele, prefix){
+    let new_item = original_ele.cloneNode(true);
+    console.log("cloning item form. Here's the new item:");
+    console.log(new_item);
     // Update the Django form manager with the new total number of forms
     let num_forms = document.querySelector(`#id_${prefix}-TOTAL_FORMS`).value;
     num_forms++;
@@ -45,19 +49,13 @@ function clone_item_form(original, prefix){
     update_form_row_ids(new_item, prefix, (num_forms - 1));
     wipe_data_from_form(new_item);
     
-    // Move the add button to the bottom element. (Moving preserves the event listener)
-    let add_btn_selector = '#add_item_btn';
-    new_item.removeChild(new_item.querySelector(add_btn_selector));
-    add_btn = document.querySelector(add_btn_selector);
-    new_item.appendChild(add_btn);
-
     // Add a delete event listener to the new delete button and the product dropdown; clear old auto_desc
     add_delete_event(new_item.querySelector('.remove-item-btn'));
     auto_item_desc_listener(new_item.querySelector('#id_form-' + (num_forms - 1) + '-product'));
     new_item.querySelector('.' + AUTO_DESC_CLASS).innerHTML = '';
 
     // Add new item to the DOM
-    original.after(new_item);
+    original_ele.after(new_item);
 }
 
 
@@ -117,17 +115,17 @@ function delete_this_form_row(e, prefix){
 }
 
 // Add multiple item forms to the set in one go
-function add_multiple_items(e){
-    num_to_add = document.querySelector('#add_multi_items').value;
+function add_multiple_items(){
+    let num_to_add = document.querySelector('#add_multi_items').value;
 
     for(let i = 0; i < num_to_add; i++){
-        add_single_item(e);
+        add_single_item();
     }
     return false;
 }
 
 // Add one more item form to the set
-function add_single_item(e){
+function add_single_item(){
     clone_item_form(get_last_element('.form-row'), 'form');
     return false;
 }

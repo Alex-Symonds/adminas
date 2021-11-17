@@ -100,7 +100,7 @@ function edit_mode_job_item(e){
     e.preventDefault();
 
     let display_div = e.target.closest('.' + CLASS_JOBITEM_DIV);
-    let edit_form = edit_mode_form(display_div, e.target);
+    let edit_form = create_ele_jobitem_editor(display_div, e.target);
 
     // Add the edit-mode container to the DOM and hide the display div
     display_div.after(edit_form);
@@ -116,11 +116,12 @@ function edit_mode_job_item(e){
 }
 
 // Edit JobItem (before): Create a form element for editing an existing JobItem
-function edit_mode_form(display_div, edit_btn){
+function create_ele_jobitem_editor(display_div, edit_btn){
     // Here's the form
     let edit_mode_ele = document.createElement('div');
     edit_mode_ele.id = EDIT_ITEM_CONTAINER_ID;
 
+    edit_mode_ele.append(edit_item_cancel_btn());
     edit_mode_ele.append(create_ele_jobitem_editor_heading());
 
     // Here's the inputs
@@ -157,7 +158,6 @@ function create_ele_jobitem_editor_button_container(edit_btn){
     let container_ele = document.createElement('div');
     container_ele.classList.add('button-container');
     container_ele.append(edit_item_submit_btn(edit_btn));
-    container_ele.append(edit_item_cancel_btn())
     return container_ele;
 }
 
@@ -199,13 +199,18 @@ function edit_item_preset_input(field, value){
 // Edit JobItem (before): Create a cancel button element for the edit form
 function edit_item_cancel_btn(){
     let cancel_btn = document.createElement('button');
-    cancel_btn.classList.add('button-primary-hollow');
-    cancel_btn.innerHTML = 'cancel';
+    //cancel_btn.classList.add('button-primary-hollow');
+    cancel_btn.classList.add('close');
     cancel_btn.id = 'id_btn_cancel_edit_item';
     cancel_btn.dataset.jiid = cancel_btn.dataset.jiid;
     cancel_btn.addEventListener('click', (e) =>{
         cancel_item_edit(e);
     });
+
+    let hover_label_span = document.createElement('span');
+    hover_label_span.innerHTML = 'close';
+    cancel_btn.append(hover_label_span);
+    
     return cancel_btn;
 }
 
@@ -426,14 +431,16 @@ function find_price_check_tr(jobitem_id){
 function update_price_check_section_in_dom(server_data, jobitem_id){
 
     // Update the Price Check summary
-    let summary_div = document.querySelector('#price_summary')
-    summary_div.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
-    summary_div.querySelector('.list-price').innerHTML = server_data['total_list_f'];
-    summary_div.querySelector('.diff-val').innerHTML = server_data['total_list_difference_value_f'];
-    summary_div.querySelector('.diff-perc').innerHTML = server_data['total_list_difference_perc'];
+    let summary_div = document.querySelector('#price_summary');
+    if(summary_div != null){
+        summary_div.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
+        summary_div.querySelector('.list-price').innerHTML = server_data['total_list_f'];
+        summary_div.querySelector('.diff-val').innerHTML = server_data['total_list_difference_value_f'];
+        summary_div.querySelector('.diff-perc').innerHTML = server_data['total_list_difference_perc'];
+    }
 
-    // If the PO discrepancy panel is there, update that too.
-    let po_discrepancy_ele = document.querySelector('.po-discrepancy');
+    // Update the PO discrepancy panel
+    let po_discrepancy_ele = document.querySelector('#po-discrepancy');
     if(po_discrepancy_ele != null){
         po_discrepancy_ele.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
         po_discrepancy_ele.querySelector('.diff-val').innerHTML = server_data['total_po_difference_value_f'];
@@ -574,49 +581,63 @@ function remove_po_check_div(){
 // Price check edit (before): onclick of the edit button in the selling price column
 function edit_mode_price_check(e){
     let table_row = find_price_check_tr(e.target.dataset.jiid);
-    let price_check_edit_window = get_price_check_edit_window(table_row);
+    let price_check_edit_window = create_ele_jobitem_editor_price_only(table_row);
     e.target.after(price_check_edit_window);
     hide_all_by_class('edit-btn');
 }
 
 // Price check edit (before): creates a window for editing a price
-function get_price_check_edit_window(table_row_ele){
+function create_ele_jobitem_editor_price_only(table_row_ele){
     let div = document.createElement('div');
     div.classList.add(CLASS_PRICE_CHECKER_EDIT_WINDOW);
+
+    div.append(get_price_edit_close_btn());
 
     let h = document.createElement('h5');
     h.innerHTML = 'Edit Price';
     div.append(h);
 
-    let close_btn = get_price_edit_close_btn();
-    div.append(close_btn);
-
     let item_p = get_item_desc_from_price_checker(table_row_ele);
     div.append(item_p);
 
-    // Security note: user may have played silly buggers with the list/resale prices in the DOM, but that's ok.
-    // The user is permitted to enter any selling price they wish (you never know when a salesperson will agree to something weird).
-    // If the user wishes to accomplish this via fiddling with the preset buttons in the inspector instead of just entering the desired
-    // value in the provided input field, sure: they can knock themselves out.
-    let list_price = table_row_ele.querySelector('.list-price').innerHTML;
-    let list_btn = get_price_set_button('list', list_price);
-    div.append(list_btn);
+    div.append(create_ele_jobitem_editor_price_only_preset_prices(table_row_ele));
 
-    let resale_price = table_row_ele.querySelector('.resale-price').innerHTML;
-    let resale_btn = get_price_set_button('resale', resale_price);
-    div.append(resale_btn);
-    
-    let enter_div = get_price_input_div();
+    let enter_div = create_ele_jobitem_editor_price_only_manual_price();
     div.append(enter_div);
 
     return div;
 }
 
+function create_ele_jobitem_editor_price_only_preset_prices(table_row_ele){
+    let main_ele = document.createElement('div');
+    main_ele.classList.add('price-options-container');
+
+    let heading = document.createElement('h6');
+    heading.innerHTML = 'Click new price';
+    main_ele.append(heading);
+
+    // Note: the purposes of the list and resale buttons are: 1) to speed up entering two common selling prices; 2) to inform the user of those two common prices,
+    // to help them identify irregularities.
+    // Validation of prices is outside the scope of this project; users can enter any selling price they wish, so long as it's within the database size limitations.
+    // The easiest way for a user to enter any price they wish is via the input cell, but if they'd prefer to open the inspector and fiddle with the settings on 
+    // the list and/or resale button, by all means, they can do it that way if they like.
+    let list_price = table_row_ele.querySelector('.list-price').innerHTML;
+    let list_btn = get_price_set_button('list', list_price);
+    main_ele.append(list_btn);
+
+    let resale_price = table_row_ele.querySelector('.resale-price').innerHTML;
+    let resale_btn = get_price_set_button('resale', resale_price);
+    main_ele.append(resale_btn);
+
+    return main_ele;
+}
+
+
 // Price check edit (before): create an X button to close the window
 function get_price_edit_close_btn(){
     let btn = document.createElement('button');
-    btn.innerHTML = 'X';
-    btn.addEventListener('click', (e) => {
+    btn.classList.add('close');
+    btn.addEventListener('click', () => {
         cancel_price_edit_mode()
     });
     return btn;
@@ -635,8 +656,10 @@ function get_item_desc_from_price_checker(table_row_ele){
 // Price check edit (before): create a button to edit the price to a system-derived value (i.e. list price or standard resale price)
 function get_price_set_button(price_type, value_as_str){
     let btn = document.createElement('button');
+    btn.classList.add('button-primary-hollow');
+
     btn.setAttribute('data-new_price', value_as_str.replace(',', ''));
-    btn.innerHTML = `set price to ${price_type} (${value_as_str})`; 
+    btn.innerHTML = `${price_type} (${value_as_str})`; 
     btn.addEventListener('click', (e) => {
         edit_price_preset(e);
     });
@@ -644,9 +667,12 @@ function get_price_set_button(price_type, value_as_str){
 }
 
 // Price check edit (before): create an input field for the user to edit the price to anything they like
-function get_price_input_div(jiid){
+function create_ele_jobitem_editor_price_only_manual_price(){
     let div = document.createElement('div');
-    let txt = document.createTextNode('enter');
+    div.classList.add('manual-price-container');
+
+    let txt = document.createElement('span');
+    txt.innerHTML = 'Or enter your own';
     div.append(txt);
 
     let input = document.createElement('input');
@@ -656,6 +682,7 @@ function get_price_input_div(jiid){
     div.append(input);
 
     let btn = document.createElement('button');
+    btn.classList.add('button-primary');
     btn.innerHTML = 'submit';
     btn.addEventListener('click', (e) => {
         edit_price_custom(e);
@@ -671,8 +698,6 @@ function cancel_price_edit_mode(){
     window.remove();
     unhide_all_by_class('edit-btn');
 }
-
-
 
 // Price check edit (action): onclick of a preset button, calls the edit function based on the preset value
 function edit_price_preset(e){
@@ -703,12 +728,6 @@ function edit_price(btn, new_price){
 
     edit_price_on_server(jiid, new_price);
 }
-
-
-// Price check edit (action): take a tr element ID, return the jobitem ID
-// function extract_jiid_from_price_check_tr_id(tr_id){
-//     return tr_id.trim().replace(ID_PREFIX_PRICE_CHECK_ROW, '');
-// }
 
 // Price check edit (action): PUTs the data to the server and calls for the page update
 function edit_price_on_server(jiid, new_price){

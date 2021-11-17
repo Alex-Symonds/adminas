@@ -22,7 +22,7 @@
     {% for job in data %}
         <article id="todo_panel_job_{{ job.id }}" class="job-panel panel">
             <section class="job-details">
-                <button class="todo-list-remove delete-panel" data-job_id="{{ job.id }}">remove</button>
+                <button class="todo-list-remove delete-panel" data-job_id="{{ job.id }}"><span>remove</span></button>
                 <a href="{% url 'job' job.id %}">
                     <h4>{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
                     <p>
