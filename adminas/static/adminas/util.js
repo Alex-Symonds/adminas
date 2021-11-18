@@ -1,6 +1,11 @@
 const QTY_RE = /\d+(?=( x ))/g;
 const CLASS_MESSAGE_BOX = 'system-message-box';
 
+const CSS_GENERIC_PANEL = 'panel';
+const CSS_GENERIC_PANEL_HEADING = 'panel-header';
+const CSS_GENERIC_FORM_LIKE = 'form-like';
+
+
 // Add comma for thousands separator
 function numberWithCommas(num) {
     // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript

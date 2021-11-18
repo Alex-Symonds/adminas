@@ -180,10 +180,10 @@
                 <div class="existing-items-container">
 
             {% for it in job.main_item_list %}
-                    <div class="panel job-item-container">
+                    <div id="jobitem_{{ it.id }}" class="panel job-item-container">
 
-                        <button class="ji-delete delete-panel" data-jiid="{{ it.id }}"><span>delete</span></button>
-                        <h5 class="what">
+                        <!-- <button class="ji-delete delete-panel" data-jiid="{{ it.id }}"><span>delete</span></button> -->
+                        <h5 class="panel-header what">
                             <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span> 
                             <div class="desc">{% get_item_description it.product job.language %}</div>                      
                         </h5>
@@ -208,7 +208,7 @@
                         </div>
 
                 {% if it.product.is_modular == True %}
-                        <div class="module-status-section subsection {% if it.all_required_modules_assigned == True %}modules-ok{% else %}warning{% endif %}">
+                        <div class="module-status-section subsection modules-{% if it.all_required_modules_assigned == True %}ok{% else %}incomplete{% endif %}">
                             <div class="intro-line">
                                 <span class="display-text">&raquo; 
                     {% if it.all_required_modules_assigned == True %}
@@ -248,14 +248,14 @@
                 </div>
 
                 <button id="open_item_form_btn" class="add-button">Add Items</button>
-                <div id="new_items_container" class="hide">
+                <div id="new_items_container" class="form-like panel hide">
         {% else %}
 
                 <button id="open_item_form_btn" class="add-button hide">Add Items</button>
-                <div id="new_items_container">
+                <div id="new_items_container" class="form-like panel">
         {% endif %}
                     <button id="close_item_form_btn" class="close"><span>close</span></button>
-                    <h5>Add New Items</h5>
+                    <h5 class="panel-header">Add New Items</h5>
                     <form method="POST" action="{% url 'items' %}" id="items_form">
                         {% csrf_token %}
                         {{ item_formset.management_form }}
@@ -277,7 +277,7 @@
                         <div class="add-multiple">
                             Add <input type="number" id="add_multi_items"> more <button id="add_multi_items_btn" class="button-primary">ok</button>
                         </div>
-                        <input type="submit" action="submit" id="items_submit_button" class="button-primary" value="submit">
+                        <input type="submit" action="submit" id="items_submit_button" class="button-primary full-width-button" value="submit">
                     </form>
                 </div>
             </div>
@@ -312,12 +312,12 @@
             <div class="job-po-form-container">
 
                 <button id="toggle_po_form_btn" class="add-button">New PO</button>
-                <form method="POST" action="{% url 'purchase_order' %}" class="hide" id="po_form">
+                <form method="POST" action="{% url 'purchase_order' %}" class="form-like panel hide" id="po_form">
                     <button type="button" class="cancel-po-form close"><span>cancel</span></button>
-                    <h5>Add PO</h5>
+                    <h5 class="panel-header">Add PO</h5>
                     {% csrf_token %}
                     {{ po_form }}
-                    <div class="button-container">
+                    <div class="controls">
                         <input type='submit' action='submit' id='po_submit_button' value='submit' class='button-primary'>
                     </div>
                 </form>

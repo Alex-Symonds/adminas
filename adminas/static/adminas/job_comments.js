@@ -102,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function open_jobcomment_editor_for_create(btn){
     // There's only supposed to be one instance of the element in existence at a time (it uses IDs, don't want those duplicated),
     // so if the user has somehow managed to open one copy and ask for a second, close the old before opening the new.
-    console.log('called');
     close_jobcomment_editor();
 
     if(btn.dataset.form_type === VALUE_FORM_TYPE_CONTENT_ONLY){
@@ -124,6 +123,7 @@ function open_jobcomment_editor_for_create(btn){
 // are chosen by the server.
 function create_ele_jobcomment_editor(comment_id, want_settings){
     let container = create_ele_jobcomment_main_container();
+    container.append(create_ele_jobcomment_btn_close());
     container.append(create_ele_jobcomment_heading(comment_id));
     container.append(create_ele_jobcomment_input_contents());
     
@@ -182,6 +182,8 @@ function create_ele_jobcomment_checkbox_container(){
 function create_ele_jobcomment_main_container(){
     let container = document.createElement('div');
     container.classList.add(CLASS_COMMENT_CU_ELEMENT);
+    container.classList.add(CSS_GENERIC_PANEL);
+    container.classList.add(CSS_GENERIC_FORM_LIKE);
     return container;
 }
 function create_ele_jobcomment_heading(comment_id){
@@ -189,7 +191,7 @@ function create_ele_jobcomment_heading(comment_id){
     if(comment_id == DEFAULT_COMMENT_ID){
         h.innerHTML = 'Add Comment';
     } else {
-        h.innerHTML = 'Editing';
+        h.innerHTML = 'Edit Comment';
     }
     return h; 
 }
@@ -206,7 +208,7 @@ function create_ele_jobcomment_controls_container(comment_id, form_type){
     container.classList.add(CLASS_COMMENT_CONTROLS);
 
     container.append(create_ele_jobcomment_btn_save(comment_id, form_type));
-    container.append(create_ele_jobcomment_btn_close());
+    //container.append(create_ele_jobcomment_btn_close());
 
     // Delete button is only relevant when editing an existing comment, so check before trying to append null.
     let delete_btn = create_ele_jobcomment_btn_delete(comment_id);
@@ -219,7 +221,7 @@ function create_ele_jobcomment_controls_container(comment_id, form_type){
 function create_ele_jobcomment_btn_save(comment_id, form_type){
     let save_btn = document.createElement('button');
     save_btn.classList.add(CLASS_BTN_PRIMARY);
-    save_btn.innerHTML = 'save';
+    save_btn.innerHTML = 'submit';
     save_btn.setAttribute('data-comment_id', comment_id);
     save_btn.setAttribute('data-form_type', form_type);
     save_btn.addEventListener('click', (e) => {
@@ -229,11 +231,17 @@ function create_ele_jobcomment_btn_save(comment_id, form_type){
 }
 function create_ele_jobcomment_btn_close(){
     let close_btn = document.createElement('button');
-    close_btn.classList.add(CLASS_BTN_PRIMARY);
-    close_btn.innerHTML = 'cancel';
+    //close_btn.classList.add(CLASS_BTN_PRIMARY);
+    close_btn.classList.add('close');
+
     close_btn.addEventListener('click', () => {
         close_jobcomment_editor();
     });
+
+    let span = document.createElement('span');
+    span.innerHTML = 'cancel';
+    close_btn.append(span);
+
     return close_btn;
 }
 function create_ele_jobcomment_btn_delete(comment_id){
@@ -343,10 +351,10 @@ function visibility_comment_content(comment_ele, want_visibility){
 function visibility_add_comment_btn(want_visibility){
 
     if(want_visibility){
-        unhide_all_by_class(`.${CLASS_ADD_BUTTON}.${CLASS_ADD_COMMENT}`);
+        unhide_all_by_class(`${CLASS_ADD_BUTTON}.${CLASS_ADD_COMMENT}`);
     }
     else {
-        hide_all_by_class(`.${CLASS_ADD_BUTTON}.${CLASS_ADD_COMMENT}`);
+        hide_all_by_class(`${CLASS_ADD_BUTTON}.${CLASS_ADD_COMMENT}`);
     }
 }
 

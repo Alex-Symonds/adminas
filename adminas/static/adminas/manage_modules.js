@@ -14,7 +14,7 @@ CLASS_TEMP_ERROR_MSG = 'temp-warning-msg';
 document.addEventListener('DOMContentLoaded', (e) =>{
     document.querySelectorAll('.' + CLASS_MODULE_SLOT + '.' + CLASS_MODULE_SLOT_EMPTY).forEach(div => {
         div.addEventListener('click', (e) =>{
-            open_module_bucket_of_options(e);
+            open_module_filler(e);
         })
     });
 
@@ -54,12 +54,12 @@ document.addEventListener('DOMContentLoaded', (e) =>{
 function add_empty_slot(e){
     let slot_ele = e.target.closest('.' + CLASS_SLOT_ELEMENT);
     let contents_ele = slot_ele.querySelector('.contents');
-    let new_slot = create_empty_slot_div(e.target.dataset.slot, e.target.dataset.parent);
+    let new_slot = create_ele_empty_module_slot(e.target.dataset.slot, e.target.dataset.parent);
     contents_ele.append(new_slot);
 }
 
 // Add New Slot, plus some delete/cancel operations: create an empty slot div
-function create_empty_slot_div(slot_id, parent_id){
+function create_ele_empty_module_slot(slot_id, parent_id){
     let div = document.createElement('div');
     div.classList.add(CLASS_MODULE_SLOT);
     div.classList.add(CLASS_MODULE_SLOT_EMPTY);
@@ -72,7 +72,7 @@ function create_empty_slot_div(slot_id, parent_id){
     div.append(it);
 
     div.addEventListener('click', (e) =>{
-        open_module_bucket_of_options(e);
+        open_module_filler(e);
     });
     return div;
 }
@@ -95,9 +95,9 @@ function create_empty_slot_div(slot_id, parent_id){
 // -------------------------------------------------------------------------------
 
 // Bucket menu: called onClick of an empty slot, opens a "bucket menu" of eligible JobItems and an "add new item" button
-async function open_module_bucket_of_options(e){
-    let empty_slot_div = get_empty_slot_div(e.target);
-    let bucket_div = await create_module_bucket_div(empty_slot_div.dataset.slot, empty_slot_div.dataset.parent);
+async function open_module_filler(e){
+    let empty_slot_div = find_empty_slot_div(e.target);
+    let bucket_div = await create_ele_module_filler(empty_slot_div.dataset.slot, empty_slot_div.dataset.parent);
     empty_slot_div.after(bucket_div);
     
     // Clear any old error messages
@@ -105,12 +105,12 @@ async function open_module_bucket_of_options(e){
 }
 
 // Bucket menu: close the bucket window
-function close_module_bucket_of_options(){
+function close_module_filler(){
     document.querySelector('.' + CLASS_BUCKET_MENU).remove();
 }
 
 // Bucket menu: find the div for the "empty slot", regardless of whether what you just clicked counts as that div or a child
-function get_empty_slot_div(target){
+function find_empty_slot_div(target){
     if(target.classList.contains(CLASS_MODULE_SLOT_EMPTY)){
         return target;
     } else {
@@ -119,14 +119,16 @@ function get_empty_slot_div(target){
 }
 
 // Bucket menu: create a div element for the bucket menu and fill it with stuff created by other functions
-async function create_module_bucket_div(slot_id, parent_id){
+async function create_ele_module_filler(slot_id, parent_id){
     // Create bucket div
     let div = document.createElement('div');
     div.classList.add(CLASS_BUCKET_MENU);
+    div.classList.add(CSS_GENERIC_PANEL);
+    div.classList.add(CSS_GENERIC_FORM_LIKE);
 
     // Fill with other elements
-    div.append(get_module_bucket_title());
     div = append_cancel_button(div);
+    div.append(get_module_bucket_title());
     div = await append_existing_jobitems(div, slot_id, parent_id);
     div = append_new_jobitem_button(div, slot_id, parent_id);
     
@@ -136,6 +138,7 @@ async function create_module_bucket_div(slot_id, parent_id){
 // Bucket menu: Get a h# element for the bucket
 function get_module_bucket_title(){
     let h = document.createElement('h4');
+    h.classList.add(CSS_GENERIC_PANEL_HEADING);
     h.innerHTML = 'Options';
     return h;
 }
@@ -143,10 +146,14 @@ function get_module_bucket_title(){
 // Bucket menu: Close the bucket menu without doing anything else
 function append_cancel_button(div){
     let btn = document.createElement('button');
-    btn.classList.add('x-btn');
-    btn.innerHTML = 'X';
+    btn.classList.add('close');
+
+    let span = document.createElement('span');
+    span.innerHTML = 'cancel';
+    btn.append(span);
+
     btn.addEventListener('click', (e) => {
-        close_module_bucket_of_options();
+        close_module_filler();
     });
     div.append(btn);
     return div;
@@ -157,7 +164,7 @@ async function append_existing_jobitems(div, slot_id, parent_id){
     let json_response = await get_list_for_module_slot(slot_id, parent_id, 'jobitems');
     let existing_ji = json_response['data'];
 
-    if(typeof existing_ji === 'undefined'){
+    if(existing_ji.length === 0){
         let p = document.createElement('p');
         p.innerHTML = 'There are no unassigned items on this job which are suitable for this slot.';
         div.append(p);
@@ -166,7 +173,7 @@ async function append_existing_jobitems(div, slot_id, parent_id){
         let option_bucket = document.createElement('div');
         option_bucket.classList.add('bucket-options-container');
         for(var i=0; i < existing_ji.length; i++){
-            var ji_option_div = create_module_bucket_filler_div(slot_id, parent_id, existing_ji[i]);
+            var ji_option_div = create_ele_module_filler_option(slot_id, parent_id, existing_ji[i]);
             option_bucket.append(ji_option_div);
         }
         div.append(option_bucket);
@@ -184,7 +191,7 @@ async function get_list_for_module_slot(slot_id, parent_id, list_type){
 }
 
 // Bucket menu: Create a div for one JobItem in the bucket
-function create_module_bucket_filler_div(slot, parent, data){
+function create_ele_module_filler_option(slot, parent, data){
     var ji_option_div = document.createElement('div');
 
     ji_option_div.classList.add('bucket-item');
@@ -213,7 +220,9 @@ function append_new_jobitem_button(div, slot_id, parent_id){
     let btn = document.createElement('button');
     btn.innerHTML = '+ new item to job';
 
-    btn.classList.add('add-new-btn');
+    //btn.classList.add('add-new-btn');
+    btn.classList.add('add-button');
+    btn.classList.add('module');
 
     btn.setAttribute('data-slot', slot_id);
     btn.setAttribute('data-parent', parent_id);
@@ -327,7 +336,7 @@ function close_new_slot_filler_mode(btn){
     let new_slot_div = btn.closest('.' + CLASS_MODULE_SLOT);
 
     let submit_btn = new_slot_div.querySelector('#' + 'id_submit_new');
-    let empty_slot = create_empty_slot_div(submit_btn.dataset.slot, submit_btn.dataset.parent);
+    let empty_slot = create_ele_empty_module_slot(submit_btn.dataset.slot, submit_btn.dataset.parent);
 
     new_slot_div.after(empty_slot);
     new_slot_div.remove();
@@ -543,7 +552,7 @@ async function unfill_slot_on_server(e){
 // Delete Assignment: Frontend removal of the JobItem from the slot
 function unfill_slot_on_page(e, data){
     let slot_filler = e.target.parentElement;
-    let empty_slot = create_empty_slot_div(slot_filler.dataset.slot, slot_filler.dataset.parent);
+    let empty_slot = create_ele_empty_module_slot(slot_filler.dataset.slot, slot_filler.dataset.parent);
     slot_filler.after(empty_slot);
     update_slot_status(e.target, data);
 

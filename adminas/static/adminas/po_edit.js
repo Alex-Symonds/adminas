@@ -31,7 +31,7 @@ function open_po_editor(e){
     e.target.after(form_div);
 
     //form_div.after(get_edit_po_delete_btn(e.target.dataset.po));
-    let button_container = form_div.querySelector('.button-container');
+    let button_container = form_div.querySelector('.controls');//button-container');
     button_container.append(get_edit_po_delete_btn(e.target.dataset.po));
 
     populate_po_edit_form(form_div);
@@ -48,6 +48,7 @@ function get_ele_edit_po_div(edit_btn){
     }
     
     let heading = div.querySelector('h5');
+    heading.classList.add(CSS_GENERIC_PANEL_HEADING);
     heading.innerHTML = "Edit PO";
 
     let cancel_btn = div.querySelector('.cancel-po-form');
@@ -56,21 +57,22 @@ function get_ele_edit_po_div(edit_btn){
     return div;
 }
 
-function get_edit_po_cancel_btn(){
-    let btn = document.createElement('button');
-    btn.classList.add('button-primary-hollow');
-    btn.innerHTML = 'cancel';
-    btn.addEventListener('click', (e) => {
-        close_edit_form();
-    });
-    return btn;
-}
+// function get_edit_po_cancel_btn(){
+//     let btn = document.createElement('button');
+//     btn.classList.add('button-primary-hollow');
+//     btn.innerHTML = 'cancel';
+//     btn.addEventListener('click', (e) => {
+//         close_edit_form();
+//     });
+//     return btn;
+// }
 
 function get_edit_po_delete_btn(po_id){
     let btn = document.createElement('button');
     btn.innerHTML = 'delete';
     btn.id = 'delete_po_btn';
     btn.classList.add('button-warning');
+    btn.classList.add('delete-btn');
     btn.setAttribute('data-po', po_id);
     btn.addEventListener('click', (e) => {
         delete_po(e);

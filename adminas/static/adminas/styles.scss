@@ -31,6 +31,7 @@ $g_button_main: linear-gradient(45deg, $c_accent_03 0%, $c_accent 33%, $c_accent
 $g_button_hover: linear-gradient(135deg, $c_accent_04, $c_accent_03 66%, $c_accent 100%);
 
 $c_warning: rgb(207, 0, 0);
+$c_warning_bright: rgb(255, 0, 0);
 //$g_warning: linear-gradient(0deg, rgb(139, 0, 0) 0%, rgb(192, 0, 0) 100%);
 $g_warning_hover: linear-gradient(0deg, rgb(172, 0, 0) 0%, rgb(230, 0, 0) 100%);
 $c_txt_warning_g: white;
@@ -295,47 +296,7 @@ nav {
 }
 
 
-.job-panel {
-    max-width: 400px;
-    box-shadow: $panel_shadow;
 
-    &:hover{
-        border: 1px solid $c_tone_06;
-        box-shadow: $panel_shadow_highlight;
-    }
-
-    h4{
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        margin: 0;
-        padding: 12px 8px;
-        color: $c_txt_main;
-        background: $c_tone_02;
-        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
-    }
-
-    p{
-        color: $c_txt_main;
-        margin: 0;
-        padding: 12px 10px;
-        background: $c_tone_02;
-        
-    }
-
-    ul{
-        margin-top: 0;
-        margin-bottom: 0;
-        background: $c_accent_01;
-        color: $c_txt_main;
-        padding: 8px 24px;
-        border-top: 1px solid $c_accent;
-        border-bottom: 1px solid $c_accent;
-    }
-
-    .comments{
-        margin: 0;
-    }
-}
 
 
 @keyframes expand_comment_button {
@@ -355,55 +316,6 @@ nav {
 }
 
 
-
-.close{
-    float: right;
-    color: $c_tone_07;
-    margin-right: 3px;
-
-    width: 30px;
-    height: 30px;
-    background-image: url('i-x-hollow.svg');
-    background-repeat: no-repeat;
-    background-position: right;
-    border: transparent;
-
-    background-color: transparent;
-    padding: 3px 5px;
-    font-size: 0.75rem;
-    z-index: 2;
-
-    &:hover{
-        color: $c_txt_main;
-        font-size: 1rem;
-        background-image: url('i-x-filled.svg');
-        width: 6.5rem; 
-        text-indent: 0;
-    }
-
-    span{
-        color: transparent;
-        text-align: center;
-    }
-
-    &:hover{
-        span{
-            color: white;
-            border-radius: 5px;
-            background: rgba($c_tone_00, 80%);
-            border: 1px solid $c_tone_00;
-
-            display: block;
-            width: 4rem;
-
-            position: absolute;
-            top:0;
-            right:26px;
-        }
-    }    
-}
-
-
 .add-button{
     border: 0;
     border-radius: 13px;
@@ -415,9 +327,9 @@ nav {
     &.comment{
         margin: 0;
     }
-    &.comment-to-todolist{
-        margin: 3px 5px;
-    }
+    // &.comment-to-todolist{
+    //     margin: 3px 5px;
+    // }
     &.job-to-todolist{
         margin: 0.6rem 0 0 0;
     }
@@ -443,6 +355,10 @@ nav {
 
         &.job-to-todolist{
             animation-name: expand_todo_button_add;
+        }
+
+        &.module{
+            animation-name: expand_module_button_add;
         }
     }   
 }
@@ -495,6 +411,22 @@ nav {
     }
 }
 
+@keyframes expand_module_button_add{
+    from {
+        width: 30px;
+        text-indent: -9999px;
+    }
+
+    95%{
+        text-indent: -9999px;
+    }
+    
+    to {
+        width: 12rem;
+        text-indent: 20px;
+    }
+}
+
 
 .todo-list-add-pinned-comment-container{
     display: block;
@@ -512,12 +444,8 @@ nav {
 }
 
 .job-comment-cu-container{
-    display: block;
     background: $c_tone_02;
-    border: 1px solid $c_tone_04;
-    border-radius: 8px;
     padding: 2px 5px 0;
-    max-width: $MAX_WIDTH;
 
     h4{
         margin: 5px 0 0;
@@ -537,39 +465,23 @@ nav {
         
         width: calc(100% - 0px);
         height: 1.5rem;
+
         display: flex;
         flex: row;
         align-content: flex-start;
 
         label{
-            //margin: 0.25rem 0 0.25rem 0.4rem;
             margin: 0.15rem 0 0.25rem 0.4rem;
+            padding: 0;
+            font-size: 0.85rem;
+            font-weight: normal;
+            border: none;
         }
         input{
             margin: 1px 0 0 7px;
         }
         #id_private_checkbox, #id_pinned_checkbox{
             margin-right: 2.5rem;
-        }
-
-    }
-
-    .controls{
-        width: 100%;
-        height: 100%;
-        overflow-x: auto;
-        white-space: nowrap;
-
-        button{
-            float: left;
-            margin: 5px;
-            border-radius: 5px;
-            padding: 5px 10px;
-            width: 4.5rem;
-        }
-
-        .delete-comment-btn{
-            float: right;
         }
 
     }
@@ -1006,35 +918,45 @@ nav {
             background-position: 5px 4px;
         }
     }
+}
 
-    .subsection{
-        margin: 0.5rem 0 0 3px;
-        border-bottom: 1px solid $c_tone_03;
-        border-left: 3px solid $c_tone_04;
+.subsection{
+    margin: 0.5rem 0 0 3px;
+    border-bottom: 1px solid $c_tone_03;
+    border-left: 3px solid $c_tone_04;
 
-        h4{
-            padding: 0.4rem 0 0.4rem 0.4rem;
-            width: calc(100% - 0.4rem);
-            background: $c_tone_02; 
+    h4{
+        padding: 0.4rem 0 0.4rem 0.4rem;
+        width: calc(100% - 0.4rem);
+        background: $c_tone_02; 
+        margin: 0;
+        border-bottom: 0;
+    }
+
+    &.warning{
+        border-left: 3px solid $c_warning;
+
+        .intro-line, h4{
+            background: $c_warning;
+        }
+
+        p{
             margin: 0;
-            border-bottom: 0;
+            padding: 0.5rem;
         }
 
-        &.warning{
-            border-left: 3px solid $c_warning;
-
-            .intro-line, h4{
-                background: $c_warning;
-            }
-
-            p{
-                margin: 0;
-                padding: 0.5rem;
-            }
-
-        }
     }
 }
+.modular-item-container .subsection{
+    // h4{
+    //     border-bottom: 1px solid $c_tone_03;
+    // }
+}
+
+
+
+
+
 
 #job_po_section{
     .warning{
@@ -1218,49 +1140,86 @@ nav {
 }
 
 
+
+
+
+
+
 .panel{
     display: inline-block;
     position: relative;
+
     border: 1px solid $c_tone_04;
     border-radius: 8px;
-    margin: 1rem 0.5rem 0 0.5rem;
+
+    max-width: $MAX_WIDTH;
     width: 100%;
+
+    margin: 1rem 0.5rem 0 0.5rem;
 
     a{
         text-decoration: none;
     }
 
-    .delete-panel{
-        position: absolute;
-        top: 2px;
-        right: 5px;
-        color: $c_tone_07;
+    .panel-header{
+        font-size: 1rem;
 
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        margin: 0;
+        padding: 12px 8px;
+
+        color: $c_txt_main;
+        background: $c_tone_02;
+        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
+        border-bottom: 1px solid $c_tone_04;
+
+        h3{
+            margin: 0;
+        }
+
+        .desc{
+            &:before, &:after{
+                content: '"';
+            }
+
+            font-style: italic;
+            font-weight: normal;
+            font-size: 0.95rem;
+            color: $c_tone_06;
+        }
+    }
+
+    .close{
+        float: right;
+        color: $c_tone_07;
+        margin-right: 3px;
+    
         width: 30px;
         height: 30px;
-        background-image: url('i-minus-empty.svg');
+        background-image: url('i-x-hollow.svg');
         background-repeat: no-repeat;
         background-position: right;
         border: transparent;
-
+    
         background-color: transparent;
         padding: 3px 5px;
         font-size: 0.75rem;
         z-index: 2;
-
+    
         &:hover{
             color: $c_txt_main;
             font-size: 1rem;
-            background-image: url('i-minus-filled.svg');
+            background-image: url('i-x-filled.svg');
             width: 6.5rem; 
             text-indent: 0;
         }
-
+    
         span{
             color: transparent;
             text-align: center;
         }
-
+    
         &:hover{
             span{
                 color: white;
@@ -1275,35 +1234,105 @@ nav {
                 top:0;
                 right:26px;
             }
-        }
+        }    
+    }
+
+
+    // .delete-panel{  // deprecated: plan to only allow delete via a [delete] button in an edit menu, so this can only be "close"
+    //     position: absolute;
+    //     top: 2px;
+    //     right: 5px;
+    //     color: $c_tone_07;
+
+    //     width: 30px;
+    //     height: 30px;
+    //     background-image: url('i-minus-empty.svg');
+    //     background-repeat: no-repeat;
+    //     background-position: right;
+    //     border: transparent;
+
+    //     background-color: transparent;
+    //     padding: 3px 5px;
+    //     font-size: 0.75rem;
+    //     z-index: 2;
+
+    //     &:hover{
+    //         color: $c_txt_main;
+    //         font-size: 1rem;
+    //         background-image: url('i-minus-filled.svg');
+    //         width: 6.5rem; 
+    //         text-indent: 0;
+    //     }
+
+    //     span{
+    //         color: transparent;
+    //         text-align: center;
+    //     }
+
+    //     &:hover{
+    //         span{
+    //             color: white;
+    //             border-radius: 5px;
+    //             background: rgba($c_tone_00, 80%);
+    //             border: 1px solid $c_tone_00;
+    
+    //             display: block;
+    //             width: 4rem;
+    
+    //             position: absolute;
+    //             top:0;
+    //             right:26px;
+    //         }
+    //     }
+    // }
+}
+
+
+.job.panel {
+    max-width: 400px;
+    box-shadow: $panel_shadow;
+
+    .panel-header{
+        border-bottom: none;
+    }
+
+    &:hover{
+        border: 1px solid $c_tone_06;
+        box-shadow: $panel_shadow_highlight;
+    }
+
+    p{
+        color: $c_txt_main;
+        margin: 0;
+        padding: 12px 10px;
+        background: $c_tone_02;
+        
+    }
+
+    ul{
+        margin-top: 0;
+        margin-bottom: 0;
+        background: $c_accent_01;
+        color: $c_txt_main;
+        padding: 8px 24px;
+        border-top: 1px solid $c_accent;
+        border-bottom: 1px solid $c_accent;
+    }
+
+    .comments{
+        margin: 0;
+    }
+
+    .add-button.comment{
+        margin: 3px 5px;
     }
 }
 
 
-#container_edit_item, #po_edit_form, #po_form, .price-checker-edit-window, #new_items_container, .modular-item-container{
-    // shared with panel
-    display: inline-block;
-    position: relative;
-    border: 1px solid $c_tone_04;
-    border-radius: 8px;
-    margin: 1rem 0.5rem 0 0.5rem;
-    width: 100%;
-    max-width: $MAX_WIDTH;
 
-    // shared with job item container
-    h5{
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        font-size: 1rem;
-        margin: 0;
-        padding: 12px 8px;
-        width: calc(100% - 16px);
-        color: $c_txt_main;
-        background: $c_tone_02;
-        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
-        border-bottom: 1px solid $c_tone_04;
-    }
 
+//#container_edit_item, #po_edit_form, #po_form, .price-checker-edit-window, #new_items_container { // full list, for backup purposes
+.form-like{
     // Not necessariy shared with anything
     label, input, select, span, .button-container{
         margin: 0;
@@ -1326,57 +1355,24 @@ nav {
         margin-left: 0.5rem;
     }
 
-    .button-container{
-        display: flex;
-        justify-content: center;
-        gap: 5%;
+    // .button-container{
+    //     display: flex;
+    //     justify-content: center;
+    //     gap: 5%;
 
-        margin-top: 1.2rem;
-        margin-bottom: 1rem;
-        margin-left: 0;
+    //     margin-top: 1.2rem;
+    //     margin-bottom: 1rem;
+    //     margin-left: 0;
 
-        border-top: 1px solid $c_tone_02;
-        padding-top: 0.7rem;
+    //     border-top: 1px solid $c_tone_02;
+    //     padding-top: 0.7rem;
 
-        button, #po_submit_button{
-            max-width: 10rem;
-            width: 30%;
-            height: 2rem;
-        }
-    }
-
-    &.hide{
-        display:none;
-    }
-
-}
-
-#po_edit_form{
-    width: calc(100% - 1rem);
-    margin-bottom: 1.1rem;
-
-    .button-container{
-        gap: 5%;
-
-        button, #po_submit_button{
-            max-width: 10rem;
-            width: 25%;
-            height: 2rem;
-        }
-    }
-}
-
-.selling-price-container{
-    position: relative;
-}
-
-
-
-#new_items_container{
-    display: block;
-    padding: 0;
-    width: 95%;
-    //margin: 0 auto 0;
+    //     button, #po_submit_button{
+    //         max-width: 10rem;
+    //         width: 30%;
+    //         height: 2rem;
+    //     }
+    // }
 
     .form-row{
         display: block;
@@ -1410,25 +1406,104 @@ nav {
         }
     }
 
+    .controls{
+        margin: 1.2rem 0.5rem 1rem 0.5rem;
+
+        width: calc(100% - 1rem);
+        height: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+
+        button, input[type=submit]{
+            float: left;
+            margin: 5px;
+            border-radius: 5px;
+            padding: 5px 10px;
+            width: 20%;
+            min-width: 4.5rem;
+        }
+
+        input[type=submit]{
+            height: auto;
+            padding: 0.5rem;
+            font-size: 1.2rem;
+            width: 40%;
+        }
+
+        .delete-btn, .delete-comment-btn{
+            float: right;
+        }
+    }
+
+    .full-width-button{
+        width: 100%;
+        margin: 1rem 0 0;
+        padding: 0.4rem 0;
+        height: 2.3rem;
+        font-size: 1.2rem;
+        border-radius: 0.5rem;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;        
+    }
+
+    div:last-child{
+        border-bottom: none;
+    }
+
+    &.hide{
+        display:none;
+    }
+
+}
+
+#container_edit_item{
+    width: 96%;
+}
+
+#po_edit_form{
+    width: calc(100% - 1rem);
+    margin-bottom: 1.1rem;
+
+    .button-container{
+        gap: 5%;
+
+        button, #po_submit_button{
+            max-width: 10rem;
+            width: 25%;
+            height: 2rem;
+        }
+    }
+}
+
+.selling-price-container{
+    position: relative;
+}
+
+
+
+#new_items_container{
+    width: 95%;
+
     .add-button{
         margin: 0.5rem 0 0 0.5rem;
     }
 
     .add-multiple{
+        background: $c_tone_01;
+        border: 1px solid $c_tone_00;
+        border-radius: 3px;
+
         width: fit-content;
+
         display: block;
-        //margin: 0.5rem auto 0;
         margin: 0.5rem 0.5rem 0;
         padding: 0.15rem 0.35rem;
-        border: 1px solid $c_tone_02;
-        border-radius: 5px;
+
         font-size: 0.8rem;
-        background: $c_tone_01;
 
         input{
             width: 3rem;
             height: 0.9rem;
-            font-size: 0.8rem;
             margin-left: 0.1rem;
         }
 
@@ -1440,16 +1515,6 @@ nav {
         }
     }
 
-    #items_submit_button{
-        width: 100%;
-        margin: 1rem 0 0;
-        padding: 0.4rem 0;
-        height: 2.3rem;
-        font-size: 1.2rem;
-        border-radius: 0.5rem;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-    }
 }
 
 
@@ -1462,6 +1527,7 @@ nav {
     position: absolute;
     z-index: 2;
     left: -10px;
+
     background: $c_tone_02;
     min-width: 280px;
 
@@ -1492,7 +1558,6 @@ nav {
     .manual-price-container{
         margin: 1rem 0 1rem 0.5rem;
         display: flex;
-        //width: 400px;
         flex-flow: row wrap;
         align-items: stretch;
         span{
@@ -1530,27 +1595,9 @@ nav {
     max-width: $MAX_WIDTH;
     box-shadow: $panel_shadow;
 
-    h5{
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        font-size: 1rem;
-        margin: 0;
-        padding: 12px 8px;
+    .panel-header{
+        border-bottom: none;
         width: calc(100% - 16px);
-        color: $c_txt_main;
-        background: $c_tone_02;
-        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
-
-        .desc{
-            &:before, &:after{
-                content: '"';
-            }
-
-            font-style: italic;
-            font-weight: normal;
-            font-size: 0.95rem;
-            color: $c_tone_06;
-        }
     }
 
     ul{
@@ -1560,6 +1607,10 @@ nav {
 
     li{
         color: $c_tone_06;
+    }
+
+    div:last-child{
+        border-bottom: none;
     }
 
     .money{
@@ -1626,6 +1677,13 @@ nav {
             background: $c_tone_02;
         }
     }  
+
+    .modules-incomplete{
+        border-left: 3px solid red;
+        .intro-line{
+            background: $c_warning;
+        }
+    }  
 }
 
 .secondary-icon{
@@ -1684,8 +1742,7 @@ table.price-comparison{
         }
 
         th, td{
-            border-top: 1px solid $c_tone_03;//$c_tone_00;
-            //border-bottom: 1px solid $c_tone_00;
+            border-top: 1px solid $c_tone_03;
         }
     }
 }
@@ -1856,57 +1913,42 @@ table.price-comparison{
 
 /* Module Management ----------------------------------------------- */
 .modular-item-container{
-    // color: $c_txt_alt;
-    // background: $c_tone_06;
-    // margin-top: 2rem;
-    // padding: 1rem 0.8rem;
-    // border-radius: 10px;
+    margin-top: 2rem;
+    padding-bottom: 1rem;
 
-    // max-width: 40rem;
-
-    // .item-desc{
-    //     background: $c_tone_07;
-    //     padding: 0.7rem;
-    //     margin:0;
-    //     border-radius: 10px;
-
-    //     h3{
-    //         margin-top: 0.5rem;
-    //         margin-bottom: 0.5rem;
-    //         padding: 0.1rem;
-    //     }
-    // }
+    .subsection{
+        margin-top: 1rem;
+        margin-right: 3px;
+        border-top: 1px solid $c_tone_03;
+        border-right: 1px solid $c_tone_03;
+    }
 
     .modular-slot-container{
-        background: $c_tone_03;
-        margin-top: 1rem;
-
-        padding: 0.3rem;
-        border-radius: 10px;
-
         display: grid;
         grid-template-columns: minmax(6rem, 25%) auto;
         grid-column-gap: 10px;
 
         .spine{
             color: white;
+            border-right: 1px solid $c_tone_02;
+
             text-align: right;
             padding: 0.2rem;
-            
-            h4{
-                font-size: 1rem;
-                margin: 0.2rem;
-            }
 
             .add-slot{
                 font-size: 0.8rem;
                 font-style: italic;
                 margin-top: 3px;
                 padding: 2px 5px;
-                background: $c_tone_02;
-                border: 1px solid $c_tone_01;
+                background: $c_tone_03;
+                border: 1px solid $c_tone_02;
                 border-radius: 0.4rem;
                 color: white;
+
+                &:hover{
+                    background: $c_tone_04;
+                    border: 1px solid $c_tone_03;                    
+                }
             }
 
             .slot-info{
@@ -1929,12 +1971,13 @@ table.price-comparison{
                 }
 
                 .required{
-                    background: white;
-                    color: green;
-                    border: 1px solid rgb(38, 238, 38);
+                    background: $c_tone_00;
+                    color: $c_txt_main;
+                    border: 1px solid $c_warning;
+                    box-shadow: 0 0 2px 2px rgba(white, 20%);
 
                     .head{
-                        border-right: 1px solid rgb(38, 238, 38);
+                        border-right: 2px solid $c_warning_bright;
                     }
                 }
 
@@ -1949,12 +1992,13 @@ table.price-comparison{
                 }
 
                 .filled{
-                    background: $c_tone_03;
-                    border: 1px solid $c_tone_04;
+                    background: transparent;
+                    border: 1px solid $c_tone_03;
                     color: white;
+                    box-shadow: 0 0 0 0;
 
                     .head{
-                        border-right: 1px solid $c_tone_04;
+                        border-right: 1px solid $c_tone_03;
                     }
                 }
 
@@ -1984,13 +2028,17 @@ table.price-comparison{
             }
 
             .module-slot{
-                margin-top: 3px;
+                margin: 3px 5px 0 0;
                 border-radius: 9px;
-                padding: 4px 10px;
+                font-size: 1rem;
+                padding: 0.25rem 10px;
+                height: 1.5rem;
             }
 
             .empty{
-                background: white;
+                padding-top: 0.5rem;
+                color: black;
+                background: $c_tone_07;
             }
 
             .new-slot-filler-inputs{
@@ -1998,9 +2046,13 @@ table.price-comparison{
             }
 
             .jobitem{
-                background: $c_tone_03;
-                border: 1px solid $c_tone_06;
+                background: transparent;
+                border: 1px solid $c_tone_02;
                 color: white;
+
+                .edit-icon:hover{
+                    background-position: 5px 4px;
+                }
             }
         }
 
@@ -2012,32 +2064,25 @@ table.price-comparison{
 
 .module-bucket-container{
     position: absolute;
-    background: white;
-    border: 3px solid $c_tone_02;
+    max-width: 400px;
+    background: $c_tone_02;
     padding: 0;
+    z-index: 2;
 
-    h4{
-        margin: 0;
-        background: #EEE;
-        padding: 0.5rem 0.5rem 0.3rem;
-        border-color: #ccc;
-    }
-
-    .x-btn{
-        position: absolute;
-        top: 0;
-        right: 0;
-        background: #EEE;
-        border: 0;
-        padding: 5px;
-        font-weight: bold;
-        color: #666;
+    .panel-header{
+        width: calc(400px - 16px);
     }
 
     .bucket-options-container{
         display: flex;
         padding-bottom: 10px;
         border-bottom: 1px solid #DDD;
+    }
+
+    p{
+        margin: 0 0.5rem 0;
+        padding: 1rem 0.3rem 1rem;
+        border-bottom: 1px solid $c_tone_01;
     }
 
     .bucket-item{
@@ -2051,6 +2096,10 @@ table.price-comparison{
         border: 1px solid #BBB;
         color: $c_tone_03;
         font-style: italic;
+    }
+
+    .add-button{
+        margin: 6px;
     }
 
     .add-new-btn{

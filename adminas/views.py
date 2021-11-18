@@ -769,8 +769,20 @@ def module_assignments(request):
 
     if request.method == 'GET':
         data_wanted = request.GET.get('return')
-        parent = JobItem.objects.get(id=request.GET.get('parent'))
-        slot = Slot.objects.get(id=request.GET.get('slot'))
+
+        try:
+            parent = JobItem.objects.get(id=request.GET.get('parent'))
+        except JobItem.DoesNotExist:
+            return JsonResponse({
+                'error': "Can't find item."
+            }, status=400)            
+
+        try:
+            slot = Slot.objects.get(id=request.GET.get('slot'))
+        except Slot.DoesNotExist:
+            return JsonResponse({
+                'error': "Can't find slot."
+            }, status=400)               
         
         data_f = []
         if data_wanted == 'jobitems':

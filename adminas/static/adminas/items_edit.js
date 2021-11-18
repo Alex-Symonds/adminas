@@ -16,7 +16,7 @@ const STD_ACC_CONTAINER_CLASS = 'std-accs-container';
 const ID_PREFIX_PRICE_CHECK_ROW = 'price_check_row_';
 const CLASS_PRICE_CHECKER_EDIT_WINDOW = 'price-checker-edit-window';
 const CLASS_JOBITEM_DIV = 'job-item-container';
-const CLASS_PO_CHECK_DIV = 'job-po-check';
+const CLASS_PO_CHECK_DIV = 'po-discrepancy';
 
 
 // DOMContentLoaded eventListener additions
@@ -71,8 +71,12 @@ function remove_job_item_from_dom(e){
     let price_check_tr = find_price_check_tr(jobitem_id);
     price_check_tr.remove();
 
-    let job_item_ele = e.target.closest('.' + CLASS_JOBITEM_DIV);
+    //let job_item_ele = e.target.closest('.' + CLASS_JOBITEM_DIV); // this worked when the delete button was inside the job panel
+    //let job_item_ele = e.target.previousElementSibling; // this deletes the submit button >.O
+    let job_item_ele = document.querySelector(`#jobitem_${jobitem_id}`);
     job_item_ele.remove();
+
+    cancel_item_edit();
 }
 
 
@@ -120,6 +124,8 @@ function create_ele_jobitem_editor(display_div, edit_btn){
     // Here's the form
     let edit_mode_ele = document.createElement('div');
     edit_mode_ele.id = EDIT_ITEM_CONTAINER_ID;
+    edit_mode_ele.classList.add(CSS_GENERIC_PANEL);
+    edit_mode_ele.classList.add(CSS_GENERIC_FORM_LIKE);
 
     edit_mode_ele.append(edit_item_cancel_btn());
     edit_mode_ele.append(create_ele_jobitem_editor_heading());
@@ -156,13 +162,15 @@ function create_ele_jobitem_editor(display_div, edit_btn){
 
 function create_ele_jobitem_editor_button_container(edit_btn){
     let container_ele = document.createElement('div');
-    container_ele.classList.add('button-container');
+    container_ele.classList.add('controls');
     container_ele.append(edit_item_submit_btn(edit_btn));
+    container_ele.append(edit_item_delete_btn(edit_btn));
     return container_ele;
 }
 
 function create_ele_jobitem_editor_heading(){
     let heading = document.createElement('h5');
+    heading.classList.add(CSS_GENERIC_PANEL_HEADING);
     heading.innerHTML = 'Edit Item';
     return heading;
 }
@@ -203,8 +211,8 @@ function edit_item_cancel_btn(){
     cancel_btn.classList.add('close');
     cancel_btn.id = 'id_btn_cancel_edit_item';
     cancel_btn.dataset.jiid = cancel_btn.dataset.jiid;
-    cancel_btn.addEventListener('click', (e) =>{
-        cancel_item_edit(e);
+    cancel_btn.addEventListener('click', () =>{
+        cancel_item_edit();
     });
 
     let hover_label_span = document.createElement('span');
@@ -215,7 +223,7 @@ function edit_item_cancel_btn(){
 }
 
 // Edit JobItem (before): Revert to read-mode without updating the server
-function cancel_item_edit(e){
+function cancel_item_edit(){
     let edit_div = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
     let result_div = edit_div.previousElementSibling;      
     read_mode_job_item(result_div, edit_div);
@@ -227,12 +235,29 @@ function edit_item_submit_btn(edit_btn){
     submit_btn.classList.add('button-primary');
     submit_btn.innerHTML = 'submit';
     submit_btn.id = 'id_btn_edit_item';
-    submit_btn.dataset.jiid =edit_btn.dataset.jiid;
+    submit_btn.dataset.jiid = edit_btn.dataset.jiid;
     submit_btn.addEventListener('click', (e) => {
         update_job_item(e);
     });
     return submit_btn;
 }
+
+function edit_item_delete_btn(edit_btn){
+    //<button class="ji-delete delete-panel" data-jiid="{{ it.id }}"><span>delete</span></button>
+    let delete_btn = document.createElement('button');
+    delete_btn.innerHTML = 'delete';
+
+    delete_btn.classList.add('button-warning');
+    delete_btn.classList.add('delete-btn');
+    delete_btn.setAttribute('data-jiid', edit_btn.dataset.jiid);
+    delete_btn.addEventListener('click', (e) => {
+        delete_job_item(e);
+    });
+
+    return delete_btn;
+}
+
+
 
 // One liners
 function get_form_element_from_job_item_formset(field_name){
@@ -440,7 +465,7 @@ function update_price_check_section_in_dom(server_data, jobitem_id){
     }
 
     // Update the PO discrepancy panel
-    let po_discrepancy_ele = document.querySelector('#po-discrepancy');
+    let po_discrepancy_ele = document.querySelector('#' + CLASS_PO_CHECK_DIV);
     if(po_discrepancy_ele != null){
         po_discrepancy_ele.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
         po_discrepancy_ele.querySelector('.diff-val').innerHTML = server_data['total_po_difference_value_f'];
@@ -590,10 +615,13 @@ function edit_mode_price_check(e){
 function create_ele_jobitem_editor_price_only(table_row_ele){
     let div = document.createElement('div');
     div.classList.add(CLASS_PRICE_CHECKER_EDIT_WINDOW);
+    div.classList.add(CSS_GENERIC_PANEL);
+    div.classList.add(CSS_GENERIC_FORM_LIKE);
 
     div.append(get_price_edit_close_btn());
 
     let h = document.createElement('h5');
+    h.classList.add(CSS_GENERIC_PANEL_HEADING);
     h.innerHTML = 'Edit Price';
     div.append(h);
 
@@ -672,7 +700,7 @@ function create_ele_jobitem_editor_price_only_manual_price(){
     div.classList.add('manual-price-container');
 
     let txt = document.createElement('span');
-    txt.innerHTML = 'Or enter your own';
+    txt.innerHTML = 'Or enter your own and submit';
     div.append(txt);
 
     let input = document.createElement('input');
