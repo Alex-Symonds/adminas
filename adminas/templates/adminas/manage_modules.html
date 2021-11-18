@@ -24,7 +24,7 @@
     <a href="{% url 'job' job.id %}">Return to job</a>
 
     {% for jobitem in items %}
-    <div class="modular-item-container{% if jobitem.excess_modules_assigned %} excess-modules{% endif %}">
+    <div class="panel modular-item-container{% if jobitem.excess_modules_assigned %} excess-modules{% endif %}">
         <div class="item-desc">
             <h3>{{ jobitem.quantity }} x {{ jobitem.product }}</h3>
             <div class="desc">{% get_item_description jobitem.product job.language %}</div>
