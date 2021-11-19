@@ -85,21 +85,6 @@ function wipe_data_from_form(form_ele){
     return false;
 }
 
-
-// New JI Form, Edit Filled Slot: create a quantity field
-function get_jobitem_qty_field(){
-    let fld = document.createElement('input');
-    fld.type = 'number';
-    fld.name = 'qty';
-    fld.id = 'id_qty';
-    fld.required = true;
-    fld.min = 1;
-
-    return fld;
-}
-
-
-
 // Documents: display a response message
 function display_document_response_message(data, anchor_ele){
     let message_ele = document.querySelector('.' + CLASS_MESSAGE_BOX);
@@ -122,4 +107,72 @@ function create_message_ele(){
     let message_ele = document.createElement('div');
     message_ele.classList.add(CLASS_MESSAGE_BOX);
     return message_ele;
+}
+
+
+// Forms or "forms"
+// New JI Form, Edit Filled Slot: create a quantity field
+function get_jobitem_qty_field(){
+    let fld = document.createElement('input');
+    fld.type = 'number';
+    fld.name = 'qty';
+    fld.id = 'id_qty';
+    fld.required = true;
+    fld.min = 1;
+
+    return fld;
+}
+
+
+function create_generic_ele_panel(){
+    let div = document.createElement('div');
+    div.classList.add('panel');
+    return div;
+}
+
+function create_generic_ele_formy_panel(){
+    let div = create_generic_ele_panel();
+    div.classList.add('form-like');
+    return div;
+}
+
+function create_generic_ele_cancel_button(){
+    let cancel_btn = document.createElement('button');
+    cancel_btn.classList.add('close');
+
+    let hover_label_span = document.createElement('span');
+    hover_label_span.innerHTML = 'close';
+    cancel_btn.append(hover_label_span);
+
+    return cancel_btn;
+}
+
+function create_generic_ele_submit_button(){
+    let submit_btn = document.createElement('button');
+
+    submit_btn.classList.add('button-primary');
+    submit_btn.innerHTML = 'submit';
+
+    return submit_btn;
+}
+
+function create_generic_ele_delete_button(){
+    let delete_btn = document.createElement('button');
+    delete_btn.innerHTML = 'delete';
+
+    delete_btn.classList.add('button-warning');
+    delete_btn.classList.add('delete-btn');
+
+    return delete_btn;
+}
+
+function create_generic_ele_edit_button(){
+    let edit_btn = document.createElement('button');
+    edit_btn.classList.add('edit-icon');
+
+    let hover_label_span = document.createElement('span');
+    hover_label_span.innerHTML = 'edit';
+    edit_btn.append(hover_label_span);
+
+    return edit_btn;
 }

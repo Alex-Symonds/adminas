@@ -60,25 +60,14 @@ function delete_job_item(e){
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
-    .then(response => {
-        remove_job_item_from_dom(e);
+    .then(response => response.json())
+    .then(data => {
+        if('reload' in data){
+            // Reload the page to update module assignments on all the remaining JobItems
+            location.reload();
+        }
     })
 }
-
-// Remove a job item from DOM entirely
-function remove_job_item_from_dom(e){
-    let jobitem_id = e.target.dataset.jiid;
-    let price_check_tr = find_price_check_tr(jobitem_id);
-    price_check_tr.remove();
-
-    //let job_item_ele = e.target.closest('.' + CLASS_JOBITEM_DIV); // this worked when the delete button was inside the job panel
-    //let job_item_ele = e.target.previousElementSibling; // this deletes the submit button >.O
-    let job_item_ele = document.querySelector(`#jobitem_${jobitem_id}`);
-    job_item_ele.remove();
-
-    cancel_item_edit();
-}
-
 
 
 
@@ -127,7 +116,7 @@ function create_ele_jobitem_editor(display_div, edit_btn){
     edit_mode_ele.classList.add(CSS_GENERIC_PANEL);
     edit_mode_ele.classList.add(CSS_GENERIC_FORM_LIKE);
 
-    edit_mode_ele.append(edit_item_cancel_btn());
+    edit_mode_ele.append(create_ele_edit_item_cancel_btn());
     edit_mode_ele.append(create_ele_jobitem_editor_heading());
 
     // Here's the inputs
@@ -205,20 +194,15 @@ function edit_item_preset_input(field, value){
 }
 
 // Edit JobItem (before): Create a cancel button element for the edit form
-function edit_item_cancel_btn(){
-    let cancel_btn = document.createElement('button');
-    //cancel_btn.classList.add('button-primary-hollow');
-    cancel_btn.classList.add('close');
+function create_ele_edit_item_cancel_btn(){
+    let cancel_btn = create_generic_ele_cancel_button();
+
     cancel_btn.id = 'id_btn_cancel_edit_item';
     cancel_btn.dataset.jiid = cancel_btn.dataset.jiid;
     cancel_btn.addEventListener('click', () =>{
         cancel_item_edit();
     });
 
-    let hover_label_span = document.createElement('span');
-    hover_label_span.innerHTML = 'close';
-    cancel_btn.append(hover_label_span);
-    
     return cancel_btn;
 }
 
@@ -231,24 +215,20 @@ function cancel_item_edit(){
 
 // Edit JobItem (before): Create a submit button element for the edit form
 function edit_item_submit_btn(edit_btn){
-    let submit_btn = document.createElement('button');
-    submit_btn.classList.add('button-primary');
-    submit_btn.innerHTML = 'submit';
+    let submit_btn = create_generic_ele_submit_button();
+
     submit_btn.id = 'id_btn_edit_item';
     submit_btn.dataset.jiid = edit_btn.dataset.jiid;
     submit_btn.addEventListener('click', (e) => {
         update_job_item(e);
     });
+
     return submit_btn;
 }
 
 function edit_item_delete_btn(edit_btn){
-    //<button class="ji-delete delete-panel" data-jiid="{{ it.id }}"><span>delete</span></button>
-    let delete_btn = document.createElement('button');
-    delete_btn.innerHTML = 'delete';
+    let delete_btn = create_generic_ele_delete_button();
 
-    delete_btn.classList.add('button-warning');
-    delete_btn.classList.add('delete-btn');
     delete_btn.setAttribute('data-jiid', edit_btn.dataset.jiid);
     delete_btn.addEventListener('click', (e) => {
         delete_job_item(e);
@@ -697,7 +677,8 @@ function get_price_set_button(price_type, value_as_str){
 // Price check edit (before): create an input field for the user to edit the price to anything they like
 function create_ele_jobitem_editor_price_only_manual_price(){
     let div = document.createElement('div');
-    div.classList.add('manual-price-container');
+    //div.classList.add('manual-price-container');
+    div.classList.add('combo-input-and-button');
 
     let txt = document.createElement('span');
     txt.innerHTML = 'Or enter your own and submit';

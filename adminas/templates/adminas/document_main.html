@@ -17,8 +17,12 @@
 
     <h2>Document</h2>
     <div class="subheading">{{ doc_title }}</div>
+    <a class="return-to-job" href="{% url 'job' doc_version.document.job.id %}">&laquo; return to Job</a>
+   
     
-    <section class="status-controls">
+<div class="document-sections-wrapper">    
+    <section class="status-controls subsection">
+        <h4>Status</h4>
     {% if doc_version.issue_date %}
         <span>Issued on {{ doc_version.issue_date }} (v{{ doc_version.version_number }})</span><br />
         <a href="{% url 'doc_display' doc_version.id %}">View PDF</a><br />
@@ -28,36 +32,56 @@
         <a href="{% url 'doc_builder' %}?id={{ doc_version.id }}">Enter edit mode</a><br />
         <a href="{% url 'doc_display' doc_version.id %}">Preview PDF</a><br />
         {% if doc_version.version_number > 1 %}
-            <button class="revert-document">Revert to previous version</button><br />
+        <button class="revert-document">Revert to previous version</button><br />
         {% endif %}
     {% else %}
         <span>Deleted</span>
         <p>To restore, contact an administrator.</p>
     {% endif %}
-        <a href="{% url 'job' doc_version.document.job.id %}">Return to Job</a><br />
     </section>
 
+
     
-    <section class="document-fields-container">
-        <label for="id_doc_reference">Reference</label>
-        <div id="id_doc_reference">{{ doc_version.document.reference }}</div>
-        <div class="doc-version">Version {{ doc_version.version_number }}</div>
+    <section class="document-fields-container subsection">
+        <h4>General</h4>
+        <div class="read_row">
+            <label class="row-label" for="id_doc_reference">Reference</label>
+            <div id="id_doc_reference">{{ doc_version.document.reference }}</div>
+            <div class="doc-version secondary-icon">Version {{ doc_version.version_number }}</div>
+        </div>
 
 
     {% if doc_version.document.doc_type == 'WO' %}
-        <label for="id_req_prod_date">Requested Completion Date</label>
-        <div id="id_req_prod_date">{{ doc_specific.date_requested }}</div>
+        <div class="read_row">
+            <label class="row-label" for="id_req_prod_date">Requested Completion Date</label>
+            <div id="id_req_prod_date">{{ doc_specific.date_requested }}</div>
+        </div>
     {% endif %}
     </section>
 
-    <section>
+    <section class="section-special-instructions-builder subsection">
+        <h4>Special Instructions</h4>
+        <div class="existing">
+    {% for sp_inst in special_instructions %}
+            <div class="one-special-instruction">
+                <div class="contents">{{ sp_inst.instruction }}</div>
+                <div class="who-and-when"><span class="username">{{ sp_inst.created_by }}</span> on <span class="when">{{ sp_inst.created_on }}</span></div>
+            </div>
+    {% empty %}
+            <p class="no_special_instructions">No special instructions on this document.</p>
+    {% endfor %}
+        </div>
+    </section>
+
+
+    <section class="existing-items-container">
         <h3>Items</h3>
-        <div class="included-container">
-            Include
+        <div class="included-container panel">
+            <h5 class="panel-header">Include</h5>
             <ul class="included">
     {% for inc in doc_version.get_included_items %}
                 <li>
-                    <span class="display">{{ inc.display }}</span>
+                    <span class="display">{{ inc.display }}</span><span class="id-number">{{ inc.id }}</span>
                 </li>
     {% empty %}
                 <li class="none">None</li>
@@ -65,8 +89,8 @@
             </ul>
         </div>
     {% if doc_version.active %}
-        <div class="excluded-container">
-            Exclude
+        <div class="excluded-container panel">
+            <h5 class="panel-header">Exclude</h5>
             <ul class="excluded">
         {% for excl in doc_version.get_excluded_items %}
                 <li {% if excl.is_available == False %}class="unavailable"{% endif %}>
@@ -74,6 +98,7 @@
                         {{ excl.display }}
             {% if excl.is_available %}
                     </span>
+                    <span class="id-number">{{ excl.id }}</span>
             {% else %}
                         <span><a href="{% url 'doc_main' excl.doc_id %}">
                             (on  
@@ -83,6 +108,7 @@
                             unnamed)
                 {% endif %}
                         </a></span>
+                        <span class="id-number">{{ excl.id }}</span>
                     </span>
             {% endif %}
                 </li>
@@ -94,19 +120,10 @@
     {% endif %}
     </div>
 
-    <div class="section-special-instructions-builder">
-        <h3>Special Instructions</h3>
-        <div class="existing">
-    {% for sp_inst in special_instructions %}
-            <div class="one-special-instruction">
-                <div class="contents">{{ sp_inst.instruction }}</div>
-                <div class="who-and-when"><span class="username">{{ sp_inst.created_by }}</span> on <span class="when">{{ sp_inst.created_on }}</span></div>
-            </div>
-    {% empty %}
-            <p class="no_special_instructions">No special instructions on this document.</p>
-    {% endfor %}
-        </div>
-    </div>
+
+
+</div>
+
 
 
 

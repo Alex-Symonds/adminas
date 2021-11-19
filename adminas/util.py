@@ -84,7 +84,7 @@ def get_document_available_items(jobitems, doc_type):
 
             if qty > 0:
                 this_dict = {}
-                this_dict['jiid'] = poss_item.pk
+                this_dict['id'] = poss_item.pk
                 this_dict['display'] = poss_item.display_str().replace(str(poss_item.quantity), str(qty))
                 this_dict['is_available'] = True
                 result.append(this_dict)    

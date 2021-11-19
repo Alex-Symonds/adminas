@@ -675,7 +675,7 @@ def items(request):
             ji.job.price_changed()
             ji.delete()
             return JsonResponse({
-                'message': 'Deleted record.'
+                'reload': 'true'
             }, status=200)
 
         if request.GET.get('edit'):

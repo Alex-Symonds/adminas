@@ -115,9 +115,14 @@ input, select, textarea{
     }        
 }
 
-input {
+input{
     height: 1.3rem;
     padding: 0.2rem 0.5rem;
+}
+
+#id_qty{
+    height: 1rem;
+    max-width: 5rem;
 }
 
 select{
@@ -894,7 +899,7 @@ nav {
     }
 }
 
-.job-page-sections-wrapper{
+.job-page-sections-wrapper, .document-sections-wrapper{
     display: flex;
     flex: row;
     flex-wrap: wrap;
@@ -920,6 +925,10 @@ nav {
     }
 }
 
+.document-sections-wrapper .subsection{
+    flex-grow: 2;
+}
+
 .subsection{
     margin: 0.5rem 0 0 3px;
     border-bottom: 1px solid $c_tone_03;
@@ -931,6 +940,22 @@ nav {
         background: $c_tone_02; 
         margin: 0;
         border-bottom: 0;
+    }
+
+    .read_row{
+        border-bottom: 1px solid $c_tone_02;
+        padding: 0.2rem 0;
+
+        display: flex;
+        flex: row;
+
+        .row-label{
+            display: inline-block;
+            min-width: 8rem;
+            max-width: 8rem;
+
+            margin-left: calc(0.3rem + 6px);
+        }
     }
 
     &.warning{
@@ -946,11 +971,6 @@ nav {
         }
 
     }
-}
-.modular-item-container .subsection{
-    // h4{
-    //     border-bottom: 1px solid $c_tone_03;
-    // }
 }
 
 
@@ -972,22 +992,6 @@ nav {
 
 #job_details{
     max-width: $MAX_WIDTH;
-
-    .read_row{
-        border-bottom: 1px solid $c_tone_02;
-        padding: 0.2rem 0;
-
-        display: flex;
-        flex: row;
-
-        .row-label{
-            display: inline-block;
-            min-width: 8rem;
-            max-width: 8rem;
-
-            margin-left: calc(0.3rem + 6px);
-        }
-    }
 }
 
 .edit-icon{
@@ -1190,101 +1194,62 @@ nav {
         }
     }
 
-    .close{
+    .close, .delete-panel{
+        position: relative;
         float: right;
         color: $c_tone_07;
         margin-right: 3px;
     
         width: 30px;
         height: 30px;
-        background-image: url('i-x-hollow.svg');
         background-repeat: no-repeat;
         background-position: right;
         border: transparent;
     
         background-color: transparent;
         padding: 3px 5px;
-        font-size: 0.75rem;
         z-index: 2;
     
-        &:hover{
-            color: $c_txt_main;
-            font-size: 1rem;
-            background-image: url('i-x-filled.svg');
-            width: 6.5rem; 
-            text-indent: 0;
-        }
-    
         span{
+            display: block;
+            position: absolute;
+            top:0;
+            right:26px;
+            z-index: 3;
+
+            font-size: 1rem;
+            width: 4rem;
+
             color: transparent;
             text-align: center;
         }
     
         &:hover{
             span{
-                color: white;
+                color: $c_txt_main;
                 border-radius: 5px;
                 background: rgba($c_tone_00, 80%);
                 border: 1px solid $c_tone_00;
-    
-                display: block;
-                width: 4rem;
-    
-                position: absolute;
-                top:0;
-                right:26px;
             }
         }    
     }
 
+    .close{
+        background-image: url('i-x-hollow.svg');
 
-    // .delete-panel{  // deprecated: plan to only allow delete via a [delete] button in an edit menu, so this can only be "close"
-    //     position: absolute;
-    //     top: 2px;
-    //     right: 5px;
-    //     color: $c_tone_07;
+        &:hover{
+            background-image: url('i-x-filled.svg');
+        }
+    }
 
-    //     width: 30px;
-    //     height: 30px;
-    //     background-image: url('i-minus-empty.svg');
-    //     background-repeat: no-repeat;
-    //     background-position: right;
-    //     border: transparent;
-
-    //     background-color: transparent;
-    //     padding: 3px 5px;
-    //     font-size: 0.75rem;
-    //     z-index: 2;
-
-    //     &:hover{
-    //         color: $c_txt_main;
-    //         font-size: 1rem;
-    //         background-image: url('i-minus-filled.svg');
-    //         width: 6.5rem; 
-    //         text-indent: 0;
-    //     }
-
-    //     span{
-    //         color: transparent;
-    //         text-align: center;
-    //     }
-
-    //     &:hover{
-    //         span{
-    //             color: white;
-    //             border-radius: 5px;
-    //             background: rgba($c_tone_00, 80%);
-    //             border: 1px solid $c_tone_00;
-    
-    //             display: block;
-    //             width: 4rem;
-    
-    //             position: absolute;
-    //             top:0;
-    //             right:26px;
-    //         }
-    //     }
-    // }
+    .delete-panel{
+        color: $c_tone_07;
+        background-image: url('i-minus-empty.svg');
+ 
+         &:hover{
+            background-image: url('i-minus-filled.svg');
+        }
+    }
 }
 
 
@@ -1328,7 +1293,10 @@ nav {
     }
 }
 
-
+.excluded-container.panel ul{
+    color: $c_tone_03;
+    font-style: italic;
+}
 
 
 //#container_edit_item, #po_edit_form, #po_form, .price-checker-edit-window, #new_items_container { // full list, for backup purposes
@@ -1522,6 +1490,32 @@ nav {
 
 
 
+.combo-input-and-button{
+    margin: 0;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: stretch;
+
+    span{
+        display: block;
+        margin: 0 0 0.2rem 0;
+        min-width: 100%;
+    }
+    
+    input{
+        margin: 0;
+        width: 12rem;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    button{
+        margin: 0;
+        font-size: 0.9rem;
+        width: 3.5rem;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    } 
+}
 
 .price-checker-edit-window{
     position: absolute;
@@ -1555,30 +1549,36 @@ nav {
         }
     }
 
-    .manual-price-container{
+    .combo-input-and-button{
         margin: 1rem 0 1rem 0.5rem;
-        display: flex;
-        flex-flow: row wrap;
-        align-items: stretch;
-        span{
-            display: block;
-            margin: 0 0 0.2rem 0;
-            min-width: 100%;
-        }
-        input{
-            margin: 0;
-            width: 12rem;
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-        }
-        button{
-            margin: 0;
-            font-size: 0.9rem;
-            width: 3.5rem;
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-        } 
     }
+
+    // .manual-price-container{
+    //     margin: 1rem 0 1rem 0.5rem;
+    //     display: flex;
+    //     flex-flow: row wrap;
+    //     align-items: stretch;
+
+    //     span{
+    //         display: block;
+    //         margin: 0 0 0.2rem 0;
+    //         min-width: 100%;
+    //     }
+
+    //     input{
+    //         margin: 0;
+    //         width: 12rem;
+    //         border-top-right-radius: 0;
+    //         border-bottom-right-radius: 0;
+    //     }
+    //     button{
+    //         margin: 0;
+    //         font-size: 0.9rem;
+    //         width: 3.5rem;
+    //         border-top-left-radius: 0;
+    //         border-bottom-left-radius: 0;
+    //     } 
+    // }
 
     .button-primary-hollow{
         background: $c_tone_00;
@@ -1589,6 +1589,11 @@ nav {
         }
     }
 }
+
+
+
+
+
 
 
 .job-item-container{
@@ -1694,6 +1699,28 @@ nav {
     border-radius: 6px;
     border: 1px solid $c_tone_04;
     color: $c_tone_06;
+
+    white-space: nowrap;
+
+    width: -moz-fit-content;
+    width: fit-content;
+}
+
+.id-number{
+    &:before{
+        content: 'id ';
+    }
+
+    margin: 0 0 0 5px;
+    padding: 1px 5px;
+    font-size: 0.75rem;
+
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background: $c_tone_01;
+    border: 1px solid $c_tone_00;
+    border-left: 2px solid $c_accent_secondary_02;
+    color: $c_txt_main;
 
     white-space: nowrap;
 
@@ -1876,39 +1903,6 @@ table.price-comparison{
 
 
 
-/* Visibility functionality ------------------------------------------------------ */
-.hide{
-    // position: absolute;
-    // width: 1px;
-    // height: 1px;
-    // top: -9999px;
-    // left: -9999px;
-
-    display: none;
-}
-
-.hover-parent{
-    display: inline-block;
-    position: relative;
-
-    .hover-child{
-        display: none;
-        position: absolute;
-        top: -0.75rem;
-        left: 1rem;
-        width: 18rem;
-        font-size: 0.8rem;
-        padding: 3px 5px 3px 3px;
-        color: $c_txt_alt;
-        background: $c_tone_05;
-        border: 1px solid $c_tone_06;
-        border-radius: 2px;
-    }
-
-    &:hover .hover-child{
-        display: block;
-    }
-}
 
 
 /* Module Management ----------------------------------------------- */
@@ -1921,6 +1915,10 @@ table.price-comparison{
         margin-right: 3px;
         border-top: 1px solid $c_tone_03;
         border-right: 1px solid $c_tone_03;
+
+        &.excess-modules{
+            border: 2px solid red;
+        }
     }
 
     .modular-slot-container{
@@ -2004,14 +2002,14 @@ table.price-comparison{
 
                 .excess{
                     background: white;
-                    color: red;
-                    border: 1px solid red;
+                    color: $c_warning;
+                    border: 1px solid $c_warning_bright;
                     font-weight: bold;
 
                     .head{
-                        background: red;
+                        background: $c_warning_bright;
                         color: white;
-                        border-right: 1px solid red;
+                        border-right: 1px solid $c_warning_bright;
                     }
                 }
             }
@@ -2028,11 +2026,54 @@ table.price-comparison{
             }
 
             .module-slot{
+                position: relative;
+
                 margin: 3px 5px 0 0;
-                border-radius: 9px;
+                border: 1px solid $c_tone_02;
+                border-radius: 0.75rem;
                 font-size: 1rem;
                 padding: 0.25rem 10px;
-                height: 1.5rem;
+                min-height: 1.5rem;
+
+                .child-desc{
+                    margin-top: 3px;
+                }
+
+                .combo-input-and-button{
+                    span{
+                        display: flex;
+                        align-items:center;
+                        margin-bottom: 0.3rem;
+                    }
+
+                    .delete-panel{
+                        display: inline-block;
+                        float: none;
+                        height: 22px;
+                        width: 24px;
+                        margin-left: 1rem;
+                        
+                        span{
+                            display: block;
+                        }
+                    }
+                }
+
+                &.editing, &.new-slot-filler-inputs{
+                    background: $c_tone_03;
+                    border-color: $c_tone_04; 
+                }
+
+                &.new-slot-filler-inputs{
+                    .combo-input-and-button{
+                        margin-top: 0.3rem;
+                    }
+                }
+
+                .close{
+                    margin-top: -3px;
+                    margin-right: -3px;
+                }
             }
 
             .empty{
@@ -2047,7 +2088,6 @@ table.price-comparison{
 
             .jobitem{
                 background: transparent;
-                border: 1px solid $c_tone_02;
                 color: white;
 
                 .edit-icon:hover{
@@ -2055,9 +2095,7 @@ table.price-comparison{
                 }
             }
         }
-
     }
-
 }
 
 
@@ -2077,25 +2115,38 @@ table.price-comparison{
         display: flex;
         padding-bottom: 10px;
         border-bottom: 1px solid #DDD;
+
+        .bucket-item{
+            display: block;
+            border-radius: 10px;
+            padding: 2px 10px;
+            margin: 8px;
+        }
+    
+        .bucket-item.jobitem{
+            background: $c_tone_03;
+            border: 1px solid $c_tone_04;
+            color: $c_txt_main;
+
+            &:hover{
+                background: $c_tone_04;
+                border-color: $c_tone_05;
+            }
+        }
+    
+        .bucket-item.jobitem_usedup{
+            background: $c_tone_02;
+            border: 1px solid $c_tone_03;
+            color: $c_tone_03;
+            font-style: italic;
+        }
+
     }
 
     p{
         margin: 0 0.5rem 0;
         padding: 1rem 0.3rem 1rem;
         border-bottom: 1px solid $c_tone_01;
-    }
-
-    .bucket-item{
-        border-radius: 10px;
-        padding: 2px 10px;
-        margin: 8px;
-    }
-
-    .jobitem_usedup{
-        background: white;
-        border: 1px solid #BBB;
-        color: $c_tone_03;
-        font-style: italic;
     }
 
     .add-button{
@@ -2116,4 +2167,58 @@ table.price-comparison{
 
 .excess-modules{
     border: 2px solid red;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Visibility functionality ------------------------------------------------------ */
+.hide{
+    // position: absolute;
+    // width: 1px;
+    // height: 1px;
+    // top: -9999px;
+    // left: -9999px;
+
+    display: none;
+}
+
+.hover-parent{
+    display: inline-block;
+    position: relative;
+
+    .hover-child{
+        display: none;
+        position: absolute;
+        top: -0.75rem;
+        left: 1rem;
+        width: 18rem;
+        font-size: 0.8rem;
+        padding: 3px 5px 3px 3px;
+        color: $c_txt_alt;
+        background: $c_tone_05;
+        border: 1px solid $c_tone_06;
+        border-radius: 2px;
+    }
+
+    &:hover .hover-child{
+        display: block;
+    }
 }

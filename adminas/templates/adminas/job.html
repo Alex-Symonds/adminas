@@ -182,10 +182,10 @@
             {% for it in job.main_item_list %}
                     <div id="jobitem_{{ it.id }}" class="panel job-item-container">
 
-                        <!-- <button class="ji-delete delete-panel" data-jiid="{{ it.id }}"><span>delete</span></button> -->
                         <h5 class="panel-header what">
-                            <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span> 
-                            <div class="desc">{% get_item_description it.product job.language %}</div>                      
+                            <span class="quantity">{{ it.quantity }}</span> x <span class="product">{{ it.product }}</span><span class="id-number">{{ it.id }}</span>
+                            <div class="desc">{% get_item_description it.product job.language %}</div>  
+                            
                         </h5>
 
                         <div class="money">
@@ -218,11 +218,11 @@
                     {% endif %}
                                 modules
                                 </span>
-                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon"><span>edit</span></a>
+                                <a href="{% url 'manage_modules' job.id %}#modular_jobitem_{{ it.id }}" class="edit-icon"><span>edit</span></a>
                             </div>
                             <ul class="details">
                     {% for module in it.modules.all %}
-                                <li>{{ module.quantity }} x [{{ module.child.product.part_number }}] {{ module.child.product.name }}</li>
+                                <li>{{ module.quantity }} x [{{ module.child.product.part_number }}] {{ module.child.product.name }} <span class="id-number">{{ module.child.id }}</span></li>
                     {% endfor %}
                             </ul>
                         </div>
@@ -234,11 +234,11 @@
                                 <span class="display-text">
                                     &laquo; {{ it.module_of.all.count }} assignment{% if it.module_of.all.count > 1 %}s{% endif %} ({{ it.num_unassigned }} unassigned)
                                 </span>
-                                <a href="{% url 'manage_modules' job.id %}" class="edit-icon"><span>edit</span></a>
+                                <!-- <a href="{% url 'manage_modules' job.id %}" class="edit-icon"><span>edit</span></a> -->
                             </div>
                             <ul>
                     {% for module in it.module_of.all %}
-                                <li>{{ module.quantity }} to [{{ module.parent.product.part_number }}] {{ module.parent.product.name }}</li>
+                                <li>{{ module.quantity }} to [{{ module.parent.product.part_number }}] {{ module.parent.product.name }} <span class="id-number">{{ module.parent.id }}</span></li>
                     {% endfor %}
                             </ul>
                         </div>
@@ -261,6 +261,7 @@
                         {{ item_formset.management_form }}
         {% for form in item_formset %}
                         <div class="form-row panel">
+                            <button class="remove-item-btn delete-panel"><span>remove</span></button>
                             <label for="{{ form.quantity.auto_id }}">{{ form.quantity.label }}</label>
                             {{ form.quantity }}
                             <label for="{{ form.product.auto_id }}">{{ form.product.label }}</label>
@@ -270,7 +271,6 @@
                             <label for="{{ form.price_list.auto_id }}">{{ form.price_list.label }}</label>
                             {{ form.price_list }}
                             {{ form.job }}
-                            <button class="remove-item-btn delete-panel"><span>remove</span></button>
                         </div>
         {% endfor %}
                         <button id="add_item_btn" class="add-button"><span>add 1 more</span></button>
