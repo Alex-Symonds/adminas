@@ -12,6 +12,11 @@ const CLASS_SPECIAL_INSTRUCTION_EDIT = 'edit-special-instruction-btn';
 const CLASS_SPECIAL_INSTRUCTION_DELETE = 'delete-special-instruction-btn';
 const CLASS_LOCAL_NAV = 'status-controls';
 
+const CLASS_INSTRUCTIONS_SECTION = 'special-instructions';
+
+const CLASS_SHOW_ADD_INSTRUCTION_FORMLIKE = 'special-instruction';
+const CLASS_HIDE_ADD_INSTRUCTION_FORMLIKE = 'close-new-instr';
+
 document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.' + CLASS_TOGGLE_BTN).forEach(btn => {
@@ -39,6 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
         delete_document();
     });
 
+
+    document.querySelector('.' + CLASS_SHOW_ADD_INSTRUCTION_FORMLIKE).addEventListener('click', () => {
+        unhide_all_by_class('add-new');
+    });
+
+    document.querySelector('.' + CLASS_HIDE_ADD_INSTRUCTION_FORMLIKE).addEventListener('click', () => {
+        hide_all_by_class('add-new');
+    });
 
     document.querySelector('.add-special-instruction-btn').addEventListener('click', (e) => {
         add_special_instruction_to_page(e);
@@ -98,27 +111,6 @@ function get_dest_docitem_ul(src_ul){
 }
 
 
-// This is a relic of my previous plan to only have edit buttons on the "included" ul
-function toggle_edit_btn(dst_ul, src_li){
-    if(dst_ul.classList.contains(CLASS_INCLUDES_UL)){
-        const toggle_btn = src_li.querySelector('.' + CLASS_TOGGLE_BTN);
-        toggle_btn.before(get_docitem_edit_btn());
-        
-    } else if (dst_ul.classList.contains(CLASS_EXCLUDES_UL)){
-        src_li.querySelector('.' + CLASS_EDIT_BTN).remove();
-    }
-    return;
-}
-// This is a relic of my previous plan to only have edit buttons on the "included" ul
-function get_docitem_edit_btn(){
-    let btn = document.createElement('button');
-    btn.classList.add(CLASS_EDIT_BTN);
-    btn.innerHTML = 'edit';
-    btn.addEventListener('click', (e) => {
-        split_doc_item(e);
-    });
-    return btn;
-}
 
 
 // Toggle docitems: update the position/content of the docitem li
@@ -130,10 +122,25 @@ function move_docitem_li(dst_ul, src_li){
         merge_into_dst_docitem_li(src_li, dst_li);
 
     } else {
-        dst_ul.append(src_li);
+        src_li_updated = update_docitem_li_toggle_display(dst_ul, src_li);
+        dst_ul.append(src_li_updated);
     }
     return;
 }
+
+function update_docitem_li_toggle_display(dst_ul, original_li){
+    let display_str = 'toggle';
+    if(dst_ul.classList.contains('excluded')){
+        display_str = '&laquo; incl.';
+    }
+    else if(dst_ul.classList.contains('included')){
+        display_str = 'excl. &raquo;'
+    }
+
+    original_li.querySelector('.' + CLASS_TOGGLE_BTN).innerHTML = display_str;
+    return original_li;
+}
+
 
 
 // Toggle docitems: handle the "none" li
@@ -216,13 +223,12 @@ function get_combined_docitem_text(src_text, dst_text){
 // ---------------------------------------------------------
 
 function split_doc_item(e){
-    let jobitem_id = e.target.parentElement.dataset.jiid;
+    let jobitem_id = e.target.closest('li').dataset.jiid;
     let max_quantity = get_total_qty(jobitem_id);
 
     if(max_quantity == 1){
         // If there's only 1 in total, the only valid edit is setting the qty to 0, which is equivalent to toggling it. Skip to the end.
         toggle_doc_item(e);
-
 
     } else if (max_quantity > 1){
         open_docitem_split_window(e.target);
@@ -237,7 +243,7 @@ function split_doc_item(e){
 function open_docitem_split_window(split_btn){
     close_docitem_split_window();
 
-    const li_ele = split_btn.parentElement;
+    const li_ele = split_btn.closest('li');
     const calling_ul_class = li_ele.parentElement.classList[0];
     li_ele.append(get_docitem_split_window(li_ele.dataset.jiid, calling_ul_class));
     hide_all_by_class(CLASS_SPLIT_BTN);
@@ -247,20 +253,26 @@ function open_docitem_split_window(split_btn){
 function get_docitem_split_window(jobitem_id, calling_ul_class){
     let div = document.createElement('div');
     div.classList.add(CLASS_SPLIT_WINDOW);
+    div.classList.add(CSS_GENERIC_FORM_LIKE);
+    div.classList.add(CSS_GENERIC_PANEL);
 
     div.append(get_docitem_split_heading());
     div.append(get_docitem_desc(jobitem_id));
     div.append(get_docitem_split_controls(jobitem_id, calling_ul_class));
     div.append(get_docitem_container(jobitem_id));
     div.append(get_docitem_split_submit_btn());
-    div.append(get_docitem_split_cancel_btn());
+    
     return div;
 }
 
 function get_docitem_split_heading(){
-    let heading = document.createElement('h4');
+    let ele = document.createElement('div');
+    ele.classList.add(CSS_GENERIC_PANEL_HEADING);
+    let heading = document.createElement('h5');
     heading.innerHTML = 'Edit Split';
-    return heading;
+    ele.append(get_docitem_split_cancel_btn());
+    ele.append(heading);
+    return ele;
 }
 
 function get_docitem_desc(jobitem_id){
@@ -294,6 +306,7 @@ function get_individual_docitem_text_from_jobitem_id(class_name, jobitem_id){
 
 function get_docitem_split_controls(jobitem_id, calling_ul_class){
     const div = document.createElement('div');
+    div.classList.add('split-controls');
     div.append(get_docitem_split_direction_div(calling_ul_class));
 
     let default_qty = get_docitem_qty(calling_ul_class, jobitem_id);
@@ -306,11 +319,12 @@ function get_docitem_split_controls(jobitem_id, calling_ul_class){
 
 function get_docitem_split_direction_div(called_from){
     const direction_div = document.createElement('div');
+    direction_div.classList.add('split-direction-strip');
 
     const includes_div = document.createElement('div');
     includes_div.id = ID_SPLIT_WINDOW_INCLUDES_ARROWS;
     if(called_from = CLASS_INCLUDES_UL){
-        includes_div.innerHTML = '<<<';
+        includes_div.innerHTML = '&laquo;';
     }
     direction_div.append(includes_div);
 
@@ -340,11 +354,11 @@ function toggle_docitem_split_controls(e){
 
     if(original_class === CLASS_INCLUDES_UL){
         includes_div.innerHTML = '';
-        excludes_div.innerHTML = '>>>';
+        excludes_div.innerHTML = '&raquo;';
         direction_div.innerHTML = CLASS_EXCLUDES_UL;
 
     } else if (original_class === CLASS_EXCLUDES_UL){
-        includes_div.innerHTML = '<<<';
+        includes_div.innerHTML = '&laquo;';
         excludes_div.innerHTML = '';
         direction_div.innerHTML = CLASS_INCLUDES_UL;
     }
@@ -352,6 +366,7 @@ function toggle_docitem_split_controls(e){
 
 function get_docitem_container(jobitem_id){
     let container = document.createElement('div');
+    container.classList.add('docitem-split-status-container');
     // Probably some CSS stuff here, to setup a flexbox.
     container.append(get_docitem_split_category_div(CLASS_INCLUDES_UL, jobitem_id));
     container.append(get_docitem_split_category_div(CLASS_EXCLUDES_UL, jobitem_id));
@@ -361,7 +376,8 @@ function get_docitem_container(jobitem_id){
 function get_docitem_split_category_div(ul_class, jobitem_id){
     const div = document.createElement('div');
     const max_qty = 2;
-    div.classList.add(ul_class + '-window');
+    div.classList.add(ul_class);
+    div.classList.add('container');
 
     const heading = document.createElement('h5');
     heading.innerHTML = ul_class[0].toUpperCase() + ul_class.substring(1);
@@ -369,7 +385,6 @@ function get_docitem_split_category_div(ul_class, jobitem_id){
 
     let default_qty = get_docitem_qty(ul_class, jobitem_id);
     let result_span = document.createElement('span');
-    //result_span.classList.add();
     result_span.innerHTML = default_qty;
     div.append(result_span);
 
@@ -395,8 +410,9 @@ function get_docitem_edit_field(){
 }
 
 function get_docitem_split_submit_btn(){
-    let btn = document.createElement('button');
-    btn.innerHTML = 'ok';
+    let btn = create_generic_ele_submit_button();
+    btn.classList.add('full-width-button');
+    btn.innerHTML = 'split';
     btn.addEventListener('click', (e) => {
         process_split_request(e.target);
     });
@@ -404,8 +420,7 @@ function get_docitem_split_submit_btn(){
 }
 
 function get_docitem_split_cancel_btn(){
-    let btn = document.createElement('button');
-    btn.innerHTML = 'cancel';
+    let btn = create_generic_ele_cancel_button();
     btn.addEventListener('click', () => {
         close_docitem_split_window();
     });
@@ -425,10 +440,9 @@ function close_docitem_split_window(){
 
 
 function update_split_window(input_fld){
-    const suffix = '-window';
     let controls_state = get_docitem_split_controls_state()
-    let selected_class = controls_state + suffix;
-    let other_class = toggle_docitem_membership_class(controls_state) + suffix;
+    let selected_class = controls_state;
+    let other_class = toggle_docitem_membership_class(controls_state);
 
     let selected_ele = get_docitem_split_window_result_ele(selected_class);
     let other_ele = get_docitem_split_window_result_ele(other_class);
@@ -661,7 +675,7 @@ function update_document_on_server(issue_date){
         if ('redirect' in data){
             window.location.href = data['redirect'];
         } else {
-            display_document_response_message(data, document.querySelector('#docbuilder_actions_buttons_container'));
+            display_document_response_message(data, document.querySelector('.status-controls'));
             remove_save_warning_ele();
         }
     })
@@ -711,7 +725,6 @@ function get_assigned_items_as_list(){
     return assigned_items;
 }
 
-const CLASS_INSTRUCTIONS_SECTION = 'section-special-instructions-builder';
 
 function get_special_instructions_as_list(){
     let special_instructions = [];
@@ -719,7 +732,7 @@ function get_special_instructions_as_list(){
     let parent_ele = container_ele.querySelector('.existing');
 
     Array.from(parent_ele.children).forEach(ele => {
-        if(!ele.classList.contains('no_special_instructions')){
+        if(!ele.classList.contains('no-special-instructions')){
             let d = {}
             d['id'] = ele.dataset.siid;
             d['contents'] = ele.querySelector('.contents').innerHTML;
@@ -860,7 +873,7 @@ function update_special_instructions_contents(btn){
     let input_ele = edit_ele.querySelector('textarea');
     let new_str = input_ele.value;
 
-    let special_inst_ele = btn.closest('.one-special-instruction');
+    let special_inst_ele = btn.closest('.read_row');
     let target_ele = special_inst_ele.querySelector('.contents');
     target_ele.innerHTML = new_str;
     target_ele.classList.remove('hide');
@@ -878,8 +891,8 @@ function delete_special_instruction(btn){
 
 
 function update_no_special_instructions_ele(){
-    let section_div = document.querySelector('.section-special-instructions-builder');
-    let none_p = section_div.querySelector('.no_special_instructions');
+    let section_div = document.querySelector('.special-instructions');
+    let none_p = section_div.querySelector('.no-special-instructions');
 
     let want_none_p = section_div.querySelector('.one-special-instruction') == null;
     let have_none_p = none_p != null;
@@ -904,7 +917,7 @@ function create_no_special_instructions_ele(){
 function create_unsaved_changes_ele(){
     let div = document.createElement('div');
     div.classList.add('unsaved-changes');
-    div.innerHTML = 'Warning: unsaved changes exist';
+    div.innerHTML = 'warning: unsaved changes exist';
     return div;
 }
 
@@ -913,9 +926,9 @@ function show_save_warning_ele(){
     let existing_unsaved_ele = document.querySelector('.unsaved-changes');
 
     if(existing_unsaved_ele == null){
-        let anchor_ele = document.querySelector('.document-fields-container');
+        let anchor_ele = document.querySelector('.status-controls');
         let new_unsaved_ele = create_unsaved_changes_ele();
-        anchor_ele.before(new_unsaved_ele);
+        anchor_ele.append(new_unsaved_ele);
     }
 }
 

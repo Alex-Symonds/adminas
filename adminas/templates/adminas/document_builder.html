@@ -20,61 +20,104 @@
 {% block body %}
 
     <h2>Document Builder</h2>
-    <h2>{{ doc_title }}</h2>
+    <div class="subheading">{{ doc_title }}</div>
+    <a class="return-to-job" href="{% url 'job' job_id %}">&laquo; return to Job</a>
 
-    <section class="status-controls">
-        <span>Working on document.</span><br />
+<div class="document-sections-wrapper edit-document"> 
+    <section class="status-controls draft">
+        <h3>Working on document</h3>
 
     {% if doc_id == 0 %}
         <p>Preview is disabled until the document has been saved.</p>
     {% else %}
-        <a href="{% url 'doc_main' doc_id %}">Exit edit mode</a><br />
-        <a href="{% url 'doc_display' doc_id %}?mode=preview">Preview</a><br />
+        <a class="return-to-job" href="{% url 'doc_main' doc_id %}">&laquo; exit edit mode</a>
+        <a class="filled" href="{% url 'doc_display' doc_id %}?mode=preview">preview PDF</a>
     {% endif %}
 
-        <a href="{% url 'job' job_id %}">Return to Job</a>
+        <button id="document_save_btn" class="filled">save draft</button>
+        <button id="document_issue_btn" class="filled">issue final</button>
+        <button id="document_delete_btn" class="button-warning">delete</button>
+
     </section>
 
 
-    <div class="document-fields-container">
+    <section class="document-fields-container subsection">
+        <h4>General</h4>
+        <div class="read_row">
+            <label class="row-label" for="id_doc_reference">Reference</label>
+            <input type="text" id="id_doc_reference" value="{{reference}}">
+            <div class="doc-version" id="id_doc_version">version {{ version_number }}</div>
+        </div>
 
-        <label for="id_doc_reference">Reference</label>
-        <input type="text" id="id_doc_reference" value="{{reference}}">
-        <div id="id_doc_version">Version {{ version_number }}</div>
 
     {% if doc_type == 'WO' %}
-        <label for="id_req_prod_date">Requested Completion Date</label>
-        <input type="datetime" id="id_req_prod_date" value="{{doc_specific.date_requested|date:'d/m/Y'}}">
+        <div class="read_row">
+            <label class="row-label" for="id_req_prod_date">Requested Completion Date</label>
+            <input type="datetime" id="id_req_prod_date" value="{{doc_specific.date_requested|date:'d/m/Y'}}">
+        </div>
     {% endif %}
-    </div>
+    </section>
 
-    <div>
-        Items
-        <div class="included-container">
-            Include
+
+
+
+    <section class="special-instructions subsection">
+        <h4>Special Instructions</h4>
+        <div class="existing">
+    {% for sp_inst in special_instructions %}
+            <div class="read_row" data-siid="{{ sp_inst.id }}">
+                <div class="contents">{{ sp_inst.instruction }}</div>
+                <button class="edit-special-instruction-btn edit-icon"><span>edit</span></button>
+                <!-- <button class="delete-special-instruction-btn">x</button> -->
+                <div class="who-and-when"><span class="username">{{ sp_inst.created_by }}</span> on <span class="when">{{ sp_inst.created_on }}</span></div>
+            </div>
+    {% empty %}
+            <p class="no-special-instructions">No special instructions on this document.</p>
+    {% endfor %}
+        </div>
+        <button class="add-button special-instruction">special instruction</button>
+        <div class="add-new form-like panel hide">
+            <button class="close close-new-instr"><span>close</span></button>
+            <label for="id_add_special_instruction">Add pending special instruction</label>
+            <textarea id="id_add_special_instruction"></textarea>
+            <button class="add-special-instruction-btn button-primary full-width-button">add to pending</button>
+        </div>
+    </section>
+
+
+
+
+    <section class="existing-items-container">
+        <h3>Items</h3>
+        <div class="included-container panel">
+            <h4 class="panel-header">Include</h4>
             <ul class="included">
     {% for inc in included_items %}
                 <li data-jiid="{{ inc.jiid }}">
                     <span class="display">{{ inc.display }}</span>
-                    <button class="split-docitem-btn">split</button>
-                    <button class="toggle-docitem-btn">x</button>
+                    <div class="button-container">
+                        <button class="split-docitem-btn button-primary">&laquo; split &raquo;</button>
+                        <button class="toggle-docitem-btn button-warning">excl. &raquo;</button>
+                    </div>
                 </li>
     {% empty %}
                 <li class="none">None</li>
     {% endfor %}
             </ul>
         </div>
-        <div class="excluded-container">
-            Exclude
+        <div class="excluded-container panel">
+            <h4 class="panel-header">Exclude</h4>
             <ul class="excluded">
         {% for excl in excluded_items %}
-                <li data-jiid="{{ excl.jiid }}" {% if excl.is_available == False %}class="unavailable"{% endif %}>
+                <li data-jiid="{{ excl.id }}" {% if excl.is_available == False %}class="unavailable"{% endif %}>
                     <span class="display">
                         {{ excl.display }}
             {% if excl.is_available %}
                     </span>
-                    <button class="split-docitem-btn">split</button>
-                    <button class="toggle-docitem-btn">x</button>
+                    <div class="button-container">
+                        <button class="split-docitem-btn button-primary">&laquo; split &raquo;</button>
+                        <button class="toggle-docitem-btn button-warning">&laquo; incl.</button>
+                    </div>
             {% else %}
                         <span><a href="{% url 'doc_builder' %}?id={{excl.doc_id}}">
                             (on  
@@ -92,37 +135,9 @@
         {% endfor %}                
             </ul>
         </div>
-    </div>
+    </section>
 
-    <div class="section-special-instructions-builder">
-        <h3>Special Instructions</h3>
-        <div class="existing">
-    {% for sp_inst in special_instructions %}
-            <div class="one-special-instruction" data-siid="{{ sp_inst.id }}">
-                <div class="contents">{{ sp_inst.instruction }}</div>
-                <button class="edit-special-instruction-btn">edit</button>
-                <button class="delete-special-instruction-btn">x</button>
-                <div class="who-and-when"><span class="username">{{ sp_inst.created_by }}</span> on <span class="when">{{ sp_inst.created_on }}</span></div>
-            </div>
-    {% empty %}
-            <p class="no_special_instructions">No special instructions on this document.</p>
-    {% endfor %}
-        </div>
-        <div class="add-new">
-            <label for="id_add_special_instruction">Add new instruction</label>
-            <textarea id="id_add_special_instruction"></textarea>
-            <button class="add-special-instruction-btn">add</button>
-        </form>
-    </div>
-
-
-    <div id="docbuilder_actions_buttons_container">
-        <button id="document_save_btn">save</button>
-        <button id="document_issue_btn">issue</button>
-        <button id="document_delete_btn">delete</button>
-    </div>
-
-
+</div>
 
 
 {% endblock %}

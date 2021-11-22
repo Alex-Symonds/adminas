@@ -91,7 +91,7 @@ function display_document_response_message(data, anchor_ele){
 
     if(message_ele == null){
         message_ele = create_message_ele();
-        anchor_ele.after(message_ele);
+        anchor_ele.append(message_ele);
     }
 
     message_ele.innerHTML = `${data['message']} @ ${get_date_time()}`;

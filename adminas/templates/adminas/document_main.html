@@ -20,22 +20,27 @@
     <a class="return-to-job" href="{% url 'job' doc_version.document.job.id %}">&laquo; return to Job</a>
    
     
-<div class="document-sections-wrapper">    
-    <section class="status-controls subsection">
-        <h4>Status</h4>
-    {% if doc_version.issue_date %}
-        <span>Issued on {{ doc_version.issue_date }} (v{{ doc_version.version_number }})</span><br />
-        <a href="{% url 'doc_display' doc_version.id %}">View PDF</a><br />
-        <button class="replace-document">Replace with new version</button><br />
-    {% elif doc_version.active %}
-        <span>Working / draft (v{{ doc_version.version_number }})</span><br />
-        <a href="{% url 'doc_builder' %}?id={{ doc_version.id }}">Enter edit mode</a><br />
-        <a href="{% url 'doc_display' doc_version.id %}">Preview PDF</a><br />
+<div class="document-sections-wrapper">  
+
+    <section class="status-controls 
+    {% if doc_version.issue_date %} final">
+        <h3>Issued on {{ doc_version.issue_date }} (v{{ doc_version.version_number }})</h3>
+        <a class="filled" href="{% url 'doc_display' doc_version.id %}">view PDF</a>
+        <button class="revert-replace">replace with new version</button>
+
+    {% elif doc_version.active %} draft">
+        <div class="status-header">
+            <h3>Draft (v{{ doc_version.version_number }})</h3>
+            <a class="edit-icon" href="{% url 'doc_builder' %}?id={{ doc_version.id }}"><span>edit</span></a>
+        </div>
+        
+        <a class="filled" href="{% url 'doc_display' doc_version.id %}">preview PDF</a>
+
         {% if doc_version.version_number > 1 %}
-        <button class="revert-document">Revert to previous version</button><br />
+        <button class="revert-replace">revert to previous version</button>
         {% endif %}
-    {% else %}
-        <span>Deleted</span>
+    {% else %} deleted">
+        <h3>Deleted</h3>
         <p>To restore, contact an administrator.</p>
     {% endif %}
     </section>
@@ -47,7 +52,7 @@
         <div class="read_row">
             <label class="row-label" for="id_doc_reference">Reference</label>
             <div id="id_doc_reference">{{ doc_version.document.reference }}</div>
-            <div class="doc-version secondary-icon">Version {{ doc_version.version_number }}</div>
+            <div class="doc-version">version {{ doc_version.version_number }}</div>
         </div>
 
 
@@ -59,11 +64,11 @@
     {% endif %}
     </section>
 
-    <section class="section-special-instructions-builder subsection">
+    <section class="special-instructions subsection">
         <h4>Special Instructions</h4>
         <div class="existing">
     {% for sp_inst in special_instructions %}
-            <div class="one-special-instruction">
+            <div class="read_row">
                 <div class="contents">{{ sp_inst.instruction }}</div>
                 <div class="who-and-when"><span class="username">{{ sp_inst.created_by }}</span> on <span class="when">{{ sp_inst.created_on }}</span></div>
             </div>
@@ -122,7 +127,7 @@
 
 
 
-</div>
+
 
 
 
