@@ -69,6 +69,15 @@ document.addEventListener('DOMContentLoaded', () => {
         })
     });
 
+    let fields_container_ele = document.querySelector('.document-fields-container');
+    if(fields_container_ele != null){
+        document.querySelectorAll('input').forEach(input_ele => {
+            input_ele.addEventListener('change', () => {
+                show_save_warning_ele();
+            })
+        });
+    }
+
 });
 
 
@@ -306,7 +315,7 @@ function get_individual_docitem_text_from_jobitem_id(class_name, jobitem_id){
 
 function get_docitem_split_controls(jobitem_id, calling_ul_class){
     const div = document.createElement('div');
-    div.classList.add('split-controls');
+    div.classList.add('split-direction-setter');
     div.append(get_docitem_split_direction_div(calling_ul_class));
 
     let default_qty = get_docitem_qty(calling_ul_class, jobitem_id);
@@ -324,7 +333,7 @@ function get_docitem_split_direction_div(called_from){
     const includes_div = document.createElement('div');
     includes_div.id = ID_SPLIT_WINDOW_INCLUDES_ARROWS;
     if(called_from = CLASS_INCLUDES_UL){
-        includes_div.innerHTML = '&laquo;';
+        includes_div.innerHTML = '&laquo;&laquo;&laquo;';
     }
     direction_div.append(includes_div);
 
@@ -342,7 +351,6 @@ function get_docitem_split_direction_div(called_from){
         excludes_div.innerHTML = '';
     }
     direction_div.append(excludes_div);
-
     return direction_div;
 }
 
@@ -354,11 +362,11 @@ function toggle_docitem_split_controls(e){
 
     if(original_class === CLASS_INCLUDES_UL){
         includes_div.innerHTML = '';
-        excludes_div.innerHTML = '&raquo;';
+        excludes_div.innerHTML = '&raquo;&raquo;&raquo;';
         direction_div.innerHTML = CLASS_EXCLUDES_UL;
 
     } else if (original_class === CLASS_EXCLUDES_UL){
-        includes_div.innerHTML = '&laquo;';
+        includes_div.innerHTML = '&laquo;&laquo;&laquo;';
         excludes_div.innerHTML = '';
         direction_div.innerHTML = CLASS_INCLUDES_UL;
     }
@@ -367,7 +375,6 @@ function toggle_docitem_split_controls(e){
 function get_docitem_container(jobitem_id){
     let container = document.createElement('div');
     container.classList.add('docitem-split-status-container');
-    // Probably some CSS stuff here, to setup a flexbox.
     container.append(get_docitem_split_category_div(CLASS_INCLUDES_UL, jobitem_id));
     container.append(get_docitem_split_category_div(CLASS_EXCLUDES_UL, jobitem_id));
     return container;
@@ -605,30 +612,37 @@ function open_issue_document_window(e){
 
 function get_issue_document_window_element(){
     let div = document.createElement('div');
+    div.classList.add(CSS_GENERIC_PANEL);
+    div.classList.add(CSS_GENERIC_FORM_LIKE);
+
+    let cancel_btn = create_generic_ele_cancel_button();
+    cancel_btn.addEventListener('click', (e) => {
+        close_issue_document_window(e.target);
+    });
+    div.append(cancel_btn);
 
     let heading = document.createElement('h4');
+    heading.classList.add(CSS_GENERIC_PANEL_HEADING);
     heading.innerHTML = 'Issue Date';
     div.append(heading);
 
     let input = document.createElement('input');
+    input.classList.add('issue-date');
+    input.type = 'date';
     const today = new Date();
-    default_value = today.getDate() + '/' + (today.getMonth() + 1) + '/' + today.getFullYear();
+    default_value = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
     input.value = default_value;
     div.append(input);
 
-    let issue_btn = document.createElement('button');
+    let issue_btn = create_generic_ele_submit_button();
+    issue_btn.classList.add('full-width-button');
     issue_btn.innerHTML = 'issue';
     issue_btn.addEventListener('click', (e) => {
         issue_document(e.target);
     });
     div.append(issue_btn);
 
-    let cancel_btn = document.createElement('button');
-    cancel_btn.innerHTML = 'cancel';
-    cancel_btn.addEventListener('click', (e) => {
-        close_issue_document_window(e.target);
-    });
-    div.append(cancel_btn);
+
 
     return div;
 
@@ -766,28 +780,16 @@ function add_special_instruction_to_page(e){
 
 function create_instructions_display_div(display_str){
     let main_div = document.createElement('div');
-    main_div.classList.add('one-special-instruction');
+    main_div.classList.add('read_row');
 
     main_div.append(create_special_instructions_contents(display_str));
 
-    let edit_btn = document.createElement('button');
-    edit_btn.classList.add(CLASS_SPECIAL_INSTRUCTION_EDIT);
-    edit_btn.innerHTML = 'edit';
+    let edit_btn = create_generic_ele_edit_button();
     edit_btn.setAttribute('data-siid', '0');
     edit_btn.addEventListener('click', (e) => {
         open_edit_mode_special_instruction(e.target);
     });
     main_div.append(edit_btn);
-
-    let del_btn = document.createElement('button');
-    del_btn.classList.add(CLASS_SPECIAL_INSTRUCTION_DELETE);
-    del_btn.innerHTML = 'x';
-    del_btn.setAttribute('data-siid', '0');
-    del_btn.addEventListener('click', (e) => {
-        delete_special_instruction(e.target);
-    }); 
-    main_div.append(del_btn);
-
     main_div.append(create_temporary_who_and_when_div());
 
     return main_div;
@@ -823,7 +825,7 @@ function create_special_instructions_contents(display_str){
 
 
 function find_special_instructions_heading(){
-    let section_div = document.querySelector('.section-special-instructions-builder');
+    let section_div = document.querySelector('.special-instructions');
     return section_div.querySelector('h3');
 }
 
@@ -834,42 +836,70 @@ function open_edit_mode_special_instruction(btn){
     let old_str = contents_div.innerHTML;
     
     contents_div.classList.add('hide');
+    hide_all_by_class('edit-icon');
 
+    target_div.prepend(create_ele_edit_mode_special_instruction(old_str));
+}
+
+function create_ele_edit_mode_special_instruction(old_str){
     let edit_div = document.createElement('div');
     edit_div.classList.add('editing-special-instruction');
+    edit_div.classList.add(CSS_GENERIC_PANEL);
+    edit_div.classList.add(CSS_GENERIC_FORM_LIKE);
 
-    let input = document.createElement('textarea');
-    input.innerHTML = old_str;
-    edit_div.append(input);
-
-    let ok_btn = document.createElement('button');
-    ok_btn.innerHTML = 'ok';
-    ok_btn.addEventListener('click', (e) => {
-        update_special_instructions_contents(e.target);
-    });
-    edit_div.append(ok_btn);
-
-    let cancel_btn = document.createElement('button');
-    cancel_btn.innerHTML = 'cancel';
+    let cancel_btn = create_generic_ele_cancel_button();
     cancel_btn.addEventListener('click', (e) => {
         close_edit_mode_special_instruction(e.target);
     });
     edit_div.append(cancel_btn);
 
-    target_div.prepend(edit_div);
+    let heading = document.createElement('h5');
+    heading.classList.add(CSS_GENERIC_PANEL_HEADING);
+    heading.innerHTML = 'Edit Special Instruction';
+    edit_div.append(heading);
+
+    let input = document.createElement('textarea');
+    input.innerHTML = old_str;
+    edit_div.append(input);
+    edit_div.append(create_ele_edit_mode_special_instruction_button_container());
+
+    return edit_div;
 }
 
+function create_ele_edit_mode_special_instruction_button_container(){
+    let button_container = document.createElement('div');
+    button_container.classList.add('controls');
+
+    let ok_btn = create_generic_ele_submit_button();
+    ok_btn.innerHTML = 'change';
+    ok_btn.addEventListener('click', (e) => {
+        update_special_instructions_contents(e.target);
+    });
+    button_container.append(ok_btn);
+
+    let del_btn = create_generic_ele_delete_button();
+    del_btn.setAttribute('data-siid', '0');
+    del_btn.addEventListener('click', (e) => {
+        delete_special_instruction(e.target);
+    }); 
+    button_container.append(del_btn);
+
+    return button_container;
+}
+
+
 function close_edit_mode_special_instruction(btn){
-    let edit_div = btn.parentElement;
+    let edit_div = btn.closest('.editing-special-instruction');
     let target_div = edit_div.parentElement;
 
     edit_div.remove();
     let contents_div = target_div.querySelector('.contents');
     contents_div.classList.remove('hide');
+    unhide_all_by_class('edit-icon');
 }
 
 function update_special_instructions_contents(btn){
-    let edit_ele = btn.parentElement;
+    let edit_ele = btn.closest('.editing-special-instruction');
     let input_ele = edit_ele.querySelector('textarea');
     let new_str = input_ele.value;
 
@@ -894,7 +924,7 @@ function update_no_special_instructions_ele(){
     let section_div = document.querySelector('.special-instructions');
     let none_p = section_div.querySelector('.no-special-instructions');
 
-    let want_none_p = section_div.querySelector('.one-special-instruction') == null;
+    let want_none_p = section_div.querySelector('.read_row') == null;
     let have_none_p = none_p != null;
 
     if(want_none_p && !have_none_p){

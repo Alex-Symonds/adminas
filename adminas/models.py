@@ -1281,6 +1281,6 @@ class SpecialInstruction(AdminAuditTrail):
     instruction = models.TextField(blank=True)
 
     def __str__(self):
-        return f'Note on {self.version.document.doc_type} {self.version.document.reference} by {self.created_by.name} on {self.created_on}'
+        return f'Note on {self.version.document.doc_type} {self.version.document.reference} by {self.created_by.username} on {self.created_on}'
 
 

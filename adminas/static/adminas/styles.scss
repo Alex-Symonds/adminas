@@ -120,6 +120,10 @@ input{
     padding: 0.2rem 0.5rem;
 }
 
+::-webkit-calendar-picker-indicator {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 24 24"><path fill="%23ffffff" d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/></svg>');
+}
+
 #id_qty{
     height: 1rem;
     max-width: 5rem;
@@ -982,6 +986,8 @@ nav {
     }
 
     &.special-instructions{
+        // Set this to something bigger than the expanded "add instruction" button, but small enough to fit on narrow screens
+        min-width: 270px;
 
         .read_row{
             position: relative;
@@ -1401,9 +1407,8 @@ nav {
 
 
 
-//#container_edit_item, #po_edit_form, #po_form, .price-checker-edit-window, #new_items_container { // full list, for backup purposes
 .form-like{
-    // Not necessariy shared with anything
+
     label, input, select, span, .button-container{
         margin: 0;
         margin-left: 0.7rem;
@@ -1425,24 +1430,9 @@ nav {
         margin-left: 0.5rem;
     }
 
-    // .button-container{
-    //     display: flex;
-    //     justify-content: center;
-    //     gap: 5%;
-
-    //     margin-top: 1.2rem;
-    //     margin-bottom: 1rem;
-    //     margin-left: 0;
-
-    //     border-top: 1px solid $c_tone_02;
-    //     padding-top: 0.7rem;
-
-    //     button, #po_submit_button{
-    //         max-width: 10rem;
-    //         width: 30%;
-    //         height: 2rem;
-    //     }
-    // }
+    .issue-date{
+        margin-top: 1rem;
+    }
 
     .form-row{
         display: block;
@@ -1523,6 +1513,44 @@ nav {
     &.hide{
         display:none;
     }
+
+}
+
+#id_filter_options{
+    width: 95%;
+
+    .filter-options-body{
+        &:first-of-type label{
+            border-top: none;
+            margin-bottom: 0;
+        }
+
+        span{
+            padding: 0 0 0.2rem;
+            font-size: 0.9rem;
+            font-style: italic;
+            color: $c_tone_06;
+        }
+
+        fieldset{
+            margin: 0.5rem 0.5rem 0;
+    
+            label{
+                clear: both;
+                font-size: 1rem;
+                border: none;
+                margin: 0.2rem 0 0.3rem 0;
+                width: 3rem;
+                float: left;
+                text-align: right;
+            }
+    
+            input{
+                float: left;
+            }
+        }
+    }
+
 
 }
 
@@ -2358,10 +2386,13 @@ table.price-comparison{
         padding: 0.3rem 1.5rem;
     }
 
+    .filled, button.revert-replace, #document_delete_btn{
+        margin: 1rem 0 0;
+    }
+
     .filled, button.revert-replace{
         border: 1px solid $c_accent;
         border-left: none;
-        margin: 1rem 0 0;
         border-top-right-radius: 0.5rem;
         border-bottom-right-radius: 0.5rem;
         font-weight: bold;
@@ -2413,6 +2444,10 @@ table.price-comparison{
 }
 
 .edit-document{
+    .document-fields-container{
+        padding-bottom: 1rem;
+    }
+
     .existing-items-container li:last-of-type{
         border-bottom: 1px solid $c_tone_02;
     }
@@ -2421,11 +2456,16 @@ table.price-comparison{
     }
 
     .existing-items-container{
+        ul{
+            padding: 0;
+        }
+
         li{
             display: flex;
             flex-flow: row wrap;
             align-items: center;
             position: relative;
+            padding-left: 1rem;
             
             .button-container{
                 flex-grow: 2;
@@ -2459,29 +2499,30 @@ table.price-comparison{
             }
 
             #id_qty{
-                margin: 0 auto 0;
+                margin: 0.3rem auto 0;
                 font-size: 1.3rem;
                 height: 2rem;
             }
 
-            .split-controls{
+            .split-direction-setter{
                 display: flex;
                 flex-flow: column nowrap;
                 justify-content: center;
-            }
-
-            .split-direction-strip{
-                display: flex;
-                width: 100%;
                 background: $c_tone_01;
-                border: 1px solid $c_tone_00;
-                border-left: none;
-                border-right: none;
+                padding-bottom: 0.5rem;
 
-                div{
-                    display: block;
-                    text-align: center;
-                    width: 33%;
+                .split-direction-strip{
+                    display: flex;
+                    width: 100%;
+                    background: $c_tone_01;
+                    border-top: 1px solid $c_tone_00;
+    
+                    div{
+                        display: block;
+                        text-align: center;
+                        width: 33%;
+                        background: $c_tone_01;
+                    }
                 }
             }
 
@@ -2490,13 +2531,15 @@ table.price-comparison{
                 justify-content: center;
 
                 .container{
-                    border: 1px solid $c_tone_04;
+                    border: 1px solid $c_tone_00;
                     width: 50%;
                     max-width: 8rem;
                     text-align: center;
 
                     h5{
-                        background: $c_tone_03;
+                        background: $c_tone_02;
+                        border-bottom: 1px solid $c_tone_01;
+                        padding: 0.3rem 0 0.2rem;
                     }
 
                     span{
@@ -2526,8 +2569,21 @@ table.price-comparison{
     .subsection{
         max-width: $MAX_WIDTH;
     }
-}
 
+    .editing-special-instruction{
+        width: 90%;
+
+        textarea{
+            margin: 0.3rem;
+            width: calc(100% - 2 * 0.3rem - 1rem);
+            min-height: 3rem;
+        }
+    
+        .controls{
+            margin: 0.3rem;
+        }
+    }
+}
 
 
 

@@ -19,7 +19,7 @@ from django.views.generic.base import View
 from wkhtmltopdf.views import PDFTemplateResponse
 # --------------------------------------------------------
 
-from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, PriceList, StandardAccessory, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment
+from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, Slot, Price, JobModule, AccEventOE, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment, Company
 from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, MAX_ROWS_OC
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, create_oe_event
@@ -946,6 +946,26 @@ def get_data(request):
             
             return JsonResponse(req_addr.as_dict(), status=200)
 
+        elif info_requested == 'customer_list' or info_requested == 'agent_list':
+
+            if info_requested == 'customer_list':
+                jobs = Job.objects.values('customer').distinct()
+
+            elif info_requested == 'agent_list':
+                jobs = Job.objects.values('agent').distinct()
+
+            relevant_companies = Company.objects.filter(id__in=jobs).order_by('name')
+            response_data = {}
+            response_data['data'] = []
+            for c in relevant_companies:
+                company_dict = {}
+                company_dict['id'] = c.id
+                company_dict['display_str'] = c.name
+                response_data['data'].append(company_dict)
+
+            return JsonResponse(response_data, status=200)
+
+
 
 
 
@@ -1153,7 +1173,7 @@ def doc_builder(request):
         # Check for doc_specific fields.
         if doc_obj.document.doc_type == 'WO':
             try:
-                doc_specific_obj = ProductionData.objects.filter(document=doc_obj)[0]
+                doc_specific_obj = ProductionData.objects.filter(version=doc_obj)[0]
             except:
                 pass
 
@@ -1288,11 +1308,6 @@ def document_main(request, doc_id):
 
 
 
-
-
-
-def status(request):
-    return render(request, 'adminas/status.html')
 
 
 

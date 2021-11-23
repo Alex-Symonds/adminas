@@ -10,12 +10,16 @@
     <script>
         const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
         const REPLACE_TODO_BTN = "td-dash";
+        const URL_SELECT_OPTIONS = "{% url 'get_data' %}";
     </script>
     <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/records_filter.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
     <h2>Records</h2>
+
+    <button id="id_filter_records" class="button-primary">Apply Filter</button>
 
     <table>
         <tr>
@@ -26,6 +30,7 @@
             <th>Customer</th>
             <th>Country</th>
             <th>Lang</th>
+            <th>Entered</th>
             <th>Curr</th>
 
             <th>Inv to</th>
@@ -55,6 +60,7 @@
             <td>{{ job.customer.name }}</td>
             <td>{{ job.country.name }}</td>
             <td>{{ job.language }}</td>
+            <td>{{ job.created_on|date:"Y-m-d" }}</td>
             <td>{{ job.currency }}</td>
             <td>{{ job.invoice_to.site.company.name }}</td>
             <td>{{ job.quote_ref }}</td>
@@ -81,8 +87,8 @@
             <td>
         {% for item in job.main_item_list %}
             {% if forloop.first %}
-                <div class="hover-data">List
-                    <div class="data">
+                <div class="hover-parent">List
+                    <div class="hover-child">
                         <ul>
             {% endif %}
                             <li>{{ item.display_str_with_money|safe }}</li>

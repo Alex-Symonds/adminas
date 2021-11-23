@@ -35,15 +35,14 @@
     {% endif %}
 
         <button id="document_save_btn" class="filled">save draft</button>
-        <button id="document_issue_btn" class="filled">issue final</button>
         <button id="document_delete_btn" class="button-warning">delete</button>
-
+        <button id="document_issue_btn" class="filled">issue final</button>
     </section>
 
 
     <section class="document-fields-container subsection">
         <h4>General</h4>
-        <div class="read_row">
+        <div class="form-row">
             <label class="row-label" for="id_doc_reference">Reference</label>
             <input type="text" id="id_doc_reference" value="{{reference}}">
             <div class="doc-version" id="id_doc_version">version {{ version_number }}</div>
@@ -51,9 +50,9 @@
 
 
     {% if doc_type == 'WO' %}
-        <div class="read_row">
+        <div class="form-row">
             <label class="row-label" for="id_req_prod_date">Requested Completion Date</label>
-            <input type="datetime" id="id_req_prod_date" value="{{doc_specific.date_requested|date:'d/m/Y'}}">
+            <input type="date" id="id_req_prod_date" value="{{doc_specific.date_requested|date:'Y-m-d'}}">
         </div>
     {% endif %}
     </section>
@@ -68,7 +67,6 @@
             <div class="read_row" data-siid="{{ sp_inst.id }}">
                 <div class="contents">{{ sp_inst.instruction }}</div>
                 <button class="edit-special-instruction-btn edit-icon"><span>edit</span></button>
-                <!-- <button class="delete-special-instruction-btn">x</button> -->
                 <div class="who-and-when"><span class="username">{{ sp_inst.created_by }}</span> on <span class="when">{{ sp_inst.created_on }}</span></div>
             </div>
     {% empty %}
@@ -96,8 +94,8 @@
                 <li data-jiid="{{ inc.jiid }}">
                     <span class="display">{{ inc.display }}</span>
                     <div class="button-container">
-                        <button class="split-docitem-btn button-primary">&laquo; split &raquo;</button>
-                        <button class="toggle-docitem-btn button-warning">excl. &raquo;</button>
+                        <button class="split-docitem-btn button-primary-hollow">&laquo; split &raquo;</button>
+                        <button class="toggle-docitem-btn button-primary">excl. &raquo;</button>
                     </div>
                 </li>
     {% empty %}
@@ -115,8 +113,8 @@
             {% if excl.is_available %}
                     </span>
                     <div class="button-container">
-                        <button class="split-docitem-btn button-primary">&laquo; split &raquo;</button>
-                        <button class="toggle-docitem-btn button-warning">&laquo; incl.</button>
+                        <button class="split-docitem-btn button-primary-hollow">&laquo; split &raquo;</button>
+                        <button class="toggle-docitem-btn button-primary">&laquo; incl.</button>
                     </div>
             {% else %}
                         <span><a href="{% url 'doc_builder' %}?id={{excl.doc_id}}">
