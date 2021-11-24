@@ -37,7 +37,7 @@
             <span class="status-name">
                 to-do list
             </span>
-            <button class="toggle-todolist" data-job_id="{{ job.id }}" data-on_todo_list="{{ watching|lower }}">
+            <button class="todo-list-toggle" data-job_id="{{ job.id }}" data-on_todo_list="{{ watching|lower }}">
             {% if watching %}
                 on
             {% else %}
@@ -381,7 +381,7 @@
 
             <div class="subsection">
                 <h4>Details</h4>
-                <table id="price_check_table">
+                <table id="price_check_table" class="responsive-table">
                     <thead>
                         <tr class="upper-h-row">
                             <th colspan=3></th>

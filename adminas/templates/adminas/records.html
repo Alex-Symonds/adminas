@@ -9,12 +9,13 @@
 {% block javascript %}
     <script>
         const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
-        const REPLACE_TODO_BTN = "td-dash";
+        const CALLED_BY = 'records';
         const URL_SELECT_OPTIONS = "{% url 'get_data' %}";
         const URL_RECORDS = "{% url 'records' %}";
     </script>
     <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/records_filter.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/records_list_toggle.js' %}" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
@@ -28,88 +29,93 @@
         {% endif %}
     </div>
 
+    {{ page_data.total_pages }}
+
     {% include "adminas/component_pagination_nav.html" with page_data=page_data %}
 
-    <table>
-        <tr>
-            <th>View</th>
-            <th>Watch</th>
-            <th>Name</th>
-            <th>Agent</th>
-            <th>Customer</th>
-            <th>Country</th>
-            <th>Lang</th>
-            <th>Entered</th>
-            <th>Curr</th>
+    <table id="id_records" class="responsive-table">
+        <thead>
+            <tr>
+                <th>View</th>
+                <th>To-Do</th>
+                <th>Name</th>
+                <th>Agent</th>
+                <th>Customer</th>
+                <th>Country</th>
+                <th>Lang</th>
+                <th>Entered</th>
+                <th>Curr</th>
 
-            <th>Inv to</th>
-            <th>Quote</th>
-            <th>PO Num</th>
-            <th>PO Value</th>
+                <th>Inv to</th>
+                <th>Quote</th>
+                <th>PO Num</th>
+                <th>PO Value</th>
 
-            <th>INCO</th>
-            <th>Deliver to</th>
+                <th>INCO</th>
+                <th>Deliver to</th>
 
-            <th>Products</th>
-        </tr>
-
+                <th>Products</th>
+            </tr>
+        </thead>
+        <tbody>
             
     {% for job in data %}
-        <tr>
-            <td><a href="{% url 'job' job.id %}">Link</a></td>
-            <td>
+            <tr>
+                <td><a href="{% url 'job' job.id %}">Link</a></td>
+                <td>
         {% if user in job.users_monitoring.all %}
-                -
+                    <span class="todo-list-add">on</span>
         {% else %}
-                <button class="todo-list-add" data-job_id="{{ job.id }}">+</button>
+                    <button class="todo-list-add button-primary" data-job_id="{{ job.id }}">+</button>
         {% endif %}
-            </td>
-            <td>{{ job.name }}</td>
-            <td>{{ job.agent.name }}</td>
-            <td>{{ job.customer.name }}</td>
-            <td>{{ job.country.name }}</td>
-            <td>{{ job.language }}</td>
-            <td>{{ job.created_on|date:"Y-m-d" }}</td>
-            <td>{{ job.currency }}</td>
-            <td>{{ job.invoice_to.site.company.name }}</td>
-            <td>{{ job.quote_ref }}</td>
-            <td>
-                <span class="po">
+                </td>
+                <td>{{ job.name }}</td>
+                <td>{{ job.agent.name }}</td>
+                <td>{{ job.customer.name }}</td>
+                <td>{{ job.country.name }}</td>
+                <td>{{ job.language }}</td>
+                <td>{{ job.created_on|date:"Y-m-d" }}</td>
+                <td>{{ job.currency }}</td>
+                <td>{{ job.invoice_to.site.company.name }}</td>
+                <td>{{ job.quote_ref }}</td>
+                <td>
         {% if job.num_po > 1 %}
-                    <div class="hover-data">Multiple [+]  
-                        <div class="data">
-                            <ul>  
+                    <button class="list-show-btn button-primary-hollow">multiple</button>  
+                    <div class="po records-list panel hide">
+                        <button class="list-hide-btn close"><span>close</span></button>
+                        <h4 class="panel-header">Purchase Orders</h4>
+                        <ul>  
             {% for po in job.po.all %}
-                                <li>{{ po.reference }}</li>
+                            <li>{{ po.reference }}</li>
             {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-        {% else %}
-                    {{ job.po.all.0.reference }}
-        {% endif %}
-                </span>
-            </td>
-            <td>{{ job.total_po_value_f }}</td>
-            <td>{{ job.incoterm_code }}</td>
-            <td>{{ job.invoice_to.site.company.name }}</td>
-            <td>
-        {% for item in job.main_item_list %}
-            {% if forloop.first %}
-                <div class="hover-parent">List
-                    <div class="hover-child">
-                        <ul>
-            {% endif %}
-                            <li>{{ item.display_str_with_money|safe }}</li>
-            {% if forloop.last %}
                         </ul>
                     </div>
-                </div>
+        {% else %}
+                        {{ job.po.all.0.reference }}
+        {% endif %}
+                </td>
+                <td>{{ job.total_po_value_f }}</td>
+                <td>{{ job.incoterm_code }}</td>
+                <td>{{ job.invoice_to.site.company.name }}</td>
+                <td>
+        {% for item in job.main_item_list %}
+            {% if forloop.first %}
+                        <button class="list-show-btn button-primary-hollow">view</button>
+                        <div class="product records-list panel hide">
+                            <button class="list-hide-btn close"><span>close</span></button>
+                            <h4 class="panel-header">Products</h4>
+                            <ul>
+            {% endif %}
+                                <li>{{ item.display_str_with_money|safe }}</li>
+            {% if forloop.last %}
+                            </ul>
+                        </div>
             {% endif %}
         {% endfor %}
-            </td>
-        </tr>
+                </td>
+            </tr>
     {% endfor %}
+        </tbody>
     </table>
 {% endblock %}
 

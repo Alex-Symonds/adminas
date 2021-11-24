@@ -975,7 +975,7 @@ def get_data(request):
 
 
 def records(request):
-    jobs = Job.objects.all().order_by('created_on')
+    jobs = Job.objects.all().order_by('-created_on')
     total_count = jobs.count()
 
     if request.GET.get('ref_job'):

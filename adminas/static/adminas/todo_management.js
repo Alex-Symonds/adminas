@@ -3,7 +3,7 @@ const CLASS_ADD_JOB_BTN = 'todo-list-add';
 const ID_PREFIX_JOB_PANEL = 'todo_panel_job_';
 const CLASS_TODO_ERROR_MSG = 'todo-error-message';
 
-const CLASS_TOGGLE_TODO_PRESENCE = 'toggle-todolist';
+const CLASS_TOGGLE_TODO_PRESENCE = 'todo-list-toggle';
 const CLASS_STATUS_INDICATOR = 'status-indicator';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -111,10 +111,13 @@ function remove_panel_from_todo_list(job_id){
 }
 
 function replace_todo_btn(btn){
-    if(REPLACE_TODO_BTN == 'td-dash'){
+    if(CALLED_BY === 'records'){
         td = btn.parentElement;
         btn.remove();
-        td.innerHTML = '-';
+
+        let span = document.createElement('span');
+        span.innerHTML = 'on';
+        td.append(span);
     }
 }
 
