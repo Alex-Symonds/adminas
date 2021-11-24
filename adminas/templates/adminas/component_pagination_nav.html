@@ -1,0 +1,25 @@
+{% load query_transform %}
+
+{% if page_data.has_other_pages %}
+<section class="pagination_controls">
+
+    {% if page_data.has_previous %}
+    <a href="?{% query_transform page=1 %}">&laquo; first</a>
+    <a href="?{% query_transform page=page_data.previous_page_number %}">previous</a>
+    {% else %}
+    <span class="disabled-link">&laquo; first</span>
+    <span class="disabled-link">previous</span>
+    {% endif %}
+
+    <span>{{ page_data.number }} of {{ page_data.paginator.num_pages }}</span>
+
+    {% if page_data.has_next %}
+    <a href="?{% query_transform page=page_data.next_page_number %}">next</a>
+    <a href="?{% query_transform page=page_data.paginator.num_pages %}">last &raquo;</a>
+    {% else %}
+    <span class="disabled-link">next</span>
+    <span class="disabled-link">last &raquo;</span>
+    {% endif %}
+
+</section>
+{% endif %}

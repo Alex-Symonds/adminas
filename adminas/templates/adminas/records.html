@@ -11,6 +11,7 @@
         const URL_TODO_MANAGEMENT = "{% url 'todo_list_management' %}";
         const REPLACE_TODO_BTN = "td-dash";
         const URL_SELECT_OPTIONS = "{% url 'get_data' %}";
+        const URL_RECORDS = "{% url 'records' %}";
     </script>
     <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/records_filter.js' %}" type="text/javascript"></script>
@@ -19,7 +20,15 @@
 {% block body %}
     <h2>Records</h2>
 
-    <button id="id_filter_records" class="button-primary">Apply Filter</button>
+    <div id="filter_controls">
+        <p>Showing <strong>{{ filter_count }}</strong> of <strong>{{ total_count }}</strong> records.</p>
+        <button id="id_filter_records" class="button-primary">Filter Options</button>
+        {% if total_count > filter_count %}
+        <a href="{% url 'records' %}" id="id_clear_filter_records" class="button-primary">Clear Filter</a>
+        {% endif %}
+    </div>
+
+    {% include "adminas/component_pagination_nav.html" with page_data=page_data %}
 
     <table>
         <tr>

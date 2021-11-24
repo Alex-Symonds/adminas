@@ -1,26 +1,76 @@
 const ID_BEGIN_FILTER_BUTTON = 'id_filter_records';
 const ID_FILTER_OPTIONS_ELE = 'id_filter_options';
 const CLASS_FILTER_OPTIONS_BODY = 'filter-options-body';
+const ID_FILTER_CONTROLS_CONTAINER = 'filter_controls';
+
+const ID_PREFIX_FILTER_FIELDS = 'id_filter_';
 
 const FALLBACK_STR = '-';
 
+const RANGE_START = 's';
+const RANGE_END = 'e';
+
+const RECORDS_FILTER_SETTINGS = [
+    {
+        'title': 'Job Reference',
+        'input_type': 'single-text',
+        'id': 'ref_job'
+    },
+    {
+        'title': 'PO Reference',
+        'input_type': 'single-text',
+        'id': 'ref_po'
+    },
+    {
+        'title': 'Quote Reference',
+        'input_type': 'single-text',
+        'id': 'ref_quote'
+    },
+    {
+        'title': 'Customer',
+        'input_type': 'select',
+        'id': 'customer'
+    },
+    {
+        'title': 'Agent',
+        'input_type': 'select',
+        'id': 'agent'
+    },
+    {
+        'title': 'Date of Entry',
+        'input_type': 'range-date',
+        'id': 'date'
+    }
+]
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
 
-    document.getElementById(ID_BEGIN_FILTER_BUTTON).addEventListener('click', (e) => {
-        open_filter_options_ele(e);
+    document.getElementById(ID_BEGIN_FILTER_BUTTON).addEventListener('click', () => {
+        open_filter_options_ele();
     });
 
 });
 
 
-async function open_filter_options_ele(e){
-    let filter_button = e.target;
 
+
+
+
+
+
+
+/* ----------------------------------------------------------------------------------------------------
+Open Filter Options
+---------------------------------------------------------------------------------------------------- */
+async function open_filter_options_ele(){
+    let filter_container = document.getElementById(ID_FILTER_CONTROLS_CONTAINER);
     let filter_options_ele = await create_ele_filter_options();
-
-    filter_button.after(filter_options_ele);
+    filter_container.append(filter_options_ele);
 }
 
+// Open Filter Options: Main function to create the "window"
 async function create_ele_filter_options(){
     let filter_options_ele = create_generic_ele_formy_panel();
     filter_options_ele.id = ID_FILTER_OPTIONS_ELE;
@@ -33,13 +83,7 @@ async function create_ele_filter_options(){
     return filter_options_ele;
 }
 
-function create_ele_filter_options_heading(){
-    let ele = document.createElement('h4');
-    ele.classList.add(CSS_GENERIC_PANEL_HEADING);
-    ele.innerHTML = 'Filter Options';
-    return ele;
-}
-
+// Open Filter Options: Component
 function create_ele_filter_options_close_btn(){
     let btn = create_generic_ele_cancel_button();
     btn.addEventListener('click', () => {
@@ -51,82 +95,37 @@ function create_ele_filter_options_close_btn(){
     return btn;
 }
 
+// Open Filter Options: Component
+function create_ele_filter_options_heading(){
+    let ele = document.createElement('h4');
+    ele.classList.add(CSS_GENERIC_PANEL_HEADING);
+    ele.innerHTML = 'Filter Options';
+    return ele;
+}
+
+
+
+// Open Filter Options: Component with selects populated with server data
 async function create_ele_filter_options_body(){
     let ele = document.createElement('div');
     ele.classList.add(CLASS_FILTER_OPTIONS_BODY);
 
-    ele.append(create_filter_option_text_input('Reference', 'job, quote or purchase order'));
-    ele.append(await create_filter_option_select('Customer'));
-    ele.append(await create_filter_option_select('Agent'));
-    ele.append(create_filter_option_date_range('Date of Entry'));
-
-    return ele;
-}
-
-function create_filter_option_base(label_str, explanation = FALLBACK_STR){
-    // Use this for the stuff that'll be identical for each option, regardless of type
-    let ele = document.createElement('div');
-    
-    let label = document.createElement('label');
-    label.innerHTML = label_str;
-    label.for = 'id_filter_' + label_str.replaceAll(' ', '_');
-    ele.append(label);
-
-    if(explanation !== FALLBACK_STR){
-        let explanation_ele = document.createElement('span');
-        explanation_ele.innerHTML = explanation;
-        ele.append(explanation_ele);
+    for(let i = 0; i < RECORDS_FILTER_SETTINGS.length; i++){
+        if(RECORDS_FILTER_SETTINGS[i].input_type === 'single-text'){
+            ele.append(create_filter_option_text_input(RECORDS_FILTER_SETTINGS[i]));
+        }
+        else if(RECORDS_FILTER_SETTINGS[i].input_type === 'select'){
+            ele.append(await create_filter_option_select(RECORDS_FILTER_SETTINGS[i]));
+        }
+        else if(RECORDS_FILTER_SETTINGS[i].input_type === 'range-date'){
+            ele.append(create_filter_option_date_range(RECORDS_FILTER_SETTINGS[i]));
+        }
     }
 
     return ele;
 }
 
-function create_filter_option_text_input(label_str, explanation = FALLBACK_STR){
-    let ele = create_filter_option_base(label_str, explanation);
-
-    let input_ele = document.createElement('input');
-    input_ele.type = 'text';
-    input_ele.id = 'id_filter_' + label_str.replaceAll(' ', '_');
-
-    ele.append(input_ele);
-    return ele;
-}
-
-function create_filter_option_date_range(label_str){
-    let ele = document.createElement('fieldset');
-
-    let heading = document.createElement('legend');
-    heading.innerHTML = label_str;
-    ele.append(heading);
-
-    let start_label = document.createElement('label');
-    start_label.innerHTML = 'From';
-    start_label.for = 'id_filter_range_start';
-    ele.append(start_label);
-
-    let date_start = create_ele_dateinput('range_start');
-    ele.append(date_start);
-
-
-    let end_label = document.createElement('label');
-    end_label.innerHTML = 'To';
-    end_label.for = 'id_filter_range_end';
-    ele.append(end_label);
-
-    let date_end = create_ele_dateinput('range_end');
-    ele.append(date_end);
-
-    return ele;
-}
-
-function create_ele_dateinput(name){
-    let input_ele = document.createElement('input');
-    input_ele.type = 'date';
-    input_ele.id = 'id_filter_' + name.replaceAll(' ', '_');
-    return input_ele;
-}
-
-
+// Open Filter Options: Component
 function create_ele_filter_options_submit(){
     let ele = create_generic_ele_submit_button();
     ele.classList.add('full-width-button');
@@ -138,12 +137,75 @@ function create_ele_filter_options_submit(){
     return ele;
 }
 
-async function create_filter_option_select(label_str){
-    let list_of_options = await get_options_from_server(label_str);
 
-    let ele = create_filter_option_base(label_str);
+// Open Filter Options: Body component
+function create_filter_option_base(FILTER_SETTINGS){
+    // Use this for the stuff that'll be reused for each option, regardless of type
+    let ele = document.createElement('div');
+    
+    let label = document.createElement('label');
+    label.innerHTML = FILTER_SETTINGS.title;
+    label.for = ID_PREFIX_FILTER_FIELDS + FILTER_SETTINGS.id;
+    ele.append(label);
+
+    return ele;
+}
+
+// Open Filter Options: Body component
+function create_filter_option_text_input(FILTER_SETTINGS){
+    let ele = create_filter_option_base(FILTER_SETTINGS);
+
+    let input_ele = document.createElement('input');
+    input_ele.type = 'text';
+    input_ele.id = ID_PREFIX_FILTER_FIELDS + FILTER_SETTINGS.id;
+
+    ele.append(input_ele);
+    return ele;
+}
+
+// Open Filter Options: Body component
+function create_filter_option_date_range(FILTER_SETTINGS){
+    let ele = document.createElement('fieldset');
+
+    let heading = document.createElement('legend');
+    heading.innerHTML = FILTER_SETTINGS.title;
+    ele.append(heading);
+
+    let start_label = document.createElement('label');
+    start_label.innerHTML = 'From';
+    start_label.for = ID_PREFIX_FILTER_FIELDS + RANGE_START + FILTER_SETTINGS.id;
+    ele.append(start_label);
+
+    let date_start = create_ele_dateinput(RANGE_START + FILTER_SETTINGS.id);
+    ele.append(date_start);
+
+
+    let end_label = document.createElement('label');
+    end_label.innerHTML = 'To';
+    end_label.for = ID_PREFIX_FILTER_FIELDS + RANGE_END + FILTER_SETTINGS.id;
+    ele.append(end_label);
+
+    let date_end = create_ele_dateinput(RANGE_END + FILTER_SETTINGS.id);
+    ele.append(date_end);
+
+    return ele;
+}
+
+// Open Filter Options: Body component
+function create_ele_dateinput(id_suffix){
+    let input_ele = document.createElement('input');
+    input_ele.type = 'date';
+    input_ele.id = ID_PREFIX_FILTER_FIELDS + id_suffix;
+    return input_ele;
+}
+
+
+// Open Filter Options: Body component
+async function create_filter_option_select(FILTER_SETTINGS){
+    let ele = create_filter_option_base(FILTER_SETTINGS);
 
     let select_ele = document.createElement('select');
+    select_ele.id = ID_PREFIX_FILTER_FIELDS + FILTER_SETTINGS.id;
 
     let default_option = document.createElement('option');
     default_option.selected = true;
@@ -151,6 +213,7 @@ async function create_filter_option_select(label_str){
     default_option.innerHTML = '---------';
     select_ele.append(default_option);
 
+    let list_of_options = await get_options_from_server(FILTER_SETTINGS.id);
     for(let i = 0; i < list_of_options.length; i++){
         var new_option = document.createElement('option');
         new_option.value = list_of_options[i].id;
@@ -162,8 +225,9 @@ async function create_filter_option_select(label_str){
     return ele;
 }
 
-async function get_options_from_server(label_str){
-    let response = await fetch(`${URL_SELECT_OPTIONS}?info=${label_str.toLowerCase()}_list`)
+// Open Filter Options: Query server for the list of valid options for each select
+async function get_options_from_server(field_id){
+    let response = await fetch(`${URL_SELECT_OPTIONS}?info=${field_id}_list`)
                     .catch(error => {
                         console.log('Error: ', error)
                     });
@@ -175,6 +239,114 @@ async function get_options_from_server(label_str){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ----------------------------------------------------------------------------------------------------
+Submit Filter Options
+---------------------------------------------------------------------------------------------------- */
 function reload_page_with_filters(){
-    console.log('TODO: reload the Records page with some exciting filters applied');
+    let get_params = create_get_parameters_for_records_filter();
+    window.location.href = `${URL_RECORDS}${get_params}`;
+    return;
 }
+
+function create_get_parameters_for_records_filter(){
+    let get_param_list = create_list_get_parameters_for_records_filter();
+
+    if(get_param_list.length > 0){
+        let get_param_str = `?${get_param_list[0]}`;
+        for(let g = 1; g < get_param_list.length; g++){
+            get_param_str += `&${get_param_list[g]}`;
+        }
+        return get_param_str;
+    }
+
+    return '';
+}
+
+
+function create_list_get_parameters_for_records_filter(){
+    let get_param_list = [];
+
+    for(let i = 0; i < RECORDS_FILTER_SETTINGS.length; i++){
+        var get_param = '';
+        var field_ele = document.getElementById(ID_PREFIX_FILTER_FIELDS + RECORDS_FILTER_SETTINGS[i].id);
+
+        if(field_ele !== null){
+            if(RECORDS_FILTER_SETTINGS[i].input_type === 'single-text'){
+                get_param = get_param_from_input(RECORDS_FILTER_SETTINGS[i].id, field_ele.value);
+            }
+            else if(RECORDS_FILTER_SETTINGS[i].input_type === 'select'){
+                get_param = get_param_from_select(RECORDS_FILTER_SETTINGS[i].id, field_ele.value);
+            }
+        }
+        else if(RECORDS_FILTER_SETTINGS[i].input_type === 'range-date'){
+            get_param = get_param_from_range(ID_PREFIX_FILTER_FIELDS, RECORDS_FILTER_SETTINGS[i].id);
+        }
+        else {
+            console.log('Error: ', 'Filter option DOM element is missing.');
+            return;
+        }
+
+        if(get_param !== ''){
+            get_param_list.push(get_param);
+        }
+    }
+
+    return get_param_list;
+}
+
+
+function get_param_from_input(field_name, input_value){
+    // Check the input is not blank, then get-ify it
+    if(input_value !== ''){
+        return create_str_get_param(field_name, input_value);
+    } 
+    return ''; 
+}
+
+function get_param_from_select(field_name, input_value){
+    // Check the select is not on the default option, then get-ify it
+    if(input_value !== '0'){
+        return create_str_get_param(field_name, input_value);
+    } 
+    return '';
+}
+
+function get_param_from_range(id_prefix, field_name){
+    let get_param = '';
+
+    let input_ele = document.getElementById(id_prefix + RANGE_START + field_name);
+    if(input_ele !== null){
+        get_param += get_param_from_input(RANGE_START + field_name, input_ele.value);
+    }
+
+    input_ele = document.getElementById(id_prefix + RANGE_END + field_name);
+    if(input_ele !== null){
+        if(get_param !== ''){
+            get_param += '&';
+        }
+        get_param += get_param_from_input(RANGE_END + field_name, input_ele.value);
+    }
+
+    return get_param;
+}
+
+function create_str_get_param(field_name, input_value){
+    //let input_for_url = format_str_for_url(input_value);
+    let input_for_url = input_value;
+    return `${field_name}=${input_for_url}`;
+}
+

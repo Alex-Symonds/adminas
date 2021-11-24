@@ -1516,42 +1516,55 @@ nav {
 
 }
 
-#id_filter_options{
-    width: 95%;
+#filter_controls{
+    margin: 1rem 0;
 
-    .filter-options-body{
-        &:first-of-type label{
-            border-top: none;
-            margin-bottom: 0;
-        }
-
-        span{
-            padding: 0 0 0.2rem;
-            font-size: 0.9rem;
-            font-style: italic;
-            color: $c_tone_06;
-        }
-
-        fieldset{
-            margin: 0.5rem 0.5rem 0;
-    
-            label{
-                clear: both;
-                font-size: 1rem;
-                border: none;
-                margin: 0.2rem 0 0.3rem 0;
-                width: 3rem;
-                float: left;
-                text-align: right;
-            }
-    
-            input{
-                float: left;
-            }
-        }
+    #id_filter_records, #id_clear_filter_records{
+        margin: 0 1rem 0 0;
+        padding: 0.3rem 0.5rem;
     }
-
-
+    
+    #id_clear_filter_records{
+        text-decoration: none;
+    }
+    
+    #id_filter_options{
+        display: block;
+        width: 95%;
+        max-width: 310px;
+    
+        .filter-options-body{
+            &:first-of-type label{
+                border-top: none;
+                margin-bottom: 0;
+            }
+    
+            span{
+                padding: 0 0 0.2rem;
+                font-size: 0.9rem;
+                font-style: italic;
+                color: $c_tone_06;
+            }
+    
+            fieldset{
+                margin: 1.5rem 0.5rem 0;
+        
+                label{
+                    clear: both;
+                    font-size: 1rem;
+                    border: none;
+                    margin: 0.2rem 0 0.3rem 0;
+                    width: 3rem;
+                    float: left;
+                    text-align: right;
+                }
+        
+                input{
+                    float: left;
+                }
+            }
+        }
+    }  
 }
 
 #container_edit_item{

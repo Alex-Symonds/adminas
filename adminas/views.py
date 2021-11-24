@@ -13,6 +13,7 @@ from django.core.paginator import Paginator
 from decimal import Decimal
 import datetime
 from django.utils import formats
+from django.db.models import Q
 
 # PDF stuff ----------------------------------------------
 from django.views.generic.base import View
@@ -876,11 +877,11 @@ def module_assignments(request):
 
         elif put_data['action'] == 'edit_qty':
 
-            # Maybe the user entered symbols permitted by 'type=number', but which don't actually result in a number
+            # Maybe the user solely entered symbols permitted by 'type=number', but which don't actually result in a number
             # (e.g. e, +, -)
             if put_data['qty'] == '':
                 return JsonResponse({
-                    'message': 'Invalid quantity.'
+                    'error': 'Invalid quantity.'
                 }, status=400)
 
             new_qty = int(put_data['qty'].strip())
@@ -895,7 +896,7 @@ def module_assignments(request):
             # Maybe the user entered a new qty of 0 or a negative number
             if new_qty <= 0:
                 return JsonResponse({
-                    'message': 'Edit failed. Quantity must be 1 or more.'
+                    'error': 'Edit failed. Quantity must be 1 or more.'
                 }, status=400)
 
             # Ensure valid JobModule ID
@@ -904,7 +905,7 @@ def module_assignments(request):
     
             except:
                 return JsonResponse({
-                    'message': 'PUT data was invalid.'
+                    'error': 'PUT data was invalid.'
                 }, status=400)            
 
             # Maybe the user entered a qty which exceeds the number of unassigned job items on the order
@@ -941,7 +942,7 @@ def get_data(request):
                 req_addr = Address.objects.get(id=addr_id)
             except:
                 return JsonResponse({
-                    'message': 'Invalid address ID.'
+                    'error': 'Invalid address ID.'
                 }, status=400)
             
             return JsonResponse(req_addr.as_dict(), status=200)
@@ -973,11 +974,59 @@ def get_data(request):
 
 
 
-
-
-
-
 def records(request):
+    jobs = Job.objects.all().order_by('created_on')
+    total_count = jobs.count()
+
+    if request.GET.get('ref_job'):
+        jobs = jobs.filter(name__contains=request.GET.get('ref_job'))
+
+    if request.GET.get('ref_quote'):
+        jobs = jobs.filter(name__contains=request.GET.get('ref_quote'))
+
+    if request.GET.get('ref_po'):
+        job_ids_with_similar_po_ref = PurchaseOrder.objects.filter(reference__contains=request.GET.get('ref')).values('job')
+        jobs = jobs.filter(id__in=job_ids_with_similar_po_ref)
+
+    if request.GET.get('customer'):
+        jobs = jobs.filter(customer__id=request.GET.get('customer'))
+    
+    if request.GET.get('agent'):
+        jobs = jobs.filter(agent__id=request.GET.get('agent'))
+
+    if request.GET.get('sdate'):
+        jobs = jobs.filter(created_on__gte=request.GET.get('sdate'))
+
+    if request.GET.get('edate'):
+        jobs = jobs.filter(created_on__lte=request.GET.get('edate'))
+
+    filter_count = jobs.count()
+
+    num_records_per_page = 20
+    paginated = Paginator(jobs, num_records_per_page)
+
+    if request.GET.get('page'):
+        req_page = request.GET.get('page')
+    else:
+        req_page = 1
+
+    req_page = paginated.page(req_page)
+    data = req_page.object_list.annotate(total_po_value=Sum('po__value')).annotate(num_po=Count('po'))
+
+    for j in data:
+        j.total_po_value_f = format_money(j.total_po_value)
+
+    return render(request, 'adminas/records.html', {
+        'data': data,
+        'total_count': total_count,
+        'filter_count': filter_count,
+        'page_data': req_page
+    })
+
+
+
+
+def BKP_records(request):
     all_jobs = Job.objects.all().order_by('created_on')
     data = all_jobs.annotate(total_po_value=Sum('po__value')).annotate(num_po=Count('po'))
 
