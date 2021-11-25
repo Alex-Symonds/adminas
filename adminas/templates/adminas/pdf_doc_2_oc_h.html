@@ -1,0 +1,43 @@
+{% extends 'adminas/pdf_doc_1_header.html' %}
+
+{% block document_header %}
+    <h1>{{ title }}</h1>
+
+    <section id="header_data_container">
+
+        <section id="addresses">
+
+            <section id="invoice_to">
+                <h2>Invoice to</h2>
+                <span>{{ invoice_to }}</span>
+            </section>
+
+            <section id="delivery_to">
+                <h2>Deliver to</h2>
+                <span>{{ delivery_to }}</span>
+            </section>
+
+        </section>
+
+        <section id="fields">
+    {% for fld in fields %}
+            <div class="one-field">
+                <h2>{{ fld.h }}</h2>
+                <span>{{ fld.body }}</span>
+            </div>
+    {% endfor %}
+        </section>
+
+    {% if instructions %}
+        <section id="special_instructions">
+            <h2>Special Instructions</h2>
+        {% for sp_inst in instructions %}
+            <div class="one-special-instruction">
+                {{ sp_inst }}
+            </div>
+        {% endfor %}
+        </section>
+    {% endif %}
+    </section>
+
+{% endblock %}

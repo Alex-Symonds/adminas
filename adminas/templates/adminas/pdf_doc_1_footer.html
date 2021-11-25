@@ -1,0 +1,12 @@
+{% extends 'adminas/pdf_doc_0_layout.html' %}
+
+{% block contents %}
+    <div id="document_footer" class="{{ mode }}">
+        {% block document_footer %}
+        {% endblock %}
+    </div>
+    
+    <div id="company_footer">
+        {% include company_footer_file %}
+    </div>
+{% endblock %}

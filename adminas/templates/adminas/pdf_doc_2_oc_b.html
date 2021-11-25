@@ -1,12 +1,7 @@
-{% extends 'adminas/layout_pdf_doc.html' %}
-{% load static %}
+{% extends 'adminas/pdf_doc_1_body.html' %}
 
-{% block css %}
-    <link href="{% static css_file %}" rel="stylesheet">
-{% endblock %}
-
-{% block contents %}
-    <section class="section-item-list">
+{% block document_body %}
+    <section id="item_list">
         <table>
             <tr>
                 <th>Qty</th>

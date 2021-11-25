@@ -23,9 +23,9 @@
 
     <div id="filter_controls">
         <p>Showing <strong>{{ filter_count }}</strong> of <strong>{{ total_count }}</strong> records.</p>
-        <button id="id_filter_records" class="button-primary">Filter Options</button>
+        <button id="id_filter_records" class="button-primary">filter options</button>
         {% if total_count > filter_count %}
-        <a href="{% url 'records' %}" id="id_clear_filter_records" class="button-primary">Clear Filter</a>
+        <a href="{% url 'records' %}" id="id_clear_filter_records" class="button-primary">clear filter</a>
         {% endif %}
     </div>
 

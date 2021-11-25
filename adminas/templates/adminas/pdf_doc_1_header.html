@@ -1,0 +1,15 @@
+{% extends 'adminas/pdf_doc_0_layout.html' %}
+
+{% block contents %}
+    <div id="company_header">
+        {% include company_header_file %}
+    </div>
+
+    <div id="document_header" class="{{ mode }}">
+        <div class="mode-box">
+            DRAFT COPY
+        </div>
+        {% block document_header %}
+        {% endblock %}
+    </div>
+{% endblock %}

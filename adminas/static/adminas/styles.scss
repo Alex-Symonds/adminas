@@ -946,7 +946,7 @@ nav {
     border-bottom: 1px solid $c_tone_03;
     border-left: 3px solid $c_tone_04;
 
-    h4{
+    h4, .subsection-heading{
         padding: 0.4rem 0 0.4rem 0.4rem;
         width: calc(100% - 0.4rem);
         background: $c_tone_02; 
@@ -982,7 +982,6 @@ nav {
             margin: 0;
             padding: 0.5rem;
         }
-
     }
 
     &.special-instructions{
@@ -2027,12 +2026,13 @@ table.price-comparison{
             width: 15rem;
         }
 
-
-
         ul{
             list-style-type: none;
             padding: 0;
             border-bottom: 1px solid $c_tone_03;
+
+            max-height: calc(90vh - 5rem);
+            overflow: auto;
         }
 
         li{

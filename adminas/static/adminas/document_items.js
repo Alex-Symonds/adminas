@@ -762,7 +762,7 @@ function get_special_instructions_as_list(){
 
 
 function add_special_instruction_to_page(e){
-    let section_div = document.querySelector('.section-special-instructions-builder');
+    let section_div = document.querySelector('.special-instructions');
     let input = section_div.querySelector('textarea');
     let new_instruction = input.value;
     input.value = '';

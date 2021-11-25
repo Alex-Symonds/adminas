@@ -1,11 +1,36 @@
 body{
-    color: orange;
+    color: black;
+    width: 98%;
+    margin: 1%;
 }
 
-#mode_box{
-    font-size: 3rem;
-    font-weight: bold;
+.mode-box{
+    display: block;
+    position: absolute;
+    top: -999px;
+    left: -999px;
+    z-index: -10;
+    color: transparent;
+}
 
-    border: 1px solid red;
-    text-align: center;
+.preview{
+    color: #777;
+    font-style: italic;
+
+    .mode-box {
+        top: 0;
+        left: 0;
+        z-index: 100;
+
+        width: 100%;
+        text-align: center;
+
+        font-family:Arial, Helvetica, sans-serif;
+        font-size: 5rem;
+        font-weight: bold;
+        color: rgba(red, 75%);
+
+        border: 1px solid red;
+        text-align: center;
+    }
 }

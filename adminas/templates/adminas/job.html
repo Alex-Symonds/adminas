@@ -290,11 +290,14 @@
             <div class="warning subsection">
                 <h4>Discrepancy</h4>
                 <p>Sum of PO values does not match sum of line item selling prices.</p>
-                <table id="po-discrepancy" class="price-comparison">
-                    <tr><th>PO Total</th><td>{{ job.currency }}</td><td class="po-total-price-f number">{{ job.total_po_value_f }}</td><td></td></tr>
-                    <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price number">{{ job.total_line_value_f }}</td><td></td></tr>
-                    <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
-                </table>
+                <div class="subsection">
+                    <h5 class="subsection-heading">Comparison to PO</h5>
+                    <table id="po-discrepancy" class="price-comparison">
+                        <tr><th>PO Sum</th><td>{{ job.currency }}</td><td class="po-total-price-f number">{{ job.total_po_value_f }}</td><td></td></tr>
+                        <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price number">{{ job.total_line_value_f }}</td><td></td></tr>
+                        <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
+                    </table>
+                </div>
             </div>
         {% endif %}
 

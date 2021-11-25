@@ -1250,36 +1250,45 @@ def doc_builder(request):
 
 
 
-
-
-
 def document_pdf(request, doc_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
     my_doc = DocumentVersion.objects.get(id=doc_id)
+
     context = my_doc.get_display_data_dict()
-    template_body = f'adminas/pdf_doc_{my_doc.document.doc_type.lower()}_body.html'
-    template_header = f'adminas/pdf_doc_{my_doc.document.doc_type.lower()}_header.html'
-    template_footer = f'adminas/pdf_doc_{my_doc.document.doc_type.lower()}_footer.html'
+    user = request.user
+    if user.formatting_filename != '':
+        context['css_doc_user'] = f'adminas/{user.formatting_filename}.css'
+    if user.header_filename != '':
+        context['company_header_file'] = f'adminas/{user.header_filename}.html'
+    if user.footer_filename != '':
+        context['company_footer_file'] = f'adminas/{user.footer_filename}.html'
+
+    template_body = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_b.html'
+    template_header = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_h.html'
+    template_footer = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_f.html'
 
     if my_doc.document.doc_type == 'OC':
         margin_top_setting = 150
     elif my_doc.document.doc_type == 'WO':
         margin_top_setting = 120
 
-    response = PDFTemplateResponse(request=request,
-                                    template=template_body,
-                                    filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
-                                    header_template = template_header,
-                                    footer_template = template_footer,
-                                    context= context,
-                                    show_content_in_browser=True,
-                                    cmd_options={'margin-top': margin_top_setting, # started off at 10
-                                            "zoom":1,
-                                            'quiet': None, # Added to try to resolve CalledProcessError (2)
-                                            'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
-                                )
+    if True:
+        response = render(request, template_header, context)
+    else:
+        response = PDFTemplateResponse(request=request,
+                                        template=template_body,
+                                        filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
+                                        header_template = template_header,
+                                        footer_template = template_footer,
+                                        context=context,
+                                        show_content_in_browser=True,
+                                        cmd_options={'margin-top': margin_top_setting, # started off at 10
+                                                "zoom":1,
+                                                'quiet': None, # Added to try to resolve CalledProcessError (2)
+                                                'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
+                                    )
     return response
    
 

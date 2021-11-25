@@ -36,6 +36,9 @@ PERSON_NAME_LENGTH = 100
 
 class User(AbstractUser):
     todo_list_jobs = models.ManyToManyField('Job', related_name='users_monitoring')
+    formatting_filename = models.TextField(blank=True)
+    header_filename = models.TextField(blank=True)
+    footer_filename = models.TextField(blank=True)
 
 class AdminAuditTrail(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
@@ -928,10 +931,8 @@ class DocumentVersion(AdminAuditTrail):
 
         if self.issue_date != '' and self.issue_date != None:
             data['mode'] = 'issued'
-            data['css_file'] = 'adminas/document_final.css'
         else:
             data['mode'] = 'preview'
-            data['css_file'] = 'adminas/document_preview.css'
 
         data['job_id'] = self.document.job.id
         data['version_id'] = self.id
@@ -951,8 +952,14 @@ class DocumentVersion(AdminAuditTrail):
             data['instructions'].append(instr.instruction)
         
         data['line_items'] = self.get_body_lines()
-        data['empty_row_range'] = range(1, len(data['line_items']) % MAX_ROWS_OC)
-                 
+
+        if data['line_items'] == None:
+            data['empty_row_range'] = range(1, MAX_ROWS_OC)
+        else:
+            data['empty_row_range'] = range(1, len(data['line_items']) % MAX_ROWS_OC)
+
+        data['css_doc_type'] = f'adminas/document_default_{self.document.doc_type.lower()}.css'
+   
         return data      
 
 
@@ -984,7 +991,7 @@ class DocumentVersion(AdminAuditTrail):
             str = f'{self.document.job.po.all()[0].reference} dated {self.document.job.po.all()[0].date_on_po}'
             for po in self.document.job.po.all()[1:]:
                 str += f', {po.reference} dated {po.date_on_po}'
-        except PurchaseOrder.DoesNotExist:
+        except:
             str = 'N/A'
 
         fields.append({
@@ -996,7 +1003,7 @@ class DocumentVersion(AdminAuditTrail):
         try:
             prod_data = ProductionData.objects.filter(version=self)[0]
             date_sched = prod_data.date_scheduled
-        except ProductionData.DoesNotExist:
+        except IndexError:
             date_sched = 'TBC'
         fields.append({
             'h': 'Estimated Date',
@@ -1234,6 +1241,8 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def total_value(self):
+        if self.get_body_lines() == None:
+            return 0
         return sum(item['total_price'] for item in self.get_body_lines() if 'total_price' in item)
 
     def total_value_f(self):
