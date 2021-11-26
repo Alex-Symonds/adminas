@@ -1269,13 +1269,13 @@ def document_pdf(request, doc_id):
     template_header = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_h.html'
     template_footer = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_f.html'
 
-    if my_doc.document.doc_type == 'OC':
-        margin_top_setting = 150
-    elif my_doc.document.doc_type == 'WO':
-        margin_top_setting = 120
+    # Default value is the height of the user's footer
+    margin_bottom_setting = 20
+    if my_doc.document.doc_type == 'WO':
+        margin_bottom_setting = 50
 
-    if True:
-        response = render(request, template_header, context)
+    if False:
+        return render(request, template_body, context)
     else:
         response = PDFTemplateResponse(request=request,
                                         template=template_body,
@@ -1284,7 +1284,9 @@ def document_pdf(request, doc_id):
                                         footer_template = template_footer,
                                         context=context,
                                         show_content_in_browser=True,
-                                        cmd_options={'margin-top': margin_top_setting, # started off at 10
+                                        cmd_options={
+                                                'dpi': 77,
+                                                'margin-bottom': margin_bottom_setting, # started off at 10
                                                 "zoom":1,
                                                 'quiet': None, # Added to try to resolve CalledProcessError (2)
                                                 'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)

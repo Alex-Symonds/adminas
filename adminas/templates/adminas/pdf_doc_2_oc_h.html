@@ -27,17 +27,29 @@
             </div>
     {% endfor %}
         </section>
-
-    {% if instructions %}
-        <section id="special_instructions">
-            <h2>Special Instructions</h2>
-        {% for sp_inst in instructions %}
-            <div class="one-special-instruction">
-                {{ sp_inst }}
-            </div>
-        {% endfor %}
-        </section>
-    {% endif %}
     </section>
 
+    <div style="clear: both"></div>
+
+    {% if instructions %}
+    <section id="special_instructions">
+        <h2>Special Instructions</h2>
+    {% for sp_inst in instructions %}
+        <div class="one-special-instruction">
+            {{ sp_inst }}
+        </div>
+    {% endfor %}
+    </section>
+    {% endif %}
+
+
+    <h2>Summary</h2>
+    <section id="value_header" class="total-value">
+        <div>Total {{ currency }} Value:</div>
+        <div>{{ total_value_f }}</div>
+    </section>
+
+    <div style="clear: both;"></div>
+    
+    <h2>Details</h2>
 {% endblock %}

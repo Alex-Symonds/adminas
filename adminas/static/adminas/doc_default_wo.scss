@@ -1,0 +1,97 @@
+$c_outer_borders: #666;
+$c_line_borders: #F0F0F0;
+$c_line_stripe: #F8F8F8;
+$c_heading_background: #444;
+$c_heading_background_text: white;
+
+$PAGE_WIDTH: 860px;
+$LEFT_HEADER_COLUMN_WIDTH: 400px;
+
+body{
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+h1{
+    text-align: center;
+    margin: 2rem 0 1rem;
+    width: $PAGE_WIDTH;
+}
+
+
+
+
+#special_instructions{    
+    display: block;   
+    margin-top: 8px;
+    width: $PAGE_WIDTH;
+    border: 1px solid $c_outer_borders;
+
+    h2{
+        margin: 0;
+        font-size: 14px;
+        padding: 3px 4px;
+        background: $c_heading_background;
+        color: $c_heading_background_text;
+        width: $PAGE_WIDTH;
+    }
+
+    .one-special-instruction{
+        padding: 0.2rem 0.4rem;
+    }
+
+    & div:nth-of-type(even){
+        background: $c_line_stripe;
+        border: 1px solid $c_line_borders;
+        border-width: 1px 0;
+    }
+
+    & div:first-of-type{
+        border-top: none;
+    }
+    & div:last-of-type{
+        border-bottom: none;
+    }
+}
+
+
+#item_list{
+    margin-top: 0;
+    width: $PAGE_WIDTH;
+
+    table{
+        width: $PAGE_WIDTH;
+        border-collapse: collapse;
+    }
+
+    th{
+        margin: 0;
+        font-size: 14px;
+        padding: 3px 4px;
+        background: $c_heading_background;
+        color: $c_heading_background_text;
+        vertical-align: top;  
+        text-align: left;
+    }
+
+    td{
+        vertical-align: top;
+        text-align: left;
+        border: 1px solid #666;
+        padding: 2px;
+        height: 18px;
+    }
+
+    td:nth-of-type(1){
+        text-align: right;
+    }
+
+
+    tr:nth-of-type(even){
+        td{
+            background: #F8F8F8;
+        }
+    }
+
+
+}

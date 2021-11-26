@@ -7,7 +7,7 @@ from django.db.models import Sum
 from django_countries.fields import CountryField
 
 from decimal import Decimal
-from adminas.constants import DOCUMENT_TYPES, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
+from adminas.constants import DOCUMENT_TYPES, MAX_ROWS_WO, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
 from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
 import datetime
 import re
@@ -925,7 +925,7 @@ class DocumentVersion(AdminAuditTrail):
 
     def get_display_data_dict(self):
         data = {}
-        data['fields'] = self.get_doc_fields(self.document.doc_type)
+        data['fields'] = self.get_doc_fields()
 
         data['title'] = dict(DOCUMENT_TYPES).get(self.document.doc_type)
 
@@ -952,18 +952,12 @@ class DocumentVersion(AdminAuditTrail):
             data['instructions'].append(instr.instruction)
         
         data['line_items'] = self.get_body_lines()
-
-        if data['line_items'] == None:
-            data['empty_row_range'] = range(1, MAX_ROWS_OC)
-        else:
-            data['empty_row_range'] = range(1, len(data['line_items']) % MAX_ROWS_OC)
-
         data['css_doc_type'] = f'adminas/document_default_{self.document.doc_type.lower()}.css'
    
         return data      
 
 
-    def get_doc_fields(self, doc_type):
+    def get_doc_fields(self):
         # Many documents contain a section which lists a bunch of label/value pairs, where every item has the same formatting.
         # "Fields" is for storing all those in a list so that in the template you can setup a loop for "field in fields" and be done with it.
         fields = []
@@ -976,7 +970,7 @@ class DocumentVersion(AdminAuditTrail):
 
         # Add document reference (with conditional label text)
         reference_label = 'Reference No.'
-        if doc_type == 'OC':
+        if self.document.doc_type == 'OC':
             reference_label = 'Confirmation No.'
         fields.append({
             'h': reference_label,
@@ -991,7 +985,7 @@ class DocumentVersion(AdminAuditTrail):
             str = f'{self.document.job.po.all()[0].reference} dated {self.document.job.po.all()[0].date_on_po}'
             for po in self.document.job.po.all()[1:]:
                 str += f', {po.reference} dated {po.date_on_po}'
-        except:
+        except IndexError:
             str = 'N/A'
 
         fields.append({
@@ -1005,13 +999,14 @@ class DocumentVersion(AdminAuditTrail):
             date_sched = prod_data.date_scheduled
         except IndexError:
             date_sched = 'TBC'
+
         fields.append({
             'h': 'Estimated Date',
             'body': date_sched
         })
 
         # Add list of origin countries' full names, but only when needed
-        if doc_type == 'OC':
+        if self.document.doc_type == 'OC':
             str = ''
             for i in self.items.all(): 
                 if i.product.origin_country.name not in str:
@@ -1113,11 +1108,34 @@ class DocumentVersion(AdminAuditTrail):
         else:
             return available + unavailable
 
+    def get_empty_body_line(self):
+        empty_body_line = {}
+        empty_body_line['quantity'] = ''
+        empty_body_line['part_number'] = ''
+        empty_body_line['product_description'] = ''
+        empty_body_line['origin'] = ''
+        empty_body_line['list_price_f'] = ''
+        empty_body_line['unit_price_f'] = ''
+        empty_body_line['total_price'] = 0
+        empty_body_line['total_price_f'] = ''
+
+        return empty_body_line
+
 
     def get_body_lines(self):
+        if self.document.doc_type == 'WO':
+            max_rows = MAX_ROWS_WO
+        elif self.document.doc_type == 'OC':
+            max_rows = MAX_ROWS_OC
+
         # List of items assigned to this particular document.
         if self.items.all().count() == 0:
-            return None
+            result = []
+            for x in range(0, max_rows):
+                result.append(self.get_empty_body_line())
+
+            return result
+            #return None
         else:
             assignments = DocAssignment.objects.filter(version=self)
             result = []
@@ -1241,8 +1259,8 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def total_value(self):
-        if self.get_body_lines() == None:
-            return 0
+        # if self.get_body_lines() == None:
+        #     return 0
         return sum(item['total_price'] for item in self.get_body_lines() if 'total_price' in item)
 
     def total_value_f(self):

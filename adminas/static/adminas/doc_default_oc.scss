@@ -1,10 +1,11 @@
-
 $c_outer_borders: #666;
 $c_line_borders: #F0F0F0;
 $c_line_stripe: #F8F8F8;
 $c_heading_background: #444;
 $c_heading_background_text: white;
 
+$PAGE_WIDTH: 860px;
+$LEFT_HEADER_COLUMN_WIDTH: 400px;
 
 body{
     color: black;
@@ -14,60 +15,66 @@ body{
 h1{
     text-align: center;
     margin: 2rem 0 1rem;
-    min-width: 100%;
-    max-width: 100%;
+    width: $PAGE_WIDTH;
 }
 
+h2{
+    margin: 16px 0 0;
+    padding: 0;
+}
 
-#header_data_container{
-    display: flex;
-    flex-flow: row wrap;
-    align-items: flex-start;
-    width: 100%;
-    font-size: 0.9rem;
-
+#header_data_container, #special_instructions{
     h2{
         margin: 0;
-        font-size: 0.9rem;
-        padding: 0.2rem 0.4rem;
+        font-size: 14px;
+        padding: 3px 4px;
         background: $c_heading_background;
         color: $c_heading_background_text;
     }
+}
+
+#header_data_container{
+    display: block;
+    width: $PAGE_WIDTH;
+    font-size: 14px;
 
     #addresses{
-        width: 24rem;
+        float: left;
+        width: $LEFT_HEADER_COLUMN_WIDTH;
         border: 1px solid $c_outer_borders;
 
         #invoice_to{
+            display: inline-block;
             border-bottom: 1px solid $c_outer_borders;
         }
 
         span{
             display: inline-block;
-            padding: 0.2rem 0.4rem 1rem;
+            padding: 3px 4px 16px;
+            vertical-align: top;
         }
 
     }
 
-
     #fields{
-        flex-grow: 2;
+        float: left;
+        width: 456px;
         border: 1px solid $c_outer_borders;
 
         .one-field{
-            display: flex;
-            align-items: stretch;
             border-bottom: 1px solid $c_outer_borders;
 
             h2{
+                display: table-cell;
+                vertical-align: top;
                 width: 8rem;
-                display: inline-block;
             }
 
             span{
+                display: table-cell;
                 width: 14rem;
-                display: inline-block;
                 padding: 0.2rem 0.4rem;
+                vertical-align: top;
             }
         }
 
@@ -75,28 +82,110 @@ h1{
             border-bottom: 0;
         }
     }
+}
 
-    #special_instructions{
-        width: 100%;
-        border: 1px solid $c_outer_borders;
+#special_instructions{    
+    display: block;   
+    margin-top: 8px;
+    width: $PAGE_WIDTH;
+    border: 1px solid $c_outer_borders;
 
-        .one-special-instruction{
-            padding: 0.2rem 0.4rem;
-        }
+    .one-special-instruction{
+        padding: 0.2rem 0.4rem;
+    }
 
-        & div:nth-of-type(even){
-            background: $c_line_stripe;
-            border: 1px solid $c_line_borders;
-            border-width: 1px 0;
-        }
+    & div:nth-of-type(even){
+        background: $c_line_stripe;
+        border: 1px solid $c_line_borders;
+        border-width: 1px 0;
+    }
 
-        & div:first-of-type{
-            border-top: none;
-        }
-        & div:last-of-type{
-            border-bottom: none;
-        }
+    & div:first-of-type{
+        border-top: none;
+    }
+    & div:last-of-type{
+        border-bottom: none;
     }
 }
+
+#value_header{
+    font-size: 0.9rem;
+    overflow: hidden;
+    float: left;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+
+.spacer{
+    height: 1px;
+}
+
+#item_list{
+    margin-top: 0;
+    width: $PAGE_WIDTH;
+
+    table{
+        width: $PAGE_WIDTH;
+        border-collapse: collapse;
+    }
+
+    th{
+        margin: 0;
+        font-size: 14px;
+        padding: 3px 4px;
+        background: $c_heading_background;
+        color: $c_heading_background_text;
+        vertical-align: top;  
+        text-align: left;
+    }
+
+    td{
+        vertical-align: top;
+        text-align: right;
+        border: 1px solid $c_outer_borders;
+        padding: 2px;
+        height: 18px;
+    }
+
+    td:nth-of-type(2), td:nth-of-type(3){
+        text-align: left;
+    }
+    td:nth-of-type(4){
+        text-align: center;
+    }
+    tr:nth-of-type(even){
+        background: $c_line_stripe;
+    }
+}
+
+#value_end{
+    float: right; 
+    margin-top: 16px;
+
+    div{
+        text-align: right;
+    } 
+
+}
+.total-value{
+    font-size: 24px;
+    font-weight: bold;
+    
+    margin: 0 0 16px 0;
+    border: 2px solid black;
+    border-radius: 4px;
+
+    div{
+        float: left;
+        padding: 5px 10px;
+    }
+    div:first-of-type{
+        margin-right: 24px;
+        background: $c_heading_background;
+        color: $c_heading_background_text;   
+    }
+}
+
 
 

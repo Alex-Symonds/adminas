@@ -1,7 +1,8 @@
 body{
     color: black;
     width: 98%;
-    margin: 1%;
+    margin: 0 1% 0;
+    padding: 0;
 }
 
 .mode-box{
@@ -14,23 +15,22 @@ body{
 }
 
 .preview{
-    color: #777;
-    font-style: italic;
-
     .mode-box {
         top: 0;
         left: 0;
         z-index: 100;
 
         width: 100%;
+        height: 100%;
         text-align: center;
 
-        font-family:Arial, Helvetica, sans-serif;
+        font-family: Arial, Helvetica, sans-serif;
         font-size: 5rem;
         font-weight: bold;
-        color: rgba(red, 75%);
-
-        border: 1px solid red;
+        font-style: normal;
+        color: rgba(rgb(235, 0, 0), 80%);
         text-align: center;
+
+        background: rgba(white, 69%);
     }
 }

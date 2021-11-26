@@ -57,4 +57,6 @@ DOCUMENT_TYPES = [
     (OC_CODE, 'Order Confirmation')
 ]
 
-MAX_ROWS_OC = 10
+# Note: these depend on the heights of the user's document header and footer
+MAX_ROWS_WO = 32
+MAX_ROWS_OC = 35

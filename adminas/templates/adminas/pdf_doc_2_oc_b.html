@@ -1,31 +1,40 @@
 {% extends 'adminas/pdf_doc_1_body.html' %}
 
 {% block document_body %}
+    <div class="spacer"></div>
+
     <section id="item_list">
         <table>
-            <tr>
-                <th>Qty</th>
-                <th>Part #</th>
-                <th>Description</th>
-                <th>Origin</th>
-                <th>List</th>
-                <th>Unit</th>
-                <th>Total ({{ currency }})</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Qty</th>
+                    <th>Part #</th>
+                    <th>Description</th>
+                    <th>Origin</th>
+                    <th>List</th>
+                    <th>Unit</th>
+                    <th>Total ({{ currency }})</th>
+                </tr>
+            </thead>
+            <tbody>
     {% for item in line_items %}
-            <tr>
-                <td>{{ item.quantity }}</td>
-                <td>{{ item.part_number }}</td>
-                <td>{{ item.product_description }}</td>
-                <td>{{ item.origin }}</td>
-                <td>{{ item.list_price_f }}</td>
-                <td>{{ item.unit_price_f }}</td>
-                <td>{{ item.total_price_f }}</td>
-            </tr>
+                <tr>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.part_number }}</td>
+                    <td>{{ item.product_description }}</td>
+                    <td>{{ item.origin }}</td>
+                    <td>{{ item.list_price_f }}</td>
+                    <td>{{ item.unit_price_f }}</td>
+                    <td>{{ item.total_price_f }}</td>
+                </tr>
     {% endfor %}
-    {% for empty_row in empty_row_range %}
-            <tr><td>-</td><td></td><td></td><td></td><td></td></tr>
-    {% endfor %}
+            </tbody>
         </table>
+
+        <section id="value_end" class="total-value">
+            <div>Total {{ currency }} Value:</div>
+            <div>{{ total_value_f }}</div>
+        </section>
+        
     </section>
 {% endblock %}
