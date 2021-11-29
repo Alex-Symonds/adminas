@@ -44,7 +44,7 @@
                 <h3>Pinned</h3>
                 <div class="comment-container pinned streamlined empty-paragraph">
     {% for p in pinned %}
-                    {% include "adminas/comment_collapse.html" with comment=p %}
+                    {% include "adminas/components/comment_collapse.html" with comment=p %}
     {% empty %}
                     <p class="empty-section-notice">No comments have been pinned.</p>
     {% endfor %}
@@ -55,7 +55,7 @@
                 <h3>Highlighted</h3>
                 <div class="comment-container highlighted empty-paragraph">
     {% for h in highlighted %}
-                    {% include "adminas/comment_full.html" with comment=h %}
+                    {% include "adminas/components/comment_full.html" with comment=h %}
     {% empty %}
                     <p class="empty-section-notice">No comments have been highlighted.</p>
     {% endfor %}
@@ -74,13 +74,13 @@
             </div>
             <div class="comment-container all-comments empty-paragraph">
     {% for comment in all_comments %}
-                {% include "adminas/comment_full.html" with comment=comment %}
+                {% include "adminas/components/comment_full.html" with comment=comment %}
     {% empty %}
                 <p class="empty-section-notice">No comments have been added.</p>
     {% endfor %}
             </div>
 
-    {% include "adminas/component_pagination_nav.html" with page_data=page_data %}
+    {% include "adminas/components/component_pagination_nav.html" with page_data=page_data %}
 
         </section> 
     </div>

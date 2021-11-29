@@ -1261,13 +1261,13 @@ def document_pdf(request, doc_id):
     if user.formatting_filename != '':
         context['css_doc_user'] = f'adminas/{user.formatting_filename}.css'
     if user.header_filename != '':
-        context['company_header_file'] = f'adminas/{user.header_filename}.html'
+        context['company_header_file'] = f'adminas/pdf/{user.header_filename}.html'
     if user.footer_filename != '':
-        context['company_footer_file'] = f'adminas/{user.footer_filename}.html'
+        context['company_footer_file'] = f'adminas/pdf/{user.footer_filename}.html'
 
-    template_body = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_b.html'
-    template_header = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_h.html'
-    template_footer = f'adminas/pdf_doc_2_{my_doc.document.doc_type.lower()}_f.html'
+    template_body = f'adminas/pdf/pdf_doc_2_{my_doc.document.doc_type.lower()}_b.html'
+    template_header = f'adminas/pdf/pdf_doc_2_{my_doc.document.doc_type.lower()}_h.html'
+    template_footer = f'adminas/pdf/pdf_doc_2_{my_doc.document.doc_type.lower()}_f.html'
 
     # Default value is the height of the user's footer
     margin_bottom_setting = 20

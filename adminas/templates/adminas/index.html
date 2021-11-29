@@ -51,7 +51,7 @@
             {% endif %}
                 <section class="comment-container pinned streamlined toggle-heading">
             {% for comment in job.pinned_comments %}
-                    {% include "adminas/comment_collapse.html" with comment=comment %}
+                    {% include "adminas/components/comment_collapse.html" with comment=comment %}
             {% endfor %}
                 </section>
                 <div class="todo-list-add-pinned-comment-container">

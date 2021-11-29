@@ -2679,11 +2679,29 @@ table.price-comparison{
     }
 }
 
+#id_registration, #id_login{
+    padding-bottom: 1rem;
+
+    & div:first-of-type{
+        label{
+            border-top: none;
+        }
+    }
+
+    .button-primary{
+        height: 2rem;
+        width: 7rem;
+        margin-top: 1.8rem;
+        margin-left: 0.6rem;
+    }
+}
 
 
 
-
-
+.helpful-suggestion{
+    display: block;
+    margin: 0.6rem 0 3rem 1rem;
+}
 
 
 

@@ -11,21 +11,25 @@
         <div>{{ message|safe }}</div>
     {% endif %}
 
-    <form action="{% url 'register' %}" method="post">
+    <form action="{% url 'register' %}" method="post" id="id_registration" class="form-like">
         {% csrf_token %}
-        <div class="form-group">
-            <input class="form-control" autofocus type="text" name="username" placeholder="username">
+        <div>
+            <label for="id_username">Username</label>
+            <input autofocus type="text" name="username" id="id_username" placeholder="username">
         </div>
-        <div class="form-group">
-            <input class="form-control" type="email" name="email" placeholder="email">
+        <div>
+            <label for="id_email">Email</label>
+            <input  type="email" name="email" placeholder="email" id="id_email">
         </div>
-        <div class="form-group">
-            <input class="form-control" type="password" name="password" placeholder="password">
+        <div>
+            <label for="id_password">Password</label>
+            <input type="password" name="password" placeholder="password" id="id_password">
         </div>
-        <div class="form-group">
-            <input class="form-control" type="password" name="confirmation" placeholder="confirm password">
+        <div>
+            <label for="id_confirm_password">Confirm Password</label>
+            <input type="password" name="confirmation" placeholder="confirm password" id="id_confirm_password">
         </div>
-        <input class="lcars-btn post-btn" type="submit" value="Register">
+        <input class="button-primary" type="submit" value="Register">
     </form>
 
     <div class="helpful-suggestion">

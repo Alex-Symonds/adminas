@@ -41,8 +41,14 @@
                 <div class="spine">
             {% get_num_assigned_modules jobitem slot as num_assigned %}
                     <div class="slot-info">
-                        <div class="required{% if num_assigned >= slot.quantity_required %} filled{% endif %}"><span class="head">R</span><span class="body">{% get_slot_details_string_required jobitem slot%}</span></div>
-                        <div class="optional{% if num_assigned >= slot.quantity_required|add:slot.quantity_optional %} filled {% endif %}"><span class="head">O</span><span class="body">{% get_slot_details_string_optional jobitem slot%}</span></div>
+                        <div class="required{% if num_assigned >= slot.quantity_required %} filled{% endif %}">
+                            <span class="head">R</span>
+                            <span class="body">{% get_slot_details_string_required jobitem slot%}</span>
+                        </div>
+                        <div class="optional{% if num_assigned >= slot.quantity_required|add:slot.quantity_optional %} filled {% endif %}">
+                            <span class="head">O</span>
+                            <span class="body">{% get_slot_details_string_optional jobitem slot%}</span>
+                        </div>
             {% if num_excess > 0 %}
                         <div class="excess"><span class="head">excess</span><span class="body">{{ num_excess }}</span></div>
             {% endif %}
