@@ -1272,25 +1272,22 @@ def document_pdf(request, doc_id):
     # Default value is the height of the user's footer
     margin_bottom_setting = 20
     if my_doc.document.doc_type == 'WO':
-        margin_bottom_setting = 50
+        margin_bottom_setting = 35
 
-    if False:
-        return render(request, template_body, context)
-    else:
-        response = PDFTemplateResponse(request=request,
-                                        template=template_body,
-                                        filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
-                                        header_template = template_header,
-                                        footer_template = template_footer,
-                                        context=context,
-                                        show_content_in_browser=True,
-                                        cmd_options={
-                                                'dpi': 77,
-                                                'margin-bottom': margin_bottom_setting, # started off at 10
-                                                "zoom":1,
-                                                'quiet': None, # Added to try to resolve CalledProcessError (2)
-                                                'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
-                                    )
+    response = PDFTemplateResponse(request=request,
+                                    template=template_body,
+                                    filename=f"{my_doc.document.doc_type} {my_doc.document.reference}.pdf",
+                                    header_template = template_header,
+                                    footer_template = template_footer,
+                                    context=context,
+                                    show_content_in_browser=True,
+                                    cmd_options={
+                                            'dpi': 77,
+                                            'margin-bottom': margin_bottom_setting, # started off at 10
+                                            "zoom":1,
+                                            'quiet': None, # Added to try to resolve CalledProcessError (2)
+                                            'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
+                                )
     return response
    
 

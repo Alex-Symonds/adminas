@@ -20,6 +20,14 @@
         </section>
 
         <section id="fields">
+            <div class="one-field">
+                <h2>Confirmation Ref.</h2>
+                <span>{{ doc_ref }}</span>
+            </div>
+            <div class="one-field">
+                <h2>Issue Date</h2>
+                <span>{% if issue_date %}{{ issue_date|date:'Y-m-d' }}{% else %}DRAFT{% endif %}</span>
+            </div>
     {% for fld in fields %}
             <div class="one-field">
                 <h2>{{ fld.h }}</h2>
@@ -43,13 +51,11 @@
     {% endif %}
 
 
-    <h2>Summary</h2>
     <section id="value_header" class="total-value">
         <div>Total {{ currency }} Value:</div>
         <div>{{ total_value_f }}</div>
     </section>
 
     <div style="clear: both;"></div>
-    
-    <h2>Details</h2>
+    <h3>Details</h3>
 {% endblock %}

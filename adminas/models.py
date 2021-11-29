@@ -91,7 +91,7 @@ class Address(AdminAuditTrail):
     valid_until = models.DateField(blank=True, null=True)
 
     def display_str_newlines(self):
-        return f'{self.address}\n{self.region}\n{self.postcode}\n{self.country.name}'
+        return f'{self.address},\n{self.region},\n{self.postcode},\n{self.country.name}'
 
     def as_dict(self):
         return {
@@ -927,6 +927,8 @@ class DocumentVersion(AdminAuditTrail):
         data = {}
         data['fields'] = self.get_doc_fields()
 
+        data['issue_date'] = self.issue_date
+        data['doc_ref'] = self.document.reference
         data['title'] = dict(DOCUMENT_TYPES).get(self.document.doc_type)
 
         if self.issue_date != '' and self.issue_date != None:
@@ -936,7 +938,6 @@ class DocumentVersion(AdminAuditTrail):
 
         data['job_id'] = self.document.job.id
         data['version_id'] = self.id
-        data['job_id'] = self.document.job.id
 
         data['currency'] = self.document.job.currency
         data['total_value_f'] = self.total_value_f()
@@ -962,21 +963,6 @@ class DocumentVersion(AdminAuditTrail):
         # "Fields" is for storing all those in a list so that in the template you can setup a loop for "field in fields" and be done with it.
         fields = []
 
-        # Add Issue Date
-        fields.append({
-            'h': 'Issue Date',
-            'body': self.issue_date
-        })
-
-        # Add document reference (with conditional label text)
-        reference_label = 'Reference No.'
-        if self.document.doc_type == 'OC':
-            reference_label = 'Confirmation No.'
-        fields.append({
-            'h': reference_label,
-            'body': self.document.reference
-        })
-
         # Add purchase order info.
         # While most documents will relate to a single PO, some customers prefer to make modifications via additional PO/s rather than amending the first,
         # so this must also support making a list of POs.
@@ -997,12 +983,21 @@ class DocumentVersion(AdminAuditTrail):
         try:
             prod_data = ProductionData.objects.filter(version=self)[0]
             date_sched = prod_data.date_scheduled
+            date_req = prod_data.date_requested
         except IndexError:
             date_sched = 'TBC'
+            date_req = 'Unknown'
+
+        fields.append({
+            'h': 'Requested Date',
+            'body': date_req,
+            'id': 'id_requested_date'
+        })
 
         fields.append({
             'h': 'Estimated Date',
-            'body': date_sched
+            'body': date_sched,
+            'id': 'id_estimated_date'
         })
 
         # Add list of origin countries' full names, but only when needed

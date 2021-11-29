@@ -108,14 +108,6 @@ h2{
     }
 }
 
-#value_header{
-    font-size: 0.9rem;
-    overflow: hidden;
-    float: left;
-    margin-top: 8px;
-    margin-bottom: 0;
-}
-
 
 .spacer{
     height: 1px;
@@ -168,6 +160,14 @@ h2{
     } 
 
 }
+#value_header{
+    font-size: 20px;
+    overflow: hidden;
+    float: left;
+    margin-top: 24px;
+    margin-bottom: 0;
+    width: $PAGE_WIDTH;
+}
 .total-value{
     font-size: 24px;
     font-weight: bold;
@@ -186,6 +186,7 @@ h2{
         color: $c_heading_background_text;   
     }
 }
+
 
 
 

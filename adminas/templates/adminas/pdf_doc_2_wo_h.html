@@ -3,24 +3,54 @@
 {% block document_header %}
     <h1>{{ title }}</h1>
 
-    <section id="invoice_to">
-        <h2>Invoice to</h2>
-        {{ invoice_to }}
+
+    <section id="doc_reference" class="fields-row">
+        <h2>{{ doc_ref }}</h2>
+        <span>Issue Date: {% if issue_date %}{{ issue_date|date:'Y-m-d' }}{% else %}DRAFT COPY{% endif %}</span>
+    </div>
+
+    <div style="clear: both;"></div>
+
+    <div id="addresses" class="fields-row">
+        <section id="invoice_to">
+            <h2>Invoice to</h2>
+            <span>{{ invoice_to }}</span>
+        </section>
+
+        <section id="delivery_to">
+            <h2>Deliver to</h2>
+            <span>{{ delivery_to }}</span>
+        </section>
+    </div>
+
+    <div style="clear: both;"></div>
+
+    <section id="fields" class="fields-row">
+        {% for fld in fields %}
+            {% if fld.id == None %}
+            <div>
+                <h2>{{ fld.h }}</h2>
+                <span>{{ fld.body }}</span>
+            </div>
+            {% endif %}
+        {% endfor %}
     </section>
 
-    <section id="delivery_to">
-        <h2>Deliver to</h2>
-        {{ delivery_to }}
+
+    <div style="clear: both;"></div>
+
+    <section id="special_fields" class="fields-row">
+        {% for fld in fields %}
+            {% if fld.id %}
+            <div id="{{ fld.id }}">
+                <h2>{{ fld.h }}</h2>
+                <span>{{ fld.body }}</span>
+            </div>
+            {% endif %}
+        {% endfor %}
     </section>
 
-    <section id="fields">
-    {% for fld in fields %}
-        <div class="one-field">
-            <h2>{{ fld.h }}</h2>
-            <span>{{ fld.body }}</span>
-        </div>
-    {% endfor %}
-    </section>
+    <div style="clear: both;"></div>
 
     {% if instructions %}
     <section id="special_instructions">
@@ -32,4 +62,7 @@
         {% endfor %}
     </section>
     {% endif %}
+
+    <div class="spacer"></div>
+
 {% endblock %}
