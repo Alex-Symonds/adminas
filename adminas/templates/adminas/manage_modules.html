@@ -29,8 +29,8 @@
     {% for jobitem in items %}
     <div id="modular_jobitem_{{ jobitem.id }}" class="panel modular-item-container{% if jobitem.excess_modules_assigned %} excess-modules{% endif %}">
         <div class="panel-header">
-            <h3>{{ jobitem.quantity }} x {{ jobitem.product }}</h3>
-            <div class="desc">{% get_item_description jobitem.product job.language %} [{{ jobitem.id }}]</div>
+            <h3>{{ jobitem.quantity }} x {{ jobitem.product }} <span class="id-number">{{ jobitem.id }}</span></h3>
+            <div class="desc">{% get_item_description jobitem.product job.language %}</div>
         </div>
 
         {% for slot in jobitem.product.slots.all %}

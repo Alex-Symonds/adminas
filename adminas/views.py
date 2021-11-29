@@ -40,7 +40,7 @@ def login_view(request):
             return HttpResponseRedirect(reverse('index'))
         else:
             return render(request, 'adminas/login.html', {
-                'message': '<span>ACCESS DENIED</span><br>Invalid username and/or password.'.upper()
+                'message': 'Invalid username and/or password.'
             })
     else:
         return render(request, 'adminas/login.html')
@@ -60,7 +60,7 @@ def register(request):
         confirmation = request.POST['confirmation']
         if password != confirmation:
             return render(request, 'adminas/register.html', {
-                'message': '<span>ERROR</span><br>Passwords must match.'
+                'message': 'Passwords must match.'
             })
 
         # Attempt to create new user
@@ -69,7 +69,7 @@ def register(request):
             user.save()
         except IntegrityError:
             return render(request, 'adminas/register.html', {
-                'message': '<span>ERROR</span><br>Username already taken.'
+                'message': 'Username already taken.'
             })
         login(request, user)
         return HttpResponseRedirect(reverse('index'))
@@ -811,15 +811,15 @@ def module_assignments(request):
             for d in data_f:
                 del d['value']
 
-        elif data_wanted == 'max_quantity':
-            # As of 2021-09-06, this isn't used for anything. Keep for now, since it seems it could be useful. If not, delete later
-            child = JobItem.objects.get(id=request.GET.get('child'))
-            child_remaining = child.num_unassigned()
-            slot_remaining = parent.num_empty_spaces(slot)
+        # elif data_wanted == 'max_quantity':
+        #     # As of 2021-09-06, this isn't used for anything. Keep for now, since it seems it could be useful. If not, delete later
+        #     child = JobItem.objects.get(id=request.GET.get('child'))
+        #     child_remaining = child.num_unassigned()
+        #     slot_remaining = parent.num_empty_spaces(slot)
 
-            qty = {}
-            qty['max_qty'] = min(child_remaining, slot_remaining)
-            data_f.append(qty)
+        #     qty = {}
+        #     qty['max_qty'] = min(child_remaining, slot_remaining)
+        #     data_f.append(qty)
 
         return JsonResponse({
             'data': data_f
@@ -829,43 +829,41 @@ def module_assignments(request):
 
     elif request.method == 'POST': 
         posted_data = json.loads(request.body)
-        posted_form = JobModuleForm(posted_data)
 
-        if posted_form.is_valid():
-            jm = JobModule(
-                parent = posted_form.cleaned_data['parent'],
-                child = posted_form.cleaned_data['child'],
-                slot = posted_form.cleaned_data['slot'],
-                quantity = 1
-            )
-            if jm.child.num_unassigned() >= 1:
-                jm.save()
-                data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
-                data_dict['id'] = jm.id
-                return JsonResponse(data_dict, status=201)
+        if posted_data['action'] == 'create':
+            posted_form = JobModuleForm(posted_data)
 
+            if posted_form.is_valid():
+                jm = JobModule(
+                    parent = posted_form.cleaned_data['parent'],
+                    child = posted_form.cleaned_data['child'],
+                    slot = posted_form.cleaned_data['slot'],
+                    quantity = 1
+                )
+                if jm.child.num_unassigned() >= 1:
+                    jm.save()
+                    data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
+                    data_dict['id'] = jm.id
+                    return JsonResponse(data_dict, status=201)
+
+                else:
+                    return JsonResponse({
+                        'message': 'Child item is already fully assigned to slots.'
+                    }, status=400)
+            
             else:
                 return JsonResponse({
-                    'message': 'Child item is already fully assigned to slots.'
+                    'message': 'POST data was invalid.'
                 }, status=400)
-        
-        else:
-            return JsonResponse({
-                'message': 'POST data was invalid.'
-            }, status=400)
 
 
-
-    elif request.method == 'PUT':
-        put_data = json.loads(request.body)
-
-        if put_data['action'] == 'delete':
+        elif posted_data['action'] == 'delete':
             try:
-                jm = JobModule.objects.get(id=put_data['id'])
+                jm = JobModule.objects.get(id=posted_data['id'])
     
             except:
                 return JsonResponse({
-                    'message': 'PUT data was invalid.'
+                    'message': 'POST data was invalid.'
                 }, status=400)
 
             parent = jm.parent
@@ -874,20 +872,19 @@ def module_assignments(request):
             return JsonResponse(parent.get_slot_status_dictionary(slot), status=200)
         
 
-
-        elif put_data['action'] == 'edit_qty':
+        elif posted_data['action'] == 'edit_qty':
 
             # Maybe the user solely entered symbols permitted by 'type=number', but which don't actually result in a number
             # (e.g. e, +, -)
-            if put_data['qty'] == '':
+            if posted_data['qty'] == '':
                 return JsonResponse({
                     'error': 'Invalid quantity.'
                 }, status=400)
 
-            new_qty = int(put_data['qty'].strip())
+            new_qty = int(posted_data['qty'].strip())
 
             # Maybe the new qty is the same as the old qty, so there's nothing to be done
-            if int(put_data['prev_qty']) == new_qty:
+            if int(posted_data['prev_qty']) == new_qty:
                 
                 return JsonResponse({
                     'message': 'No changes required.'
@@ -901,11 +898,11 @@ def module_assignments(request):
 
             # Ensure valid JobModule ID
             try:
-                jm = JobModule.objects.get(id=put_data['id'])
+                jm = JobModule.objects.get(id=posted_data['id'])
     
             except:
                 return JsonResponse({
-                    'error': 'PUT data was invalid.'
+                    'error': 'POST data was invalid.'
                 }, status=400)            
 
             # Maybe the user entered a qty which exceeds the number of unassigned job items on the order

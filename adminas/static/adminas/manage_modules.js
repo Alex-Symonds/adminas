@@ -444,6 +444,7 @@ async function create_jobmodule_on_server(child_id, parent_id, slot_id){
     let response = await fetch(`${URL_ASSIGNMENTS}`, {
         method: 'POST',
         body: JSON.stringify({
+            'action': 'create',
             'parent': parent_id,
             'child': child_id,
             'slot': slot_id
@@ -520,7 +521,7 @@ async function remove_jobmodule(e){
 // Delete Assignment: Backend removal of the JobItem from the slot
 async function unfill_slot_on_server(e){
     let resp = await fetch(`${URL_ASSIGNMENTS}`, {
-        method: 'PUT',
+        method: 'POST',
         body: JSON.stringify({
             'action': 'delete',
             'id': e.target.dataset.jobmod
@@ -708,7 +709,7 @@ function close_edit_mode(ele, new_qty){
 // Edit Mode Action: called onclick of the submit button
 function update_module_qty(qty_field){
     fetch(`${URL_ASSIGNMENTS}`, {
-        method: 'PUT',
+        method: 'POST',
         body: JSON.stringify({
             'action': 'edit_qty',
             'qty': qty_field.value,
@@ -723,7 +724,7 @@ function update_module_qty(qty_field){
         if(typeof data['max_qty'] === 'undefined'){
             update_module_qty_on_page(qty_field, data);
         } else {
-            display_module_qty_error(qty_field, data['max_qty']);
+            display_module_qty_error(qty_field.nextElementSibling, data['max_qty']);
         }
     })
     .catch(error => {

@@ -263,6 +263,22 @@ nav {
     }
 }
 
+.temp-warning-msg{
+    margin-left: 0.6rem;
+    color: $c_txt_warning_g;
+    background: $g_warning_hover;
+    font-size: 0.9rem;
+    padding: 0 0.3rem;
+    border-radius: 0.45rem;
+    border: 1px solid $c_txt_warning_g;
+    width: 50%;
+    height: 1.2rem;
+
+    &.user-management{
+        margin-top: 1rem;
+        padding: 0.5rem;
+    }
+}
 
 .credits{
     border: 1px solid $c_tone_02;
@@ -2099,17 +2115,19 @@ table.price-comparison{
         /*
         Label the data
         */
-        td:nth-of-type(2):before { content: "Quantity"; }
-        td:nth-of-type(1):before { content: "Part Number"; }
-        td:nth-of-type(3):before { content: "Sold @"; }
-        td:nth-of-type(4):before { content: "Price List: Version"; }
-        td:nth-of-type(5):before { content: "Price List: Value"; }
-        td:nth-of-type(6):before { content: "Price List vs. Sold"; }
-        td:nth-of-type(7):before { content: "Price List vs. Sold (%)"; }
-        td:nth-of-type(8):before { content: "Resale: Discount"; }
-        td:nth-of-type(9):before { content: "Resale: Value"; }
-        td:nth-of-type(10):before { content: "Resale vs. Sold"; }
-        td:nth-of-type(11):before { content: "Resale vs. Sold (%)"; }
+        #price_check_table{
+            td:nth-of-type(2):before { content: "Quantity"; }
+            td:nth-of-type(1):before { content: "Part Number"; }
+            td:nth-of-type(3):before { content: "Sold @"; }
+            td:nth-of-type(4):before { content: "Price List: Version"; }
+            td:nth-of-type(5):before { content: "Price List: Value"; }
+            td:nth-of-type(6):before { content: "Price List vs. Sold"; }
+            td:nth-of-type(7):before { content: "Price List vs. Sold (%)"; }
+            td:nth-of-type(8):before { content: "Resale: Discount"; }
+            td:nth-of-type(9):before { content: "Resale: Value"; }
+            td:nth-of-type(10):before { content: "Resale vs. Sold"; }
+            td:nth-of-type(11):before { content: "Resale vs. Sold (%)"; }
+        }
     }
 
     #id_records{
@@ -2259,12 +2277,6 @@ table.price-comparison{
         .contents{
             flex-grow: 2;
             padding: 0.5rem 0;
-
-            .temp-warning-msg{
-                color: red;
-                font-size: 0.9rem;
-                border: 1px solid $c_tone_05;
-            }
 
             .module-slot{
                 position: relative;

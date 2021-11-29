@@ -8,7 +8,7 @@
     <h2>Log in</h2>
 
     {% if message %}
-    <div>{{ message|safe }}</div>
+    <div class="temp-warning-msg user-management">{{ message|safe }}</div>
     {% endif %}
 
     <form action="{% url 'login' %}" method="post" id="id_login" class="form-like">
