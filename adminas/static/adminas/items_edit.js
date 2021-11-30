@@ -17,6 +17,7 @@ const ID_PREFIX_PRICE_CHECK_ROW = 'price_check_row_';
 const CLASS_PRICE_CHECKER_EDIT_WINDOW = 'price-checker-edit-window';
 const CLASS_JOBITEM_DIV = 'job-item-container';
 const CLASS_PO_CHECK_DIV = 'po-discrepancy';
+const CLASS_MONEY_ELE = 'money';
 
 
 // DOMContentLoaded eventListener additions
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function(e) {
 // Delete a job item from the server, then call functions to update DOM
 function delete_job_item(e){
     fetch(`/items?id=${e.target.dataset.jiid}&delete=True`, {
-        method: 'PUT',
+        method: 'POST',
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
@@ -288,7 +289,7 @@ function update_job_item(e){
 
     // PUT it into the database and call functions to handle the DOM
     fetch(`/items?id=${e.target.dataset.jiid}&edit=all`, {
-        method: 'PUT',
+        method: 'POST',
         body: JSON.stringify({
             'quantity': new_info['quantity'],
             'product': new_info['product_id'],
@@ -300,13 +301,39 @@ function update_job_item(e){
     })
     .then(response => response.json())
     .then(data => {
-        update_job_item_in_dom(result_div, edit_ele, data, e.target.dataset.jiid);
+        if('message' in data){
+            display_error_message_in_job_item(result_div, edit_ele, data['message']);
+        }
+        else{
+            update_job_item_in_dom(result_div, edit_ele, data, e.target.dataset.jiid);
+        } 
     })
     .catch(error =>{
         console.log('Error: ', error);
     });
 }
 
+function display_error_message_in_job_item(result_ele, edit_ele, message_str){
+    error_message_ele = create_ele_error_message(message_str);
+
+    preceding_ele = result_ele.querySelector('.' + CLASS_MONEY_ELE);
+    if(preceding_ele != null){
+        preceding_ele.after(error_message_ele)
+    }
+    else{
+        result_ele.append(error_message_ele)
+    }
+    
+    read_mode_job_item(result_ele, edit_ele);
+    return
+}
+
+function create_ele_error_message(message_str){
+    let ele = document.createElement('div');
+    ele.classList.add('temp-warning-msg');
+    ele.innerHTML = message_str;
+    return ele;
+}
 
 // Edit JobItem (after): Updates one JobItem element in DOM to reflect any/all edits
 function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id){
@@ -741,7 +768,7 @@ function edit_price(btn, new_price){
 // Price check edit (action): PUTs the data to the server and calls for the page update
 function edit_price_on_server(jiid, new_price){
     fetch(`/items?id=${jiid}&edit=price_only`, {
-        method: 'PUT',
+        method: 'POST',
         body: JSON.stringify({
             'selling_price': new_price
         }),

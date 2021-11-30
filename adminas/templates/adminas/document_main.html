@@ -26,7 +26,7 @@
     {% if doc_version.issue_date %} final">
         <h3>Issued on {{ doc_version.issue_date }} (v{{ doc_version.version_number }})</h3>
         <a class="filled" href="{% url 'doc_display' doc_version.id %}">view PDF</a>
-        <button class="revert-replace">replace with new version</button>
+        <button id="replace_document_btn" class="revert-replace">replace with new version</button>
 
     {% elif doc_version.active %} draft">
         <div class="status-header">
@@ -37,7 +37,7 @@
         <a class="filled" href="{% url 'doc_display' doc_version.id %}">preview PDF</a>
 
         {% if doc_version.version_number > 1 %}
-        <button class="revert-replace">revert to previous version</button>
+        <button id="revert_document_btn" class="revert-replace">revert to previous version</button>
         {% endif %}
     {% else %} deleted">
         <h3>Deleted</h3>

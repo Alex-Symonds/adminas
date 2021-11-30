@@ -923,11 +923,17 @@ class DocumentVersion(AdminAuditTrail):
 
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
 
+
     def get_display_data_dict(self):
+        """
+        Retrieve data for populating a document, based on the current state of the database 
+        """
+
         data = {}
         data['fields'] = self.get_doc_fields()
 
-        data['issue_date'] = self.issue_date
+        data['issue_date'] = self.issue_date if self.issue_date != '' else None
+        data['created_by'] = self.created_by
         data['doc_ref'] = self.document.reference
         data['title'] = dict(DOCUMENT_TYPES).get(self.document.doc_type)
 
@@ -945,15 +951,12 @@ class DocumentVersion(AdminAuditTrail):
         data['invoice_to'] = self.invoice_to.display_str_newlines()
         data['delivery_to'] = self.delivery_to.display_str_newlines()
         
-        data['issue_date'] = self.issue_date if self.issue_date != '' else None
-        data['created_by'] = self.created_by
-        
         data['instructions'] = []
         for instr in self.instructions.all():
             data['instructions'].append(instr.instruction)
         
         data['line_items'] = self.get_body_lines()
-        data['css_doc_type'] = f'adminas/document_default_{self.document.doc_type.lower()}.css'
+        data['css_filename'] = f'document_default_{self.document.doc_type.lower()}.css'
    
         return data      
 
@@ -966,7 +969,6 @@ class DocumentVersion(AdminAuditTrail):
         # Add purchase order info.
         # While most documents will relate to a single PO, some customers prefer to make modifications via additional PO/s rather than amending the first,
         # so this must also support making a list of POs.
-        
         try:
             str = f'{self.document.job.po.all()[0].reference} dated {self.document.job.po.all()[0].date_on_po}'
             for po in self.document.job.po.all()[1:]:
@@ -991,13 +993,13 @@ class DocumentVersion(AdminAuditTrail):
         fields.append({
             'h': 'Requested Date',
             'body': date_req,
-            'id': 'id_requested_date'
+            'css_id': 'id_requested_date'
         })
 
         fields.append({
             'h': 'Estimated Date',
             'body': date_sched,
-            'id': 'id_estimated_date'
+            'css_id': 'id_estimated_date'
         })
 
         # Add list of origin countries' full names, but only when needed
@@ -1015,6 +1017,118 @@ class DocumentVersion(AdminAuditTrail):
 
         return fields
 
+
+    def save_issued_state(self):
+        """
+        Save a set of data used to populate a document as-is, so future updates to the database won't retroactively alter historical documents
+        """
+        data = self.get_display_data_dict()
+
+        new_static_main = DocumentStaticMainFields(
+            doc_version = self,
+            issue_date = self.issue_date,
+            created_by = data['created_by'],
+            doc_ref = data['doc_ref'],
+            title = data['title'],
+            currency = data['currency'],
+            total_value_f = data['total_value_f'],
+            invoice_to = data['invoice_to'],
+            delivery_to = data['delivery_to'],
+            css_filename = data['css_filename']
+        )
+        new_static_main.save()
+
+        for opt_field in data['fields']:
+            new_static_fld = DocumentStaticOptionalFields(
+                doc_version = self,
+                h = opt_field['h'],
+                body = opt_field['body'],
+                css_id = opt_field['css_id'] if 'css_id' in opt_field else None
+            )
+            new_static_fld.save()
+        
+        for instr in data['instructions']:
+            new_static_instr = DocumentStaticSpecialInstruction(
+                doc_version = self,
+                instruction = instr
+            )
+            new_static_instr.save()
+
+        line_counter = 1
+        for line_item in data['line_items']:
+            new_static_line = DocumentStaticLineItem(
+                doc_version = self,
+                quantity = line_item['quantity'],
+                part_number = line_item['part_number'],
+                product_description = line_item['product_description'],
+                price_list = line_item['price_list'],
+                origin = line_item['origin'],
+                list_price_f = line_item['list_price_f'],
+                unit_price_f = line_item['unit_price_f'],
+                total_price = line_item['total_price'],
+                total_price_f = line_item['total_price_f'],
+                line_number = line_counter
+            )
+            new_static_line.save()
+            line_counter += 1
+
+        return
+
+
+
+    def get_issued_state(self):
+        """
+        Data for populating an issued document, based on the "static" records produced when the document was issued.
+        """
+        data = {}
+        data['mode'] = 'issued'
+        data['job_id'] = self.document.job.id
+        data['version_id'] = self.id
+
+        main = self.static_main_fields.all()[0]
+
+        data['issue_date'] = main.issue_date
+        data['created_by'] = main.created_by
+        data['doc_ref'] = main.doc_ref
+        data['title'] = main.title
+        data['currency'] = main.currency
+        data['total_value_f'] = main.total_value_f
+        data['invoice_to'] = main.invoice_to
+        data['delivery_to'] = main.delivery_to
+        data['css_filename'] = main.css_filename
+        
+        data['fields'] = []
+        for sof in self.static_optional_fields.all():
+            fld_dict = {}
+            fld_dict['h'] = sof.h
+            fld_dict['body'] = sof.body
+            fld_dict['css_id'] = sof.css_id
+            data['fields'].append(fld_dict)
+
+        data['instructions'] = []
+        for instr in self.static_instructions.all():
+            data['instructions'].append(instr.instruction)
+        
+        data['line_items'] = []
+        try:
+            static_line_items_sorted = DocumentStaticLineItem.objects.filter(doc_version=self).order_by('line_number')
+        except DocumentStaticLineItem.DoesNotExist:
+            return
+
+        for sli in static_line_items_sorted:
+            li_dict = {}
+            li_dict['quantity'] = sli.quantity
+            li_dict['part_number'] = sli.part_number
+            li_dict['product_description'] = sli.product_description
+            li_dict['origin'] = sli.origin
+            li_dict['list_price_f'] = sli.list_price_f
+            li_dict['unit_price_f'] = sli.unit_price_f
+            li_dict['total_price'] = sli.total_price
+            li_dict['total_price_f'] = sli.total_price_f
+            li_dict['price_list'] = sli.price_list
+            data['line_items'].append(li_dict)
+
+        return data            
 
 
     def deactivate(self):
@@ -1050,7 +1164,7 @@ class DocumentVersion(AdminAuditTrail):
 
         # Deactivate self to "free up" all assigned items before testing for a clash (otherwise if the item list hasn't changed, previous will clash with its future self)
         self.deactivate()
-        if previous.item_assignments_clash(self):
+        if previous.item_assignments_clash():
             # If it clashes anyway, reactivate self and abort the revert
             self.reactivate()
             return None
@@ -1062,9 +1176,9 @@ class DocumentVersion(AdminAuditTrail):
 
     def item_assignments_clash(self):
         # Part of the "revert to previous version" process
-        # Suppose a user: issued WO #A v1, including 1/1 of Item #X; created WO #A v2 in which 1/1 of Item #X is removed; created WO #B v1, including 1/1 of Item #X;
-        # tries to revert WO #A to v1.
-        # To avoid 1/1 of Item #X appearing in two places, reverting WO #A to v1 is forbidden until 1/1 Item #X no longer appears on WO #B.
+        # Suppose a user: issued WO #A v1, including 1/1 of Item #X; then created WO #A v2 in which 1/1 of Item #X is removed; then created WO #B v1, including 1/1 of Item #X;
+        # then they try to revert WO #A to v1.
+        # To avoid 1/1 of Item #X appearing in two places (#A and #B), reverting WO #A to v1 is forbidden until 1/1 Item #X no longer appears on WO #B.
         # This is where we check if any of the possible "Item #Xs" on this WO already appear elsewhere.
 
         for assignment in DocAssignment.objects.filter(version=self):
@@ -1113,6 +1227,7 @@ class DocumentVersion(AdminAuditTrail):
         empty_body_line['unit_price_f'] = ''
         empty_body_line['total_price'] = 0
         empty_body_line['total_price_f'] = ''
+        empty_body_line['price_list'] = ''
 
         return empty_body_line
 
@@ -1130,7 +1245,7 @@ class DocumentVersion(AdminAuditTrail):
                 result.append(self.get_empty_body_line())
 
             return result
-            #return None
+
         else:
             assignments = DocAssignment.objects.filter(version=self)
             result = []
@@ -1144,15 +1259,16 @@ class DocumentVersion(AdminAuditTrail):
                 main_item['unit_price_f'] = format_money(a.item.selling_price / a.item.quantity)
                 main_item['total_price'] = a.quantity * (a.item.selling_price / a.item.quantity)
                 main_item['total_price_f'] = format_money(a.quantity * (a.item.selling_price / a.item.quantity))
+                main_item['price_list'] = a.item.price_list.name
                 result.append(main_item)
 
                 if a.item.includes.all().count() != 0:
-                    std_acc_intro = {}
+                    std_acc_intro = self.get_empty_body_line()
                     std_acc_intro['product_description'] = 'which includes the following:'
                     result.append(std_acc_intro)
 
                     for std_acc in a.item.includes.all():
-                        std_acc_dict = {}
+                        std_acc_dict = self.get_empty_body_line()
                         std_acc_dict['product_description'] = std_acc.display_str()
                         result.append(std_acc_dict)
 
@@ -1254,8 +1370,6 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def total_value(self):
-        # if self.get_body_lines() == None:
-        #     return 0
         return sum(item['total_price'] for item in self.get_body_lines() if 'total_price' in item)
 
     def total_value_f(self):
@@ -1304,5 +1418,63 @@ class SpecialInstruction(AdminAuditTrail):
 
     def __str__(self):
         return f'Note on {self.version.document.doc_type} {self.version.document.reference} by {self.created_by.username} on {self.created_on}'
+
+
+class DocumentStaticMainFields(models.Model):
+    doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_main_fields')
+
+    issue_date = models.DateField()
+    created_by = models.CharField(max_length=150) # max_length is from Django's User class
+    doc_ref = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
+    title = models.CharField(max_length=150)
+    currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES, blank=True)
+    total_value_f = models.TextField(blank=True)
+    invoice_to = models.TextField(blank=True)
+    delivery_to = models.TextField(blank=True)
+    css_filename = models.TextField(blank=True)
+
+    def __str__(self):
+        return f'Static main data for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+
+
+class DocumentStaticOptionalFields(models.Model):
+    doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_optional_fields')
+
+    h = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
+    body = models.TextField()
+    css_id = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True, null=True)
+
+    def __str__(self):
+        return f'Static optional field ({self.h}) for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+
+class DocumentStaticSpecialInstruction(models.Model):
+    doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_instructions')
+
+    instruction = models.TextField()
+
+    def __str__(self):
+        return f'Static special instruction for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+
+
+class DocumentStaticLineItem(models.Model):
+    doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_line_items')
+
+    quantity = models.TextField(blank=True)
+    part_number = models.CharField(max_length=PART_NUM_LENGTH, blank=True)
+    product_description = models.CharField(max_length=DOCS_ONE_LINER)
+    origin = models.TextField(blank=True)
+    price_list = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
+    list_price_f = models.TextField(blank=True)
+    unit_price_f = models.TextField(blank=True)
+    total_price = models.TextField(blank=True)
+    total_price_f = models.TextField(blank=True)
+    line_number = models.IntegerField()
+
+    def __str__(self):
+        return f'Static line item #{self.line_number} for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+
+
+
+
 
 

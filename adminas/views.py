@@ -629,97 +629,119 @@ def items(request):
         return anonymous_user(request)
     
     if request.method == 'POST':
-        # Try processing the formset with a flexible number of items added at once
-        formset = JobItemFormSet(request.POST)
-        if formset.is_valid():
-            for form in formset:
-                add_jobitem(request.user, form)
-            return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
 
-        # Try processing as a non-formset
-        else:
-            try:
-                posted_data = json.loads(request.body)
-            
-                if posted_data['source_page'] == 'module_management':
-                    # Add a JobItem based on modular info, then return the JobItem ID
-                    parent = JobItem.objects.get(id=posted_data['parent'])
-                    my_product = Product.objects.get(id=posted_data['product'])
-                    form = JobItemForm({
-                        'job': parent.job,
-                        'quantity': posted_data['quantity'],
-                        'product': my_product.id,
-                        'price_list': parent.price_list,
-                        'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
-                    })
-                    if form.is_valid():
-                        ji = add_jobitem(request.user, form)
-                        parent.job.price_changed()
-                        
-                        return JsonResponse({
-                            'id': ji.id
-                        }, status=200)
-                    else:
-                        # There's a problem with the item form dictionary
-                        return error_page(request, 'Item form was invalid.', 400)
+        if not request.GET.get('id'):
+            # Try processing the formset with a flexible number of items added at once
+            formset = JobItemFormSet(request.POST)
+            if formset.is_valid():
+                for form in formset:
+                    add_jobitem(request.user, form)
+                return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
 
-            # There's something wrong with the data sent over
-            except:
-                return error_page(request, 'Invalid data.', 400)
+            # Try processing as a non-formset
+            else:
+                try:
+                    posted_data = json.loads(request.body)
+                
+                    if posted_data['source_page'] == 'module_management':
+                        # Add a JobItem based on modular info, then return the JobItem ID
+                        parent = JobItem.objects.get(id=posted_data['parent'])
+                        my_product = Product.objects.get(id=posted_data['product'])
+                        form = JobItemForm({
+                            'job': parent.job,
+                            'quantity': posted_data['quantity'],
+                            'product': my_product.id,
+                            'price_list': parent.price_list,
+                            'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
+                        })
+                        if form.is_valid():
+                            ji = add_jobitem(request.user, form)
+                            parent.job.price_changed()
+                            
+                            return JsonResponse({
+                                'id': ji.id
+                            }, status=200)
+                        else:
+                            # There's a problem with the item form dictionary
+                            return error_page(request, 'Item form was invalid.', 400)
+
+                # There's something wrong with the data sent over
+                except:
+                    return error_page(request, 'Invalid data.', 400)
       
 
-    elif request.method == 'PUT':
-        ji_id = request.GET.get('id')
-        ji = JobItem.objects.get(id=ji_id)
-
-        if request.GET.get('delete'):
-            ji.job.price_changed()
-            ji.delete()
-            return JsonResponse({
-                'reload': 'true'
-            }, status=200)
-
-        if request.GET.get('edit'):
-            put_data = json.loads(request.body)
-
-            if request.GET.get('edit') == 'all':
-                form = JobItemEditForm(put_data)
-                if form.is_valid():
-                    previous_product = ji.product
-                    previous_qty = ji.quantity
-
-                    ji.quantity = form.cleaned_data['quantity']
-                    ji.product = form.cleaned_data['product']
-                    ji.selling_price = form.cleaned_data['selling_price']
-                    ji.price_list = form.cleaned_data['price_list']
-                    ji.save()
-
-                    if previous_product != ji.product:
-                        ji.reset_standard_accessories()
-
-                    elif previous_qty != ji.quantity:
-                        ji.update_standard_accessories_quantities()
-
-                    ji.job.price_changed()
-
-                    return JsonResponse(ji.get_post_edit_dictionary(), status=200)
-            
-
-
-            if request.GET.get('edit') == 'price_only':
-                put_data = json.loads(request.body)
-                form = JobItemPriceForm(put_data)
-
-                if form.is_valid():
-                    ji.selling_price = form.cleaned_data['selling_price']
-                    ji.save()
-                    ji.job.price_changed()
-                    return JsonResponse(ji.get_post_edit_dictionary(), status=200)
-                else:
-                    return error_page(request, 'Item has not been updated.', 400)
-
         else:
-            return error_page(request, 'Item has not been updated.', 400)
+            # The presence of ID in the GET params means it's an update or delete of some description
+            ji_id = request.GET.get('id')
+            ji = JobItem.objects.get(id=ji_id)
+
+            if request.GET.get('delete'):
+                ji.job.price_changed()
+                ji.delete()
+                return JsonResponse({
+                    'reload': 'true'
+                }, status=200)
+
+            if request.GET.get('edit'):
+                posted_data = json.loads(request.body)
+
+                if request.GET.get('edit') == 'all':
+                    form = JobItemEditForm(posted_data)
+                    if form.is_valid():
+
+                        # Editing an item can mess up JobModule assignments. First check for child-related problems
+                        user_attempted_to_change_product = ji.product != form.cleaned_data['product']
+                        module_assignments = JobModule.objects.filter(child=ji)
+                        if module_assignments.count() > 0:
+                            num_module_assignments = module_assignments.aggregate(Sum('quantity'))['quantity__sum']
+                        else:
+                            num_module_assignments = 0
+            
+                        if num_module_assignments > 0 and user_attempted_to_change_product:
+                            return JsonResponse({
+                                'message': "Update failed: product can't be changed because at least one assignment exists."
+                            }, status=400)
+
+                        if num_module_assignments > form.cleaned_data['quantity']:
+                            return JsonResponse({
+                                'message': f"Update failed: quantity must be >= the number assigned ({num_module_assignments})."
+                            }, status=400)                    
+
+
+                        previous_product = ji.product
+                        previous_qty = ji.quantity
+
+                        ji.quantity = form.cleaned_data['quantity']
+                        ji.product = form.cleaned_data['product']
+                        ji.selling_price = form.cleaned_data['selling_price']
+                        ji.price_list = form.cleaned_data['price_list']
+                        ji.save()
+
+                        if previous_product != ji.product:
+                            ji.reset_standard_accessories()
+
+                        elif previous_qty != ji.quantity:
+                            ji.update_standard_accessories_quantities()
+
+                        ji.job.price_changed()
+
+                        return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+                
+
+                elif request.GET.get('edit') == 'price_only':
+                    put_data = json.loads(request.body)
+                    form = JobItemPriceForm(put_data)
+
+                    if form.is_valid():
+                        ji.selling_price = form.cleaned_data['selling_price']
+                        ji.save()
+                        ji.job.price_changed()
+                        return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+                    else:
+                        return error_page(request, 'Item has not been updated.', 400)
+
+            else:
+                return error_page(request, 'Item has not been updated.', 400)
 
 
     elif request.method == 'GET':
@@ -1049,15 +1071,16 @@ def doc_builder(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
-    # Set variables used for both GET and POST.
     # Note about GET parameters:
-    #   CREATE (at both end of the process) will pass "job" and "type", since there is no DocumentData record yet.
-    #   UPDATE (at both ends of the process) will pass "id" (= the DocumentData PK).
+    #   CREATE / READ NEW will pass "job" and "type", since there is no DocumentData record yet.
+    #   UPDATE / READ EXISTING will pass "id" (= the DocumentData PK).
     #   DELETE will pass "id" and "delete=true"
+
     if request.method == 'DELETE':
         doc_obj = DocumentVersion.objects.get(id=int(request.GET.get('id')))
 
         if doc_obj.issue_date == None:
+            # Deactivate rather than delete so that accidental deletion can be reversed easily
             doc_obj.deactivate()
             doc_obj.save()
             return JsonResponse({
@@ -1066,14 +1089,15 @@ def doc_builder(request):
 
         else:
             return JsonResponse({
-                'message': "FORBIDDEN: documents cannot be deleted after they've been issued, only replaced with a newer version. Delete failed"
-            }, status=200)
+                'message': "Forbidden: documents which have been issued cannot be deleted, only replaced with a newer version."
+            }, status=400)
 
     elif request.GET.get('id') != None:
+        # Prepare variables for existing documents
         doc_obj = DocumentVersion.objects.get(id=int(request.GET.get('id')))
 
         if doc_obj.issue_date != None:
-            return error_page(request, "Forbidden. You can't edit a document which has already been issued.", 403)
+            return error_page(request, "Forbidden: documents which have been issued cannot be updated.", 403)
 
         this_job = doc_obj.document.job
         job_id = this_job.id
@@ -1082,12 +1106,13 @@ def doc_builder(request):
         doc_title = dict(DOCUMENT_TYPES).get(doc_code)
 
     elif request.GET.get('job') != None:
+        # Prepare variables for new documents
         doc_obj = None
         job_id = int(request.GET.get('job'))
         this_job = Job.objects.get(id=job_id)
         doc_code = request.GET.get('type')
         doc_ref = ''
-        doc_title = f'Create New {dict(DOCUMENT_TYPES).get(doc_code)} for {this_job.name}'
+        doc_title = f'Create New {dict(DOCUMENT_TYPES).get(doc_code)}'
 
     else:
         return error_page(request, "Can't find document.", 400)
@@ -1095,9 +1120,12 @@ def doc_builder(request):
 
     # Handle adjustments to the database in the event of a POST
     if request.method == 'POST':
+
         if doc_obj != None and doc_obj.issue_date != None:
+            # This condition can only be True if the user played at silly buggers with the frontend, presumably in an attempt to circumvent
+            # rules preventing updating of issued documents.
             return JsonResponse({
-                'message': "Can't edit a document that has already been issued (nice try though)"
+                'message': "Can't update a document that has already been issued (nice try though)"
             }, status=403)
 
         else:
@@ -1192,11 +1220,14 @@ def doc_builder(request):
                     doc_obj.update_requested_production_date(prod_data_form)
 
                 if doc_obj.issue_date != None:
+                    # The document has been issued, so no more working is permitted. Save and exit to doc main.
+                    doc_obj.save_issued_state()
                     return JsonResponse({
                         'redirect': reverse('doc_main', kwargs={'doc_id': doc_obj.id})
                     })
 
                 else:
+                    # Draft document has been saved, so continue working.
                     return JsonResponse(response, status=200)
 
             else:
@@ -1253,7 +1284,13 @@ def document_pdf(request, doc_id):
 
     my_doc = DocumentVersion.objects.get(id=doc_id)
 
-    context = my_doc.get_display_data_dict()
+    if my_doc.issue_date == '':
+        context = my_doc.get_display_data_dict()
+    else:
+        context = my_doc.get_issued_state()
+
+    context['css_doc_type'] = f'adminas/{context["css_filename"]}'
+
     user = request.user
     if user.formatting_filename != '':
         context['css_doc_user'] = f'adminas/{user.formatting_filename}.css'

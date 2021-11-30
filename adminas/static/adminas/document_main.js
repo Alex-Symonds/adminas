@@ -1,9 +1,9 @@
-const CLASS_DOCUMENT_REPLACEMENT_BTN = 'replace-document';
-const CLASS_DOCUMENT_REVERT_BTN = 'revert-document';
+const ID_DOCUMENT_REPLACEMENT_BTN = 'replace_document_btn';
+const ID_DOCUMENT_REVERT_BTN = 'revert_document_btn';
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    replace_btn = document.querySelector('.' + CLASS_DOCUMENT_REPLACEMENT_BTN);
+    replace_btn = document.querySelector('#' + CLASS_DOCUMENT_REPLACEMENT_BTN);
     if(replace_btn != null){
         replace_btn.addEventListener('click', (e) => {
             next_or_previous_document_version(e.target, 'replace');
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    revert_btn = document.querySelector('.' + CLASS_DOCUMENT_REVERT_BTN);
+    revert_btn = document.querySelector('#' + CLASS_DOCUMENT_REVERT_BTN);
     if(revert_btn != null){
 
         revert_btn.addEventListener('click', (e) => {
@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     }
-
 });
 
 

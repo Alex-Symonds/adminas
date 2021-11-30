@@ -27,7 +27,7 @@
 
     <section id="fields" class="fields-row">
         {% for fld in fields %}
-            {% if fld.id == None %}
+            {% if fld.css_id == None %}
             <div>
                 <h2>{{ fld.h }}</h2>
                 <span>{{ fld.body }}</span>
@@ -41,8 +41,8 @@
 
     <section id="special_fields" class="fields-row">
         {% for fld in fields %}
-            {% if fld.id %}
-            <div id="{{ fld.id }}">
+            {% if fld.css_id %}
+            <div id="{{ fld.css_id }}">
                 <h2>{{ fld.h }}</h2>
                 <span>{{ fld.body }}</span>
             </div>
