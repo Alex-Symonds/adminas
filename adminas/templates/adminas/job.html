@@ -211,33 +211,34 @@
                         <div class="module-status-section subsection modules-{% if it.all_required_modules_assigned == True %}ok{% else %}incomplete{% endif %}">
                             <div class="intro-line">
                                 <span class="display-text">&raquo; 
-                    {% if it.all_required_modules_assigned == True %}
-                                    Assigned
-                    {% else %}
-                                    INCOMPLETE
+                                Specification
+                    {% if it.quantity > 1 %} 
+                                (per item)
                     {% endif %}
-                                modules
+                    {% if it.all_required_modules_assigned == False %}
+                                ---&nbsp;WARNING:&nbsp;INCOMPLETE&nbsp;---
+                    {% endif %}
                                 </span>
                                 <a href="{% url 'manage_modules' job.id %}#modular_jobitem_{{ it.id }}" class="edit-icon"><span>edit</span></a>
                             </div>
                             <ul class="details">
                     {% for module in it.modules.all %}
-                                <li>{{ module.quantity }} x [{{ module.child.product.part_number }}] {{ module.child.product.name }} <span class="id-number">{{ module.child.id }}</span></li>
+                                <li>{{ module.quantity }} x [{{ module.child.part_number }}] {{ module.child.name }}</li>
                     {% endfor %}
                             </ul>
                         </div>
                 {% endif %}
         
-                {% if it.module_of.all.count != 0 %}
+                {% if it.has_module_assignments %}
                         <div class="module-status-section assignments">
                             <div class="intro-line">
                                 <span class="display-text">
-                                    &laquo; {{ it.module_of.all.count }} assignment{% if it.module_of.all.count > 1 %}s{% endif %} ({{ it.num_unassigned }} unassigned)
+                                    &laquo; Assignments (job contains {{ it.module_data.product_total }}: {{ it.module_data.num_assigned }} in use; {{ it.module_data.num_unassigned }} available)
                                 </span>
                             </div>
                             <ul>
-                    {% for module in it.module_of.all %}
-                                <li>{{ module.quantity }} to [{{ module.parent.product.part_number }}] {{ module.parent.product.name }} <span class="id-number">{{ module.parent.id }}</span></li>
+                    {% for module in it.module_assignments %}
+                                <li>{{ module.quantity }} {% if module.parent.quantity > 1 %}each {% endif %}to {{ module.parent.quantity }} x [{{ module.parent.product.part_number }}] {{ module.parent.product.name }} <span class="id-number">{{ module.parent.id }}</span></li>
                     {% endfor %}
                             </ul>
                         </div>

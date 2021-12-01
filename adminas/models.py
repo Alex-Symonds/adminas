@@ -266,9 +266,22 @@ class Slot(models.Model):
         return self.choice_group.choices.all()
 
     def valid_jobitems(self, parent):
+        # Deprecated: this was used when jobModules used a JobItem child instead of a product
         sibling_jobitems = JobItem.objects.filter(job=parent.job).exclude(id=parent.id).filter(included_with=None)
         slot_eligible_siblings = sibling_jobitems.filter(product__id__in=self.choice_group.choices.all())
         return slot_eligible_siblings
+
+    def fillers_on_job(self, job):
+        result = []
+        for product in self.choice_list():
+            product_count = job.quantity_of_product(product)
+            if product_count > 0:
+                result.append(product)
+    
+        return result
+
+
+
 
     def __str__(self):
         return f'[{self.quantity_required} REQ, {self.quantity_optional} opt] {self.name} for {self.parent.name}'
@@ -321,6 +334,27 @@ class Job(AdminAuditTrail):
     incoterm_location = models.CharField(max_length=30)
 
     price_is_ok = models.BooleanField(default=False)
+
+
+    def quantity_of_product(self, product):
+        instances_of_product = JobItem.objects.filter(job=self).filter(product=product)
+        if instances_of_product.count() == 0:
+            return 0
+        return instances_of_product.aggregate(Sum('quantity'))['quantity__sum']
+
+    def num_unassigned(self, product):
+        # For child JobItems. Are any "left" to assign to other slots?
+        job_qty = self.quantity_of_product(product)
+        assignments = JobModule.objects.filter(parent__job=self).filter(child=product)
+        if assignments.count() == 0:
+            return job_qty
+
+        a_qty = 0
+        for assignment in assignments:
+            a_qty += assignment.quantity * assignment.parent.quantity
+
+        return job_qty - a_qty
+
 
     def get_all_comments(self, user, setting_for_order_by):
         all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
@@ -612,16 +646,36 @@ class JobItem(AdminAuditTrail):
     def display_str_with_money(self):
         return f'{self.display_str()} @ {self.job.currency}&nbsp;{self.selling_price_f()}'
 
-# Modular JobItems, non slot-specific
-    def num_unassigned(self):
-        # For child JobItems. Are any "left" to assign to other slots?
-        assignments = self.module_of.all()
-        if assignments.count() == 0:
-            return self.quantity
-        return self.quantity - assignments.aggregate(Sum('quantity'))['quantity__sum']
+# Modular JobItems
+    def is_conflict_with_module_assignment(self, new_qty):
+        # Child JobItems: when editing the qty, check the new qty is compatible with JobModules
+        num_assigned_as_modules = 0
+        module_assignments = self.module_assignments()
+        if module_assignments.count() > 0:
+            for ma in module_assignments:
+                num_assigned_as_modules += ma.quantity * ma.parent.quantity
+        
+        product_qty_without_me = self.job.quantity_of_product(self.product) - self.quantity
+
+        return product_qty_without_me + new_qty < num_assigned_as_modules
+
+    def module_data(self):
+        result = {}
+        result['product_total'] = self.job.quantity_of_product(self.product)
+        result['num_unassigned'] = self.job.num_unassigned(self.product)
+        result['num_assigned'] = result['product_total'] - result['num_unassigned']
+        return result
+
+    def has_module_assignments(self):
+        # Child JobItems: check if this product has any assignments
+        return self.module_assignments().count() > 0
+
+    def module_assignments(self):
+        # Child JobItems: get a list of relevant JobModules
+        return JobModule.objects.filter(parent__job=self.job).filter(child=self.product)
 
     def all_required_modules_assigned(self):
-        # For parent JobItems. Is this a functional spec, with all required filled?
+        # Parent JobItems. Is this a functional spec, with all required filled?
         if self.product.is_modular():
             for slot in self.product.slots.all():
                 if self.num_assigned(slot) < slot.quantity_required:
@@ -629,7 +683,7 @@ class JobItem(AdminAuditTrail):
         return True
 
     def all_optional_modules_assigned(self):
-        # For parent JobItems. Offer the user more spots?
+        # Parent JobItems. Offer the user more spots?
         if self.product.is_modular():
             for slot in self.product.slots.all():
                 if self.num_assigned(slot) < slot.quantity_required + slot.quantity_optional:
@@ -637,7 +691,7 @@ class JobItem(AdminAuditTrail):
         return True
 
     def excess_modules_assigned(self):
-        # For parent JobItems. Display a warning that this is a non-standard spec? 
+        # Parent JobItems. Display a warning that this is a non-standard spec? 
         if self.product.is_modular():
             for slot in self.product.slots.all():
                 if self.num_assigned(slot) > slot.quantity_required + slot.quantity_optional:
@@ -647,7 +701,7 @@ class JobItem(AdminAuditTrail):
 
 # Modular JobItems, slot-specific
     def num_assigned(self, slot):
-        # Parent JobItems. Use to find out qty of children assigned to a particular slot.
+        # Parent JobItems. Use to find out number of children per parent for this slot.
         assignments = JobModule.objects.filter(parent=self).filter(slot=slot)
         if assignments.count() == 0:
             qty_assigned = 0
@@ -866,12 +920,12 @@ class JobItem(AdminAuditTrail):
 
 class JobModule(models.Model):
     parent = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='modules')
-    child = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='module_of', null=True, blank=True)
+    child = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='module_assignment', null=True, blank=True)
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='usages')
     quantity = models.IntegerField(default=1)
 
     def __str__(self):
-        return f"{self.parent.product.name}'s {self.slot.name} slot filled by {self.child.product.name}"
+        return f"{self.parent.product.name}'s {self.slot.name} slot filled by {self.product.name}"
 
 
 

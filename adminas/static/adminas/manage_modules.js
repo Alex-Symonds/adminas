@@ -11,6 +11,9 @@ const CLASS_TEMP_ERROR_MSG = 'temp-warning-msg';
 const ID_EDIT_FORM_SUBMIT_BUTTON = 'id_submit_qty_edit';
 const CSS_CLASS_EDIT_MODE_SLOT = 'editing';
 
+const CLASS_PRODUCT_DESC = 'product_desc';
+const CLASS_FILLER_OPTION = 'bucket-item';
+const CLASS_PARENT_ITEM = 'modular-item-container';
 
 // Add event handlers to elements created by Django
 document.addEventListener('DOMContentLoaded', (e) =>{
@@ -124,19 +127,21 @@ async function create_ele_module_slot_filler(slot_id, parent_id){
     div.classList.add(CSS_GENERIC_FORM_LIKE);
 
     // Fill with other elements
+    let json_response = await get_list_for_module_slot(slot_id, parent_id, 'jobitems');
+
     div.append(create_ele_module_filler_cancel_button());
-    div.append(create_ele_module_filler_title());
-    div = await append_existing_jobitems(div, slot_id, parent_id);
+    div.append(create_ele_module_filler_title(json_response['data'].parent_quantity));
+    div = append_existing_jobitems(div, slot_id, parent_id, json_response['data']);
     div.append(create_ele_module_filler_new_jobitem_button(slot_id, parent_id));
     
     return div;
 }
 
 // Module Slot Filler: Get a h# element for the bucket
-function create_ele_module_filler_title(){
+function create_ele_module_filler_title(parent_quantity){
     let h = document.createElement('h4');
     h.classList.add(CSS_GENERIC_PANEL_HEADING);
-    h.innerHTML = 'Options';
+    h.innerHTML = `Assign ${parent_quantity} x ...`;
     return h;
 }
 
@@ -152,9 +157,8 @@ function create_ele_module_filler_cancel_button(){
 }
 
 // Module Slot Filler: Request a list of elligible existing JobItems, then add appropriate elements to the bucket div 
-async function append_existing_jobitems(div, slot_id, parent_id){
-    let json_response = await get_list_for_module_slot(slot_id, parent_id, 'jobitems');
-    let existing_ji = json_response['data'];
+function append_existing_jobitems(div, slot_id, parent_id, json_data){
+    let existing_ji = json_data.options;
 
     if(existing_ji.length === 0){
         let p = document.createElement('p');
@@ -165,7 +169,7 @@ async function append_existing_jobitems(div, slot_id, parent_id){
         let option_bucket = document.createElement('div');
         option_bucket.classList.add('bucket-options-container');
         for(var i=0; i < existing_ji.length; i++){
-            var ji_option_div = create_ele_module_filler_option(slot_id, parent_id, existing_ji[i]);
+            var ji_option_div = create_ele_module_filler_option(slot_id, parent_id, existing_ji[i], parseInt(json_data.parent_quantity));
             option_bucket.append(ji_option_div);
         }
         div.append(option_bucket);
@@ -182,13 +186,15 @@ async function get_list_for_module_slot(slot_id, parent_id, list_type){
     return await response.json();
 }
 
+
+
 // Module Slot Filler: Create a div for one JobItem in the bucket
-function create_ele_module_filler_option(slot, parent, data){
+function create_ele_module_filler_option(slot, parent, data, qty){
     var ji_option_div = document.createElement('div');
 
-    ji_option_div.classList.add('bucket-item');
+    ji_option_div.classList.add(CLASS_FILLER_OPTION);
 
-    if(parseInt(data['quantity']) === 0){
+    if(qty > parseInt(data['quantity_available'])){
         ji_option_div.classList.add('jobitem_usedup');
 
     } else {
@@ -202,7 +208,14 @@ function create_ele_module_filler_option(slot, parent, data){
     ji_option_div.setAttribute('data-parent', parent);
     ji_option_div.setAttribute('data-child', data['id']);
 
-    ji_option_div.innerHTML = `${data['quantity']} x ${data['name']}`;
+    desc_span = document.createElement('span');
+    desc_span.classList.add(CLASS_PRODUCT_DESC);
+    desc_span.innerHTML = data['name'];
+
+    availability = document.createTextNode(` (${data['quantity_available']}/${data['quantity_total']} available)`);
+
+    ji_option_div.append(desc_span);
+    ji_option_div.append(availability);
 
     return ji_option_div;
 }
@@ -274,7 +287,6 @@ async function get_module_slot_with_new_item_form(slot_id, parent_id){
     let qty_fld = get_jobitem_qty_field();
     qty_fld.value = 1;
     subdiv.append(qty_fld);
-    //div.append(document.createTextNode(' x '));
 
     subdiv.append(create_ele_slot_filler_submit_btn(slot_id, parent_id));
     div.append(subdiv);
@@ -347,9 +359,11 @@ async function add_new_jobitem_and_jobmodule(e){
 
     // Add a new JobItem on the server. This will return the ID of the resulting record, which we'll need later.
     let parent_id = e.target.dataset.parent;
-    let qty = form_div.querySelector('input[name="qty"]').value;
+    let parent_ele = e.target.closest(`.${CLASS_PARENT_ITEM}`);
+    let assignment_qty = form_div.querySelector('input[name="qty"]').value
+    let total_qty =  assignment_qty * parent_ele.dataset.quantity;
     let product_id = form_div.querySelector('select').value;
-    let json_resp = await create_new_jobitem_for_module(parent_id, qty, product_id);
+    let json_resp = await create_new_jobitem_for_module(parent_id, total_qty, product_id);
     let child_id = json_resp['id'];
 
     // Add a new JobModule on the server. This will return the ID of the JobModule and data about the slot status.
@@ -359,7 +373,7 @@ async function add_new_jobitem_and_jobmodule(e){
 
     // Create a "filled slot" div.
     let product_text = get_product_desc_from_select_desc(form_div.querySelector('select'));
-    let filled_slot = create_ele_filled_module_slot(`${qty} x ${product_text}`, qty, slot_id, parent_id, jobmod_id);
+    let filled_slot = create_ele_filled_module_slot(`${assignment_qty} x ${product_text}`, assignment_qty, slot_id, parent_id, jobmod_id);
 
     // Everything's ready: update the page
     update_slot_status(form_div, json_resp);
@@ -416,15 +430,23 @@ async function create_new_jobitem_for_module(parent_id, qty, product){
 // ------------------------------------------------------------------------
 // Assignment (existing JI only): called onClick of one of the existing JobItems in the bucket menu
 async function assign_jobitem_to_slot(e){
-    let data = await create_jobmodule_on_server(e.target.dataset.child, e.target.dataset.parent, e.target.dataset.slot);
+    if(e.target.classList.contains(CLASS_FILLER_OPTION)){
+        ele = e.target;
+    }
+    else{
+        ele = e.target.closest(`.${CLASS_FILLER_OPTION}`);
+    }
+
+    let data = await create_jobmodule_on_server(ele.dataset.child, ele.dataset.parent, ele.dataset.slot);
     let jobmod_id = data['id'];
 
     let bucket_div = e.target.closest('.' + CLASS_MODULE_SLOT_FILLER_POPOUT_MENU);
     let empty_slot = bucket_div.previousSibling;
-    
+    let parent_ele = e.target.cloest(`.${CLASS_PARENT_ITEM}`);
+
     if(typeof jobmod_id !== 'undefined'){
-        let description = e.target.innerHTML;
-        let filled_slot = create_ele_filled_module_slot(description, 1, e.target.dataset.slot, e.target.dataset.parent, jobmod_id);
+        let description = `${parent_ele.dataset.quantity} x ${ele.querySelector(`.${CLASS_PRODUCT_DESC}`).innerHTML}`;
+        let filled_slot = create_ele_filled_module_slot(description, 1, ele.dataset.slot, ele.dataset.parent, jobmod_id);
 
         update_slot_status(e.target, data);
         empty_slot.after(filled_slot);
@@ -440,7 +462,7 @@ async function assign_jobitem_to_slot(e){
 
 
 // Assignment: create a new JobModule on the server, storing the relationship between the parent, slot, and child
-async function create_jobmodule_on_server(child_id, parent_id, slot_id){  
+async function create_jobmodule_on_server(child_id, parent_id, slot_id){ 
     let response = await fetch(`${URL_ASSIGNMENTS}`, {
         method: 'POST',
         body: JSON.stringify({
@@ -605,7 +627,6 @@ function create_ele_qty_and_submit(qty_ele, str, jobmod_id){
     ele.append(span);
     ele.append(qty_ele);
     ele.append(get_qty_submit_btn());
-    //ele.append(get_slot_filler_remove_btn(jobmod_id));
 
     return ele;
 }

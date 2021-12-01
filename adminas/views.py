@@ -659,7 +659,7 @@ def items(request):
                             parent.job.price_changed()
                             
                             return JsonResponse({
-                                'id': ji.id
+                                'id': ji.product.id # this was ji.id before the parent-qty-can-be-more-than-1 issue
                             }, status=200)
                         else:
                             # There's a problem with the item form dictionary
@@ -676,6 +676,13 @@ def items(request):
             ji = JobItem.objects.get(id=ji_id)
 
             if request.GET.get('delete'):
+                # Deleting an item can mess up JobModule assignments. First check for child-related problems
+                new_qty = 0
+                if ji.is_conflict_with_module_assignment(new_qty):
+                    return JsonResponse({
+                        'message': f"Update failed: conflict with modular item assignments."
+                    }, status=400)
+
                 ji.job.price_changed()
                 ji.delete()
                 return JsonResponse({
@@ -690,23 +697,15 @@ def items(request):
                     if form.is_valid():
 
                         # Editing an item can mess up JobModule assignments. First check for child-related problems
-                        user_attempted_to_change_product = ji.product != form.cleaned_data['product']
-                        module_assignments = JobModule.objects.filter(child=ji)
-                        if module_assignments.count() > 0:
-                            num_module_assignments = module_assignments.aggregate(Sum('quantity'))['quantity__sum']
+                        if ji.product != form.cleaned_data['product']:
+                            new_qty_for_existing_product = 0
                         else:
-                            num_module_assignments = 0
-            
-                        if num_module_assignments > 0 and user_attempted_to_change_product:
+                            new_qty_for_existing_product = form.cleaned_data['quantity']
+                        
+                        if ji.is_conflict_with_module_assignment(new_qty_for_existing_product):
                             return JsonResponse({
-                                'message': "Update failed: product can't be changed because at least one assignment exists."
-                            }, status=400)
-
-                        if num_module_assignments > form.cleaned_data['quantity']:
-                            return JsonResponse({
-                                'message': f"Update failed: quantity must be >= the number assigned ({num_module_assignments})."
-                            }, status=400)                    
-
+                                'message': f"Update failed: conflict with modular item assignments."
+                            }, status=400)                             
 
                         previous_product = ji.product
                         previous_qty = ji.quantity
@@ -807,18 +806,33 @@ def module_assignments(request):
                 'error': "Can't find slot."
             }, status=400)               
         
-        data_f = []
+        
         if data_wanted == 'jobitems':
-            eligible_ji_unsorted = slot.valid_jobitems(parent)
-            sorted_eligible = sorted(eligible_ji_unsorted, key= lambda t: t.num_unassigned(), reverse=True)
-            for ji in sorted_eligible:
-                ji_f = {}
-                ji_f['id'] = ji.id
-                ji_f['quantity'] = ji.num_unassigned()
-                ji_f['name'] = ji.product.part_number + ': ' + ji.product.name
-                data_f.append(ji_f)
+            # eligible_ji_unsorted = slot.valid_jobitems(parent)
+            # sorted_eligible = sorted(eligible_ji_unsorted, key= lambda t: t.num_unassigned(), reverse=True)
+            # for ji in sorted_eligible:
+            #     ji_f = {}
+            #     ji_f['id'] = ji.id
+            #     ji_f['quantity'] = ji.num_unassigned()
+            #     ji_f['name'] = ji.product.part_number + ': ' + ji.product.name
+            #     data_f.append(ji_f)
+            existing_on_job = slot.fillers_on_job(parent.job)
+            prd_list = []
+            for product in existing_on_job:
+                prd_f = {}
+                prd_f['id'] = product.id
+                prd_f['quantity'] = '#' # Decrepacted - remove when the rest is working
+                prd_f['quantity_total'] = parent.job.quantity_of_product(product)
+                prd_f['quantity_available'] = parent.job.num_unassigned(product)
+                prd_f['name'] = product.part_number + ': ' + product.name
+                prd_list.append(prd_f)
+
+            data_f = {}
+            data_f['parent_quantity'] = parent.quantity
+            data_f['options'] = prd_list
 
         elif data_wanted == 'products':
+            data_f = []
             for prod in slot.choice_list():
                 price_obj = Price.objects.filter(product=prod).filter(price_list=parent.price_list).filter(currency=parent.job.currency)[0]
 
@@ -862,7 +876,8 @@ def module_assignments(request):
                     slot = posted_form.cleaned_data['slot'],
                     quantity = 1
                 )
-                if jm.child.num_unassigned() >= 1:
+
+                if jm.parent.job.num_unassigned(jm.child) >= jm.parent.quantity:
                     jm.save()
                     data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
                     data_dict['id'] = jm.id
@@ -928,9 +943,11 @@ def module_assignments(request):
                 }, status=400)            
 
             # Maybe the user entered a qty which exceeds the number of unassigned job items on the order
-            num_unassigned = jm.child.num_unassigned()
-            old_qty = jm.quantity
-            if num_unassigned + old_qty < new_qty:
+            num_unassigned = jm.parent.job.num_unassigned(jm.child)
+            old_qty_total = jm.quantity * jm.parent.quantity
+            new_qty_total = new_qty * jm.parent.quantity
+
+            if num_unassigned + old_qty_total < new_qty_total:
                 return JsonResponse({
                     'message': 'Insufficient unassigned items.',
                     'max_qty': num_unassigned
