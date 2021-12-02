@@ -33,6 +33,13 @@
             <div class="desc">{% get_item_description parent_jobitem.product job.language %}</div>
         </div>
 
+        {% if parent_jobitem.quantity > 1 %}
+        <p class="multi-parent-warning">
+            Note: all slot assignment quantities are <emphasis>per item</emphasis>.<br />
+            e.g. a slot assignment of "1 x Widget" to this item means the job must include {{ parent_jobitem.quantity }} x widgets (1 each).
+        </p>
+        {% endif %}
+
         {% for slot in parent_jobitem.product.slots.all %}
             {% get_num_excess parent_jobitem slot as num_excess %}
         <div class="subsection{% if num_excess > 0 %} excess-modules{% endif %}">

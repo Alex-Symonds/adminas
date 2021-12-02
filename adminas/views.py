@@ -629,7 +629,6 @@ def items(request):
         return anonymous_user(request)
     
     if request.method == 'POST':
-
         if not request.GET.get('id'):
             # Try processing the formset with a flexible number of items added at once
             formset = JobItemFormSet(request.POST)
@@ -659,7 +658,7 @@ def items(request):
                             parent.job.price_changed()
                             
                             return JsonResponse({
-                                'id': ji.product.id # this was ji.id before the parent-qty-can-be-more-than-1 issue
+                                'id': ji.product.id
                             }, status=200)
                         else:
                             # There's a problem with the item form dictionary
@@ -678,9 +677,9 @@ def items(request):
             if request.GET.get('delete'):
                 # Deleting an item can mess up JobModule assignments. First check for child-related problems
                 new_qty = 0
-                if ji.is_conflict_with_module_assignment(new_qty):
+                if not ji.quantity_is_ok_for_modular_as_child(new_qty):
                     return JsonResponse({
-                        'message': f"Update failed: conflict with modular item assignments."
+                        'message': f"Delete failed: conflicts with modular item assignments."
                     }, status=400)
 
                 ji.job.price_changed()
@@ -695,36 +694,62 @@ def items(request):
                 if request.GET.get('edit') == 'all':
                     form = JobItemEditForm(posted_data)
                     if form.is_valid():
-
-                        # Editing an item can mess up JobModule assignments. First check for child-related problems
-                        if ji.product != form.cleaned_data['product']:
-                            new_qty_for_existing_product = 0
-                        else:
-                            new_qty_for_existing_product = form.cleaned_data['quantity']
-                        
-                        if ji.is_conflict_with_module_assignment(new_qty_for_existing_product):
-                            return JsonResponse({
-                                'message': f"Update failed: conflict with modular item assignments."
-                            }, status=400)                             
-
+                        # Editing a product has the potential to royally mess up module assignments
+                        # Quantity and product are the danger areas, so store those to allow identification of changes later
                         previous_product = ji.product
                         previous_qty = ji.quantity
 
+                        # Check that the proposed edit wouldn't leave any other items with empty slots
+                        if previous_product != form.cleaned_data['product']:
+                            proposed_qty_for_previous_product = 0
+                        else:
+                            proposed_qty_for_previous_product = form.cleaned_data['quantity']
+                        
+                        if not ji.quantity_is_ok_for_modular_as_child(proposed_qty_for_previous_product):
+                            return JsonResponse({
+                                'message': f"Update failed: conflicts with modular item assignments."
+                            }, status=400)                             
+
+                        # Prepare the updated JobItem
                         ji.quantity = form.cleaned_data['quantity']
                         ji.product = form.cleaned_data['product']
                         ji.selling_price = form.cleaned_data['selling_price']
                         ji.price_list = form.cleaned_data['price_list']
+
+                        # Identify if the edit touched on anything that requires a special response
+                        product_has_changed = previous_product != ji.product
+                        quantity_has_changed = previous_qty != ji.quantity
+
+                        # Check that the proposed edit wouldn't leave itself with empty slots
+                        if ji.product.is_modular() and not product_has_changed and ji.quantity > previous_qty:
+                            if not ji.quantity_is_ok_for_modular_as_parent(ji.quantity):
+                                return JsonResponse({
+                                    'message': f"Update failed: insufficient items to fill specification."
+                                }, status=400)
+
+                        # The modules are happy (from a backend perspective), so save the changes and perform knock-on updates
                         ji.save()
 
-                        if previous_product != ji.product:
+                        if product_has_changed:
                             ji.reset_standard_accessories()
 
-                        elif previous_qty != ji.quantity:
+                        elif quantity_has_changed:
                             ji.update_standard_accessories_quantities()
 
                         ji.job.price_changed()
+                        response_data = ji.get_post_edit_dictionary()
 
-                        return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+                        # Frontend module assignments! The Job page wants to know if this edit affected the module
+                        # assignments: if so, it'll need to update all its little subsections listing incoming/outgoing assignments.
+                        # Don't care about price/list changes, only product and quantity.
+                        if quantity_has_changed or product_has_changed:
+                            is_parent = JobModule.objects.filter(parent=ji).count() > 0
+                            is_child = ji.has_module_assignments()
+                            response_data['edit_affected_module_assignments'] = is_child or is_parent
+                        else:
+                            response_data['edit_affected_module_assignments'] = False
+
+                        return JsonResponse(response_data, status=200)
                 
 
                 elif request.GET.get('edit') == 'price_only':
@@ -737,10 +762,14 @@ def items(request):
                         ji.job.price_changed()
                         return JsonResponse(ji.get_post_edit_dictionary(), status=200)
                     else:
-                        return error_page(request, 'Item has not been updated.', 400)
+                        return JsonResponse({
+                            'message': f"Update failed"
+                        }, status=400)
 
             else:
-                return error_page(request, 'Item has not been updated.', 400)
+                return JsonResponse({
+                    'message': f"Update failed"
+                }, status=400)
 
 
     elif request.method == 'GET':
@@ -821,7 +850,6 @@ def module_assignments(request):
             for product in existing_on_job:
                 prd_f = {}
                 prd_f['id'] = product.id
-                prd_f['quantity'] = '#' # Decrepacted - remove when the rest is working
                 prd_f['quantity_total'] = parent.job.quantity_of_product(product)
                 prd_f['quantity_available'] = parent.job.num_unassigned(product)
                 prd_f['name'] = product.part_number + ': ' + product.name
@@ -885,7 +913,7 @@ def module_assignments(request):
 
                 else:
                     return JsonResponse({
-                        'message': 'Child item is already fully assigned to slots.'
+                        'message': 'Not enough items are available.'
                     }, status=400)
             
             else:
@@ -1412,37 +1440,3 @@ def document_main(request, doc_id):
         'special_instructions': doc_obj.instructions.all().order_by('-created_on')
     })
 
-
-
-
-
-
-
-
-
-
-# probably deleting stuff below here
-def prices(request):
-    if not request.user.is_authenticated:
-        return anonymous_user(request)
-    
-    if request.method == 'GET':
-        jobitem_id = request.GET.get('ji_id')
-        ji = JobItem.objects.get(id=jobitem_id)
-
-        if ji == None:
-            return error_page("Can't find JobItem")
-
-        return JsonResponse({
-            'list_price_f': ji.list_price_f(),
-            'list_difference_value_f': ji.list_difference_value_f(),
-            'list_difference_perc_f': ji.list_difference_perc_f(),
-            'resale_price_f': ji.resale_price_f(),
-            'resale_percentage': ji.resale_percentage(),
-            'resale_difference_value_f': ji.resale_difference_value_f(),
-            'resale_difference_perc_f': ji.resale_difference_perc_f(),
-            'total_sold_f': ji.job.total_value_f(),
-            'total_list_f': ji.job.total_list_price_f(),
-            'total_list_diff_val_f': ji.job.total_list_diff_value_f(),
-            'total_list_diff_perc': ji.job.total_list_diff_perc()
-        }, status=200)

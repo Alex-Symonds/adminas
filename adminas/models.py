@@ -647,17 +647,25 @@ class JobItem(AdminAuditTrail):
         return f'{self.display_str()} @ {self.job.currency}&nbsp;{self.selling_price_f()}'
 
 # Modular JobItems
-    def is_conflict_with_module_assignment(self, new_qty):
+    def quantity_is_ok_for_modular_as_child(self, new_qty):
         # Child JobItems: when editing the qty, check the new qty is compatible with JobModules
-        num_assigned_as_modules = 0
         module_assignments = self.module_assignments()
+        num_needed_for_assignments = 0
         if module_assignments.count() > 0:
             for ma in module_assignments:
-                num_assigned_as_modules += ma.quantity * ma.parent.quantity
+                num_needed_for_assignments += ma.quantity * ma.parent.quantity
         
         product_qty_without_me = self.job.quantity_of_product(self.product) - self.quantity
 
-        return product_qty_without_me + new_qty < num_assigned_as_modules
+        return product_qty_without_me + new_qty >= num_needed_for_assignments
+
+    def quantity_is_ok_for_modular_as_parent(self, new_qty):
+        for module_assignment in self.modules.all():
+            total_quantity_needed = new_qty * module_assignment.quantity
+            total_quantity_exists = self.job.quantity_of_product(module_assignment.child)
+            if total_quantity_needed > total_quantity_exists:
+                return False
+        return True
 
     def module_data(self):
         result = {}
@@ -826,7 +834,8 @@ class JobItem(AdminAuditTrail):
 
     def update_standard_accessories_quantities(self):
         for stdAcc in self.includes.all():
-            qty_per_parent = StandardAccessory.objects.filter(parent=self.product).filter(accessory=stdAcc.product)['quantity']
+            accessory_obj = StandardAccessory.objects.filter(parent=self.product).filter(accessory=stdAcc.product)[0]
+            qty_per_parent = accessory_obj.quantity
             if qty_per_parent == None:
                 qty_per_parent = 0
             stdAcc.quantity = self.quantity * qty_per_parent

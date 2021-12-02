@@ -1,9 +1,19 @@
 const ID_DOCUMENT_REPLACEMENT_BTN = 'replace_document_btn';
 const ID_DOCUMENT_REVERT_BTN = 'revert_document_btn';
 
+const CLASS_SPECIAL_INSTRUCTION_EDIT = 'edit-special-instruction-btn';
+const CLASS_SPECIAL_INSTRUCTION_DELETE = 'delete-special-instruction-btn';
+const CLASS_LOCAL_NAV = 'status-controls';
+
+const CLASS_INSTRUCTIONS_SECTION = 'special-instructions';
+
+const CLASS_SHOW_ADD_INSTRUCTION_FORMLIKE = 'special-instruction';
+const CLASS_HIDE_ADD_INSTRUCTION_FORMLIKE = 'close-new-instr';
+
+
 document.addEventListener('DOMContentLoaded', () => {
 
-    replace_btn = document.querySelector('#' + CLASS_DOCUMENT_REPLACEMENT_BTN);
+    replace_btn = document.querySelector('#' + ID_DOCUMENT_REPLACEMENT_BTN);
     if(replace_btn != null){
         replace_btn.addEventListener('click', (e) => {
             next_or_previous_document_version(e.target, 'replace');
@@ -11,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    revert_btn = document.querySelector('#' + CLASS_DOCUMENT_REVERT_BTN);
+    revert_btn = document.querySelector('#' + ID_DOCUMENT_REVERT_BTN);
     if(revert_btn != null){
 
         revert_btn.addEventListener('click', (e) => {
@@ -19,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     }
+
 });
 
 

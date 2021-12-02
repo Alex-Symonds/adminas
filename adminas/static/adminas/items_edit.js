@@ -63,7 +63,12 @@ function delete_job_item(e){
     })
     .then(response => response.json())
     .then(data => {
-        if('reload' in data){
+        if('message' in data){
+            let jobitem_ele = document.getElementById(`jobitem_${e.target.dataset.jiid}`);
+            display_error_message_in_job_item(jobitem_ele, data['message']);
+            read_mode_job_item(jobitem_ele, document.querySelector(`#${EDIT_ITEM_CONTAINER_ID}`));
+        }
+        else if('reload' in data){
             // Reload the page to update module assignments on all the remaining JobItems
             location.reload();
         }
@@ -302,7 +307,12 @@ function update_job_item(e){
     .then(response => response.json())
     .then(data => {
         if('message' in data){
-            display_error_message_in_job_item(result_div, edit_ele, data['message']);
+            display_error_message_in_job_item(result_div, data['message']);
+            read_mode_job_item(result_ele, edit_ele);
+        }
+        else if(data['edit_affected_module_assignments'] == true){
+            // Reload the page to update all the incoming/outgoing module assignment sections
+            location.reload();
         }
         else{
             update_job_item_in_dom(result_div, edit_ele, data, e.target.dataset.jiid);
@@ -313,7 +323,14 @@ function update_job_item(e){
     });
 }
 
-function display_error_message_in_job_item(result_ele, edit_ele, message_str){
+const CSS_CLASS_WARNING_MESSAGE = 'temp-warning-msg';
+
+function display_error_message_in_job_item(result_ele, message_str){
+    existing_warning = document.querySelector(`.${CSS_CLASS_WARNING_MESSAGE}`);
+    if(existing_warning != null){
+        existing_warning.remove();
+    }
+
     error_message_ele = create_ele_error_message(message_str);
 
     preceding_ele = result_ele.querySelector('.' + CLASS_MONEY_ELE);
@@ -324,13 +341,12 @@ function display_error_message_in_job_item(result_ele, edit_ele, message_str){
         result_ele.append(error_message_ele)
     }
     
-    read_mode_job_item(result_ele, edit_ele);
     return
 }
 
 function create_ele_error_message(message_str){
     let ele = document.createElement('div');
-    ele.classList.add('temp-warning-msg');
+    ele.classList.add(CSS_CLASS_WARNING_MESSAGE);
     ele.innerHTML = message_str;
     return ele;
 }
@@ -357,8 +373,8 @@ function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id)
 
     // Activate read-mode and update price checks
     read_mode_job_item(result_div, edit_div);
-    update_price_check_section_in_dom(response_data, jobitem_id);
-    update_po_check_in_dom(response_data);
+    update_po_check_presence_in_dom(response_data);
+    update_price_checks_in_dom(response_data, jobitem_id);
 }
 
 // Edit JobItem (after): Update a single piece of display text with the contents of an edit form field
@@ -460,7 +476,7 @@ function find_price_check_tr(jobitem_id){
 }
 
 // Edit JobItem (after): Update the price check section in the DOM
-function update_price_check_section_in_dom(server_data, jobitem_id){
+function update_price_checks_in_dom(server_data, jobitem_id){
 
     // Update the Price Check summary
     let summary_div = document.querySelector('#price_summary');
@@ -472,7 +488,7 @@ function update_price_check_section_in_dom(server_data, jobitem_id){
     }
 
     // Update the PO discrepancy panel
-    let po_discrepancy_ele = document.querySelector('#' + CLASS_PO_CHECK_DIV);
+    let po_discrepancy_ele = document.querySelector('.' + CLASS_PO_CHECK_DIV);
     if(po_discrepancy_ele != null){
         po_discrepancy_ele.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
         po_discrepancy_ele.querySelector('.diff-val').innerHTML = server_data['total_po_difference_value_f'];
@@ -500,17 +516,17 @@ function update_price_check_section_in_dom(server_data, jobitem_id){
 }
 
 
-function update_po_check_in_dom(response_data){
+function update_po_check_presence_in_dom(response_data){
 
     let want_po_check = 0 != response_data['total_po_difference_value'];
     let have_po_check = null != document.querySelector('.' + CLASS_PO_CHECK_DIV);
 
-    if(have_po_check){
+    if(have_po_check && !want_po_check){
         remove_po_check_div();
     }
 
-    if(want_po_check){
-        document.querySelector('#job_po_section').append(create_po_check_div(response_data));
+    if(!have_po_check && want_po_check){
+        document.querySelector('#job_po_section').querySelector('h3').after(create_po_check_div(response_data));
     }
 
     return;
@@ -519,6 +535,8 @@ function update_po_check_in_dom(response_data){
 function create_po_check_div(response_data){
     const div = document.createElement('div');
     div.classList.add(CLASS_PO_CHECK_DIV);
+    div.classList.add('warning');
+    div.classList.add('subsection');
 
     const heading = document.createElement('h4');
     heading.append(document.createTextNode('Discrepancy'));
@@ -791,8 +809,9 @@ function edit_price_on_server(jiid, new_price){
 // Price check edit (after): called by the fetch, after the response has been received. Updates the DOM
 function update_price_on_page(jiid, data){
     // Update the price check section
-    update_price_check_section_in_dom(data, jiid);
-
+    update_po_check_presence_in_dom(data);
+    update_price_checks_in_dom(data, jiid);
+    
     // Update the JobItem pane
     let jobitem_panel = find_jobitem_panel(jiid);
     jobitem_panel.querySelector('.selling_price').innerHTML = data['selling_price_f'];

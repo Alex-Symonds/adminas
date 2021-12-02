@@ -271,8 +271,10 @@ nav {
     padding: 0 0.3rem;
     border-radius: 0.45rem;
     border: 1px solid $c_txt_warning_g;
-    width: 50%;
-    height: 1.2rem;
+    width: fit-content;
+    max-width: 65%;
+    min-height: 1.2rem;
+    word-wrap: wrap;
 
     &.user-management{
         margin-top: 1rem;
@@ -534,6 +536,9 @@ nav {
     }
 }
 
+p.empty-section-notice{
+    padding: 0.2rem 0.5rem;
+}
 
 /* Create New Job ------------------------------------------------------ */
 .form-row{
@@ -924,7 +929,6 @@ nav {
 .job-page-sections-wrapper, .document-sections-wrapper{
     display: flex;
     flex-flow: row wrap;
-    //gap: 1.5rem;
     gap: 3rem;
     width: 100%;
 
@@ -935,11 +939,16 @@ nav {
     .po-row{
         display: flex;
         justify-content: space-between;
+        width: 100%;
 
         border: 1px solid $c_tone_03;
         padding: 0.3rem;
         margin-top: 0.5rem;
         border-radius: 5px;
+
+        .panel{
+            display: block;
+        }
 
         .edit-icon:hover{
             background-position: 5px 4px;
@@ -964,7 +973,7 @@ nav {
 
     h4, .subsection-heading{
         padding: 0.4rem 0 0.4rem 0.4rem;
-        width: calc(100% - 0.4rem);
+        //width: calc(100% - 0.4rem);
         background: $c_tone_02; 
         margin: 0;
         border-bottom: 0;
@@ -1126,6 +1135,7 @@ nav {
         border-bottom: 2px solid white;
 
         span{
+            transition-delay: 0.05s;
             color: white;
             border-radius: 5px;
             background: rgba($c_tone_00, 80%);
@@ -1242,6 +1252,19 @@ nav {
     border-bottom: 1px solid $c_tone_01;
 
     width: 100%;
+
+    .multi-parent-warning{
+        margin: 0.5rem;
+        padding: 0.5rem;
+        background: $c_tone_02;
+        color: $c_tone_06;
+
+        emphasis{
+            font-weight: bold;
+            font-style: italic;
+            color: $c_tone_07;
+        }
+    }
 }
 
 
@@ -1253,12 +1276,13 @@ nav {
 .panel{
     display: inline-block;
     position: relative;
+    box-sizing:border-box;
 
     border: 1px solid $c_tone_04;
     border-radius: 8px;
 
     max-width: $MAX_WIDTH;
-    width: 100%;
+    width: calc(100% - 1rem);
 
     margin: 1rem 0.5rem 0 0.5rem;
 
@@ -1393,8 +1417,10 @@ nav {
     }
 
     &.excluded-container ul{
-        color: $c_tone_03;
-        font-style: italic;
+        .display, .none{
+            color: $c_tone_03;
+            font-style: italic;
+        }
     }
 
     &.status-controls{
@@ -1503,9 +1529,10 @@ nav {
 
         input[type=submit]{
             height: auto;
-            padding: 0.5rem;
-            font-size: 1.2rem;
-            width: 40%;
+            padding: 5px 0.5rem;
+            //font-size: 1.2rem;
+            font-size: 1rem;
+            width: 20%;
         }
 
         .delete-btn, .delete-comment-btn{
@@ -2175,6 +2202,7 @@ table.price-comparison{
     padding-bottom: 1rem;
 
     .subsection{
+        position: relative;
         margin-top: 1rem;
         margin-right: 3px;
         border-top: 1px solid $c_tone_03;
@@ -2360,13 +2388,14 @@ table.price-comparison{
 
 .module-bucket-container{
     position: absolute;
+    left: 0;
     max-width: 400px;
     background: $c_tone_02;
     padding: 0;
     z-index: 2;
 
     .panel-header{
-        width: calc(400px - 16px);
+        //width: calc(400px - 16px);
     }
 
     .bucket-options-container{
@@ -2422,6 +2451,14 @@ table.price-comparison{
         margin: 8px;
     }
 }
+
+
+@media screen and (min-width: 625px) {
+    .module-bucket-container{
+        left: auto;
+    }
+}
+
 
 .excess-modules{
     border: 2px solid red;

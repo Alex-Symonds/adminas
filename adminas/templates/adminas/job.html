@@ -58,6 +58,9 @@
             <section class="subsection">
                 <h4>Identification</h4>
                 <div class="read_row">
+                    <span class="row-label">Name: </span>{{ job.name }}
+                </div>
+                <div class="read_row">
                     <span class="row-label">Agent: </span>{{ job.agent.name }}
                 </div>
                 <div class="read_row">
@@ -197,7 +200,9 @@
                         <div class="std-accs-container">
                 {% if it.includes.count > 0 %}
                             <div class="std-accs">
-                                <p>Included items:</p>
+                                <p>
+                                    Included accessories{% if it.quantity > 1 %} (in total){% endif %}
+                                </p>
                                 <ul>
                     {% for acc in it.includes.all %}
                                     <li>{{ acc.quantity }} x {{ acc.product }}
@@ -287,7 +292,7 @@
         <section id="job_po_section">
             <h3>Purchase Orders</h3>
             {% if job.total_difference_value_po_vs_line != 0 %}
-            <div class="warning subsection">
+            <div class="po-discrepancy warning subsection">
                 <h4>Discrepancy</h4>
                 <p>Sum of PO values does not match sum of line item selling prices.</p>
                 <div class="subsection">

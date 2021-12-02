@@ -10,6 +10,7 @@
         const URL_DOCMAIN = "{% url 'doc_main' doc_id %}"
         const URL_PREVIEW = "{% url 'doc_display' doc_id %}?mode=preview";
     </script>
+    <script src="{% static 'adminas/document_builder_main.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/document_items.js' %}" type="text/javascript"></script>
 {% endblock %}
 
@@ -89,7 +90,7 @@
         <h3>Items</h3>
         <div class="included-container panel">
             <h4 class="panel-header">Include</h4>
-            <ul class="included">
+            <ul id="included">
     {% for inc in included_items %}
                 <li data-jiid="{{ inc.jiid }}">
                     <span class="display">{{ inc.display }}</span>
@@ -105,7 +106,7 @@
         </div>
         <div class="excluded-container panel">
             <h4 class="panel-header">Exclude</h4>
-            <ul class="excluded">
+            <ul id="excluded">
         {% for excl in excluded_items %}
                 <li data-jiid="{{ excl.id }}" {% if excl.is_available == False %}class="unavailable"{% endif %}>
                     <span class="display">

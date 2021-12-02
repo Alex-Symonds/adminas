@@ -1,5 +1,5 @@
-const CLASS_INCLUDES_UL = 'included';
-const CLASS_EXCLUDES_UL = 'excluded';
+const ID_INCLUDES_UL = 'included';
+const ID_EXCLUDES_UL = 'excluded';
 const CLASS_NONE_LI = 'none';
 const CLASS_SPLIT_BTN = 'split-docitem-btn';
 const CLASS_TOGGLE_BTN = 'toggle-docitem-btn';
@@ -8,14 +8,7 @@ const CLASS_SPLIT_WINDOW = 'split-docitem-window';
 const ID_SPLIT_WINDOW_INCLUDES_ARROWS = 'id_split_includes_arrows';
 const ID_SPLIT_WINDOW_EXCLUDES_ARROWS = 'id_split_excludes_arrows';
 const ID_SPLIT_WINDOW_DIRECTION = 'id_split_controls';
-const CLASS_SPECIAL_INSTRUCTION_EDIT = 'edit-special-instruction-btn';
-const CLASS_SPECIAL_INSTRUCTION_DELETE = 'delete-special-instruction-btn';
-const CLASS_LOCAL_NAV = 'status-controls';
 
-const CLASS_INSTRUCTIONS_SECTION = 'special-instructions';
-
-const CLASS_SHOW_ADD_INSTRUCTION_FORMLIKE = 'special-instruction';
-const CLASS_HIDE_ADD_INSTRUCTION_FORMLIKE = 'close-new-instr';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -31,54 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
         })
     });
 
-
-    document.querySelector('#document_save_btn').addEventListener('click', () => {
-        save_document();
-    });
-
-    document.querySelector('#document_issue_btn').addEventListener('click', (e) => {
-        open_issue_document_window(e);
-    });
-
-    document.querySelector('#document_delete_btn').addEventListener('click', () => {
-        delete_document();
-    });
-
-
-    document.querySelector('.' + CLASS_SHOW_ADD_INSTRUCTION_FORMLIKE).addEventListener('click', () => {
-        unhide_all_by_class('add-new');
-    });
-
-    document.querySelector('.' + CLASS_HIDE_ADD_INSTRUCTION_FORMLIKE).addEventListener('click', () => {
-        hide_all_by_class('add-new');
-    });
-
-    document.querySelector('.add-special-instruction-btn').addEventListener('click', (e) => {
-        add_special_instruction_to_page(e);
-    });
-
-    document.querySelectorAll('.' + CLASS_SPECIAL_INSTRUCTION_EDIT).forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            open_edit_mode_special_instruction(e.target);
-        })
-    });
-
-    document.querySelectorAll('.' + CLASS_SPECIAL_INSTRUCTION_DELETE).forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            delete_special_instruction(e.target);
-        })
-    });
-
-    let fields_container_ele = document.querySelector('.document-fields-container');
-    if(fields_container_ele != null){
-        document.querySelectorAll('input').forEach(input_ele => {
-            input_ele.addEventListener('change', () => {
-                show_save_warning_ele();
-            })
-        });
-    }
-
 });
+
 
 
 
@@ -87,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Toggling doc items between "on this doc" and "not on this doc"
 // -------------------------------------------------------------------
 
-// Toggle docitems: main function, called on click of the [x] button
+// Toggle docitems: main function, called on click of the include or exclude button
 function toggle_doc_item(e){
     const docitem_ele = e.target.closest('li');
     const src_ul = docitem_ele.parentElement;
@@ -107,11 +54,11 @@ function update_both_docitem_ul(dst_ul, src_ul, docitem_ele){
 
 // Toggle docitems: select the destination ul, based on the source ul
 function get_dest_docitem_ul(src_ul){   
-    if(src_ul.classList.contains(CLASS_INCLUDES_UL)){
-        var dst_ul = document.querySelector('.' + CLASS_EXCLUDES_UL);
+    if(src_ul.id === ID_INCLUDES_UL){
+        var dst_ul = document.querySelector('#' + ID_EXCLUDES_UL);
         
-    } else if (src_ul.classList.contains(CLASS_EXCLUDES_UL)){
-        var dst_ul = document.querySelector('.' + CLASS_INCLUDES_UL);
+    } else if (src_ul.id === ID_EXCLUDES_UL){
+        var dst_ul = document.querySelector('#' + ID_INCLUDES_UL);
 
     } else {
         return null;
@@ -127,27 +74,28 @@ function move_docitem_li(dst_ul, src_li){
     // If there's already a li for this item in the destination ul, the "move" will consist of
     // updating the quantity displayed in the destination li and deleting the source li
     const dst_li = get_li_with_same_jiid(dst_ul, src_li.dataset.jiid);
-    if(dst_li){
+    if(dst_li != null){
         merge_into_dst_docitem_li(src_li, dst_li);
 
     } else {
-        src_li_updated = update_docitem_li_toggle_display(dst_ul, src_li);
-        dst_ul.append(src_li_updated);
+        toggle_btn_str = get_toggle_display_str(dst_ul);
+        src_li.querySelector('.' + CLASS_TOGGLE_BTN).innerHTML = toggle_btn_str;
+        dst_ul.append(src_li);
     }
     return;
 }
 
-function update_docitem_li_toggle_display(dst_ul, original_li){
+function get_toggle_display_str(dst_ul){
     let display_str = 'toggle';
-    if(dst_ul.classList.contains('excluded')){
+
+    if(dst_ul.id === ID_EXCLUDES_UL){
         display_str = '&laquo; incl.';
     }
-    else if(dst_ul.classList.contains('included')){
+    else if(dst_ul.id === ID_INCLUDES_UL){
         display_str = 'excl. &raquo;'
     }
 
-    original_li.querySelector('.' + CLASS_TOGGLE_BTN).innerHTML = display_str;
-    return original_li;
+    return display_str;
 }
 
 
@@ -227,10 +175,17 @@ function get_combined_docitem_text(src_text, dst_text){
 
 
 
+
+
+
+
+
+
 // ---------------------------------------------------------
 // Split docitems
 // ---------------------------------------------------------
 
+// Split DocItem: main function called by clicking a "<< split >>"" button
 function split_doc_item(e){
     let jobitem_id = e.target.closest('li').dataset.jiid;
     let max_quantity = get_total_qty(jobitem_id);
@@ -248,51 +203,55 @@ function split_doc_item(e){
     }
 }
 
-
+// Split DocItem: Create and place a window to set how to split the docitem
 function open_docitem_split_window(split_btn){
     close_docitem_split_window();
 
     const li_ele = split_btn.closest('li');
-    const calling_ul_class = li_ele.parentElement.classList[0];
-    li_ele.append(get_docitem_split_window(li_ele.dataset.jiid, calling_ul_class));
+    const calling_ul_id = li_ele.parentElement.id;
+    li_ele.append(create_ele_docitem_split_window(li_ele.dataset.jiid, calling_ul_id));
     hide_all_by_class(CLASS_SPLIT_BTN);
     hide_all_by_class(CLASS_TOGGLE_BTN);
 }
 
-function get_docitem_split_window(jobitem_id, calling_ul_class){
+// Split DocItem Window: Create the window
+function create_ele_docitem_split_window(jobitem_id, calling_ul_id){
     let div = document.createElement('div');
     div.classList.add(CLASS_SPLIT_WINDOW);
     div.classList.add(CSS_GENERIC_FORM_LIKE);
     div.classList.add(CSS_GENERIC_PANEL);
 
-    div.append(get_docitem_split_heading());
-    div.append(get_docitem_desc(jobitem_id));
-    div.append(get_docitem_split_controls(jobitem_id, calling_ul_class));
-    div.append(get_docitem_container(jobitem_id));
-    div.append(get_docitem_split_submit_btn());
+    div.append(create_ele_docitem_split_heading());
+    div.append(create_ele_docitem_desc(jobitem_id));
+    div.append(create_ele_docitem_split_controls(jobitem_id, calling_ul_id));
+    div.append(create_ele_docitem_split_status_container(jobitem_id));
+    div.append(create_ele_docitem_split_submit_btn());
     
     return div;
 }
 
-function get_docitem_split_heading(){
+// Split DocItem Window: component, heading
+function create_ele_docitem_split_heading(){
     let ele = document.createElement('div');
     ele.classList.add(CSS_GENERIC_PANEL_HEADING);
     let heading = document.createElement('h5');
     heading.innerHTML = 'Edit Split';
-    ele.append(get_docitem_split_cancel_btn());
+    ele.append(create_ele_docitem_split_cancel_btn());
     ele.append(heading);
     return ele;
 }
 
-function get_docitem_desc(jobitem_id){
+// Split DocItem Window: component, intro paragraph
+function create_ele_docitem_desc(jobitem_id){
     let desc = document.createElement('p');
     desc.innerHTML = 'Splitting ' + get_combined_docitem_text_from_jobitem_id(jobitem_id);
     return desc;
 }
 
+// Split DocItem Window: component, get the text describing the docitem and its total quantity
 function get_combined_docitem_text_from_jobitem_id(jobitem_id){
-    let inc_text = get_individual_docitem_text_from_jobitem_id(CLASS_INCLUDES_UL, jobitem_id);
-    let exc_text = get_individual_docitem_text_from_jobitem_id(CLASS_EXCLUDES_UL, jobitem_id);
+    let inc_text = get_individual_docitem_text_from_jobitem_id(ID_INCLUDES_UL, jobitem_id);
+    let exc_text = get_individual_docitem_text_from_jobitem_id(ID_EXCLUDES_UL, jobitem_id);
 
     if(inc_text == ''){
         return exc_text;
@@ -303,38 +262,50 @@ function get_combined_docitem_text_from_jobitem_id(jobitem_id){
     }
 }
 
-function get_individual_docitem_text_from_jobitem_id(class_name, jobitem_id){
-    let ul = document.querySelector('.' + class_name);
+// Split DocItem Window: component, get the item display text from one <li>
+function get_individual_docitem_text_from_jobitem_id(ul_id, jobitem_id){
+    let ul = document.querySelector('#' + ul_id);
     let li = get_li_with_same_jiid(ul, jobitem_id);
-    if(li){
+    if(li != null){
         return li.querySelector('.' + CLASS_DISPLAY_SPAN).innerHTML;
     } else {
         return '';
     } 
 }
 
-function get_docitem_split_controls(jobitem_id, calling_ul_class){
+// Split DocItem Window: component, the bit where you actually click and input things
+function create_ele_docitem_split_controls(jobitem_id, calling_ul_id){
     const div = document.createElement('div');
     div.classList.add('split-direction-setter');
-    div.append(get_docitem_split_direction_div(calling_ul_class));
+    div.append(create_ele_docitem_split_direction_div(calling_ul_id));
 
-    let default_qty = get_docitem_qty(calling_ul_class, jobitem_id);
-    const input_fld = get_docitem_edit_field(default_qty);
+    let default_qty = get_docitem_qty(calling_ul_id, jobitem_id);
+    const input_fld = create_ele_docitem_edit_field(default_qty);
     div.append(input_fld);
 
     return div;
 }
 
-
-function get_docitem_split_direction_div(called_from){
+// Split DocItem Window: component, the strip where you can set whether the number you input is for included or excluded
+function create_ele_docitem_split_direction_div(called_from){
     const direction_div = document.createElement('div');
     direction_div.classList.add('split-direction-strip');
 
     const includes_div = document.createElement('div');
+    const excludes_div = document.createElement('div');
+
     includes_div.id = ID_SPLIT_WINDOW_INCLUDES_ARROWS;
-    if(called_from = CLASS_INCLUDES_UL){
+    excludes_div.id = ID_SPLIT_WINDOW_EXCLUDES_ARROWS;
+
+    if(called_from === ID_INCLUDES_UL){
         includes_div.innerHTML = '&laquo;&laquo;&laquo;';
+        excludes_div.innerHTML = '';
     }
+    else if(called_from === ID_EXCLUDES_UL){
+        includes_div.innerHTML = '';
+        excludes_div.innerHTML = '&raquo;&raquo;&raquo;';
+    }
+
     direction_div.append(includes_div);
 
     const middle_div = document.createElement('div');
@@ -345,61 +316,12 @@ function get_docitem_split_direction_div(called_from){
     });
     direction_div.append(middle_div);
 
-    const excludes_div = document.createElement('div');
-    excludes_div.id = ID_SPLIT_WINDOW_EXCLUDES_ARROWS;
-    if(called_from = CLASS_EXCLUDES_UL){
-        excludes_div.innerHTML = '';
-    }
     direction_div.append(excludes_div);
     return direction_div;
 }
 
-function toggle_docitem_split_controls(e){
-    let original_class = e.target.innerHTML;
-    let includes_div = document.querySelector('#' + ID_SPLIT_WINDOW_INCLUDES_ARROWS);
-    let excludes_div = document.querySelector('#' + ID_SPLIT_WINDOW_EXCLUDES_ARROWS);
-    let direction_div = document.querySelector('#' + ID_SPLIT_WINDOW_DIRECTION);
-
-    if(original_class === CLASS_INCLUDES_UL){
-        includes_div.innerHTML = '';
-        excludes_div.innerHTML = '&raquo;&raquo;&raquo;';
-        direction_div.innerHTML = CLASS_EXCLUDES_UL;
-
-    } else if (original_class === CLASS_EXCLUDES_UL){
-        includes_div.innerHTML = '&laquo;&laquo;&laquo;';
-        excludes_div.innerHTML = '';
-        direction_div.innerHTML = CLASS_INCLUDES_UL;
-    }
-}
-
-function get_docitem_container(jobitem_id){
-    let container = document.createElement('div');
-    container.classList.add('docitem-split-status-container');
-    container.append(get_docitem_split_category_div(CLASS_INCLUDES_UL, jobitem_id));
-    container.append(get_docitem_split_category_div(CLASS_EXCLUDES_UL, jobitem_id));
-    return container;
-}
-
-function get_docitem_split_category_div(ul_class, jobitem_id){
-    const div = document.createElement('div');
-    const max_qty = 2;
-    div.classList.add(ul_class);
-    div.classList.add('container');
-
-    const heading = document.createElement('h5');
-    heading.innerHTML = ul_class[0].toUpperCase() + ul_class.substring(1);
-    div.append(heading);
-
-    let default_qty = get_docitem_qty(ul_class, jobitem_id);
-    let result_span = document.createElement('span');
-    result_span.innerHTML = default_qty;
-    div.append(result_span);
-
-    return div;
-}
-
-
-function get_docitem_edit_field(){
+// Split DocItem Window: component, the input where you enter the quantity you want
+function create_ele_docitem_edit_field(){
     let fld = get_jobitem_qty_field();
 
     fld.addEventListener('change', (e) => {
@@ -416,7 +338,36 @@ function get_docitem_edit_field(){
     return fld;
 }
 
-function get_docitem_split_submit_btn(){
+// Split DocItem Window: component, the bit that previews the outcome of your split input
+function create_ele_docitem_split_status_container(jobitem_id){
+    let container = document.createElement('div');
+    container.classList.add('docitem-split-status-container');
+    container.append(create_ele_docitem_split_category_div(ID_INCLUDES_UL, jobitem_id));
+    container.append(create_ele_docitem_split_category_div(ID_EXCLUDES_UL, jobitem_id));
+    return container;
+}
+
+// Split DocItem Window: component, one "side" of the results preview
+function create_ele_docitem_split_category_div(ul_id, jobitem_id){
+    const div = document.createElement('div');
+    div.classList.add(ul_id);
+    div.classList.add('container');
+
+    const heading = document.createElement('h5');
+    heading.innerHTML = ul_id[0].toUpperCase() + ul_id.substring(1);
+    div.append(heading);
+
+    let default_qty = get_docitem_qty(ul_id, jobitem_id);
+    let result_span = document.createElement('span');
+    result_span.innerHTML = default_qty;
+    div.append(result_span);
+
+    return div;
+}
+
+
+// Split DocItem Window: component, the submit button
+function create_ele_docitem_split_submit_btn(){
     let btn = create_generic_ele_submit_button();
     btn.classList.add('full-width-button');
     btn.innerHTML = 'split';
@@ -426,7 +377,8 @@ function get_docitem_split_submit_btn(){
     return btn;
 }
 
-function get_docitem_split_cancel_btn(){
+// Split DocItem Window: component, the cancel button
+function create_ele_docitem_split_cancel_btn(){
     let btn = create_generic_ele_cancel_button();
     btn.addEventListener('click', () => {
         close_docitem_split_window();
@@ -434,7 +386,7 @@ function get_docitem_split_cancel_btn(){
     return btn;
 }
 
-
+// Split DocItem: function to reset the frontend when the split window is closed
 function close_docitem_split_window(){
     let existing_window = document.querySelector('.' + CLASS_SPLIT_WINDOW);
     if(existing_window){
@@ -445,30 +397,60 @@ function close_docitem_split_window(){
 }
 
 
+// Split DocItem Window: function, called by clicking the "__cludes" strip: flips the text to indicate if the input number is for included or excluded
+function toggle_docitem_split_controls(e){
+    let original_id = e.target.innerHTML;
+    let includes_div = document.querySelector('#' + ID_SPLIT_WINDOW_INCLUDES_ARROWS);
+    let excludes_div = document.querySelector('#' + ID_SPLIT_WINDOW_EXCLUDES_ARROWS);
+    let direction_div = document.querySelector('#' + ID_SPLIT_WINDOW_DIRECTION);
 
+    if(original_id === ID_INCLUDES_UL){
+        includes_div.innerHTML = '';
+        excludes_div.innerHTML = '&raquo;&raquo;&raquo;';
+        direction_div.innerHTML = ID_EXCLUDES_UL;
+
+    } else if (original_id === ID_EXCLUDES_UL){
+        includes_div.innerHTML = '&laquo;&laquo;&laquo;';
+        excludes_div.innerHTML = '';
+        direction_div.innerHTML = ID_INCLUDES_UL;
+    }
+}
+
+
+// Split DocItem Window: function, called by entering a number in the input. Updates the status section accordingly
 function update_split_window(input_fld){
     let controls_state = get_docitem_split_controls_state()
-    let selected_class = controls_state;
-    let other_class = toggle_docitem_membership_class(controls_state);
+    let selected_id = controls_state;
+    let other_id = toggle_docitem_membership_id(controls_state);
 
-    let selected_ele = get_docitem_split_window_result_ele(selected_class);
-    let other_ele = get_docitem_split_window_result_ele(other_class);
+    let selected_ele = get_docitem_split_window_result_ele(selected_id);
+    let other_ele = get_docitem_split_window_result_ele(other_id);
     let selected_qty = parseInt(input_fld.value);
     let total_qty = get_total_qty(input_fld.closest('li').dataset.jiid);
     set_docitem_split_window(selected_ele, other_ele, total_qty, selected_qty);
 }
 
-function toggle_docitem_membership_class(in_class){
-    if(in_class == CLASS_INCLUDES_UL){
-        return CLASS_EXCLUDES_UL;
+// Split DocItem Window: function, flips the __cludes class to the other
+function toggle_docitem_membership_id(in_id){
+    if(in_id == ID_INCLUDES_UL){
+        return ID_EXCLUDES_UL;
     } else {
-        return CLASS_INCLUDES_UL;
+        return ID_INCLUDES_UL;
     }
 }
 
+
 function get_docitem_split_controls_state(){
     let split_controls_ele = document.querySelector('#id_split_controls');
-    return split_controls_ele.innerHTML.toLowerCase();
+    let display_text = split_controls_ele.innerHTML.toLowerCase();
+
+    if(display_text.includes(ID_EXCLUDES_UL)){
+        return ID_EXCLUDES_UL;
+    }
+    else if(display_text.includes(ID_INCLUDES_UL)){
+        return ID_INCLUDES_UL;
+    }
+    return
 }
 
 function set_docitem_split_window(selected_ele, other_ele, total_qty, selected_qty){
@@ -489,17 +471,17 @@ function set_docitem_split_window(selected_ele, other_ele, total_qty, selected_q
 function get_total_qty(jiid){
     let result = 0;
 
-    let includes_qty = get_docitem_qty(CLASS_INCLUDES_UL, jiid);
+    let includes_qty = get_docitem_qty(ID_INCLUDES_UL, jiid);
     result += includes_qty;
 
-    let excludes_qty = get_docitem_qty(CLASS_EXCLUDES_UL, jiid);
+    let excludes_qty = get_docitem_qty(ID_EXCLUDES_UL, jiid);
     result += excludes_qty;
 
     return result;
 }
 
 function get_docitem_qty(class_name, jiid){
-    let ul = document.querySelector('.' + class_name);
+    let ul = document.querySelector('#' + class_name);
     const docitem_ele = get_li_with_same_jiid(ul, jiid);
     if(docitem_ele != null){
         return parseInt(docitem_ele.querySelector('.display').innerHTML.match(QTY_RE)[0])
@@ -516,32 +498,32 @@ function process_split_request(calling_ele){
     const docitem_li = calling_ele.closest('li');
     const jobitem_id = docitem_li.dataset.jiid;
 
-    let window_result_span = get_docitem_split_window_result_ele(CLASS_INCLUDES_UL + '-window');
+    let window_result_span = get_docitem_split_window_result_ele(ID_INCLUDES_UL);
     const incl_value = parseInt(window_result_span.innerHTML);
 
-    window_result_span = get_docitem_split_window_result_ele(CLASS_EXCLUDES_UL + '-window');
+    window_result_span = get_docitem_split_window_result_ele(ID_EXCLUDES_UL);
     const excl_value = parseInt(window_result_span.innerHTML);
 
     if(incl_value === 0){
-        process_docitem_split_N_and_0(CLASS_EXCLUDES_UL, jobitem_id);
+        process_docitem_split_N_and_0(ID_INCLUDES_UL, jobitem_id);
     }
     else if(excl_value === 0){
-        process_docitem_split_N_and_0(CLASS_INCLUDES_UL, jobitem_id);
+        process_docitem_split_N_and_0(ID_EXCLUDES_UL, jobitem_id);
     }
     else{
         const description = get_combined_docitem_text_from_jobitem_id(jobitem_id);
-        process_docitem_split_N_and_N(CLASS_INCLUDES_UL, incl_value, jobitem_id, description);
-        process_docitem_split_N_and_N(CLASS_EXCLUDES_UL, excl_value, jobitem_id, description);
+        process_docitem_split_N_and_N(ID_INCLUDES_UL, incl_value, jobitem_id, description);
+        process_docitem_split_N_and_N(ID_EXCLUDES_UL, excl_value, jobitem_id, description);
     }
     show_save_warning_ele();
     close_docitem_split_window();
 }
 
 
-function process_docitem_split_N_and_0(src_class, jobitem_id){
+function process_docitem_split_N_and_0(src_id, jobitem_id){
     // 0 quantity = one of the two uls should have no li for this JobItem. Check if that's already the case.
     // If so, assume everything's ok as-is and do nothing. If not, this is equivalent to a toggle, so run that.
-    var src_ul = document.querySelector('.' + src_class);
+    var src_ul = document.querySelector('#' + src_id);
     const docitem_li = get_li_with_same_jiid(src_ul, jobitem_id);
     if(docitem_li != null){
         var dst_ul = get_dest_docitem_ul(src_ul);
@@ -552,7 +534,7 @@ function process_docitem_split_N_and_0(src_class, jobitem_id){
 
 
 function process_docitem_split_N_and_N(class_name, new_quantity, jobitem_id, description){
-    const target_ul = document.querySelector('.' + class_name);
+    const target_ul = document.querySelector('#' + class_name);
     const target_li = get_li_with_same_jiid(target_ul, jobitem_id);
 
     const have_li = target_li != null;
@@ -562,7 +544,7 @@ function process_docitem_split_N_and_N(class_name, new_quantity, jobitem_id, des
         display_span.innerHTML = display_span.innerHTML.replace(QTY_RE, new_quantity);
     }
     else {
-        let new_li = create_docitem_li(jobitem_id, description.replace(QTY_RE, new_quantity));
+        let new_li = create_docitem_li(jobitem_id, description.replace(QTY_RE, new_quantity), class_name);
         target_ul.append(new_li);
         remove_none_li(target_ul);
     }
@@ -573,7 +555,7 @@ function get_docitem_split_window_result_ele(class_name){
     return window_div.querySelector('.' + class_name).querySelector('span');
 }
 
-function create_docitem_li(jobitem_id, description){
+function create_docitem_li(jobitem_id, description, class_name){
     const li = document.createElement('li');
     li.setAttribute('data-jiid', jobitem_id);
 
@@ -582,21 +564,35 @@ function create_docitem_li(jobitem_id, description){
     span.innerHTML = description;
     li.append(span);
 
+    const button_container = document.createElement('div');
+    button_container.classList.add('button-container');
+
     const split_btn = document.createElement('button');
     split_btn.classList.add(CLASS_SPLIT_BTN);
-    split_btn.innerHTML = 'split';
+    split_btn.classList.add('button-primary-hollow');
+    split_btn.innerHTML = '&laquo; split &raquo;';
     split_btn.addEventListener('click', (e) => {
         split_doc_item(e);
     });
-    li.append(split_btn);
+    button_container.append(split_btn);
 
     const toggle_btn = document.createElement('button');
     toggle_btn.classList.add(CLASS_TOGGLE_BTN);
-    toggle_btn.innerHTML = 'x';
+    toggle_btn.classList.add('button-primary');
+
+    if(class_name == ID_INCLUDES_UL){
+        toggle_btn.innerHTML = 'excl. &raquo;';
+    }
+    else if(class_name == ID_INCLUDES_UL){
+        toggle_btn.innerHTML = '&laquo; incl.';
+    }
+
     toggle_btn.addEventListener('click', (e) => {
         toggle_doc_item(e);
     });
-    li.append(toggle_btn);
+    button_container.append(toggle_btn);
+
+    li.append(button_container);
 
     return li;
 
@@ -604,392 +600,3 @@ function create_docitem_li(jobitem_id, description){
 
 
 
-function open_issue_document_window(e){
-    let window = get_issue_document_window_element();
-    e.target.after(window);
-}
-
-
-function get_issue_document_window_element(){
-    let div = document.createElement('div');
-    div.classList.add(CSS_GENERIC_PANEL);
-    div.classList.add(CSS_GENERIC_FORM_LIKE);
-
-    let cancel_btn = create_generic_ele_cancel_button();
-    cancel_btn.addEventListener('click', (e) => {
-        close_issue_document_window(e.target);
-    });
-    div.append(cancel_btn);
-
-    let heading = document.createElement('h4');
-    heading.classList.add(CSS_GENERIC_PANEL_HEADING);
-    heading.innerHTML = 'Issue Date';
-    div.append(heading);
-
-    let input = document.createElement('input');
-    input.classList.add('issue-date');
-    input.type = 'date';
-    const today = new Date();
-    default_value = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-    input.value = default_value;
-    div.append(input);
-
-    let issue_btn = create_generic_ele_submit_button();
-    issue_btn.classList.add('full-width-button');
-    issue_btn.innerHTML = 'issue';
-    issue_btn.addEventListener('click', (e) => {
-        issue_document(e.target);
-    });
-    div.append(issue_btn);
-
-
-
-    return div;
-
-}
-
-function close_issue_document_window(btn){
-    btn.parentElement.remove();
-    return;
-}
-
-
-
-
-
-
-
-function issue_document(btn){
-    let input = btn.parentElement.querySelector('input');
-    let issue_date = input.value;
-    update_document_on_server(issue_date);
-}
-
-function save_document(){
-    update_document_on_server(null);
-}
-
-function update_document_on_server(issue_date){
-    let dict = get_document_data_as_dict(issue_date);
-
-    if(DOC_ID == '0'){
-        var URL = `${URL_DOCBUILDER}?job=${JOB_ID}&type=${DOC_CODE}`;
-    } else {
-        var URL = `${URL_DOCBUILDER}?id=${DOC_ID}`
-    }
-
-    fetch(URL, {
-        method: 'POST',
-        body: JSON.stringify(dict),
-        headers: getDjangoCsrfHeaders(),
-        credentials: 'include'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if ('redirect' in data){
-            window.location.href = data['redirect'];
-        } else {
-            display_document_response_message(data, document.querySelector('.status-controls'));
-            remove_save_warning_ele();
-        }
-    })
-    .catch(error => {
-        console.log('Error: ', error)
-    });
-}
-
-
-
-
-
-
-function get_document_data_as_dict(issue_date){
-    let dict = {};
-    dict['reference'] = document.querySelector('#id_doc_reference').value;
-    dict['issue_date'] = issue_date;
-    dict['assigned_items'] = get_assigned_items_as_list();
-    dict['special_instructions'] = get_special_instructions_as_list();
-
-    // Document-type-specific fields. Only one at present, so handle it here.
-    let req_prod_date_ele = document.querySelector('#id_req_prod_date');
-    if(req_prod_date_ele){
-        var req_prod_date = req_prod_date_ele.value;
-        if(req_prod_date == ''){
-            dict['req_prod_date'] = '';
-        }
-        else {
-            dict['req_prod_date'] = req_prod_date;
-        }
-    }
-
-    return dict;
-}
-
-function get_assigned_items_as_list(){
-    let assigned_items = [];
-    let assigned_ul = document.querySelector('.' + CLASS_INCLUDES_UL);
-    Array.from(assigned_ul.children).forEach(ele => {
-        if(ele.tagName == 'LI'){
-            let d = {}
-            d['quantity'] = ele.querySelector('.display').innerHTML.match(QTY_RE)[0];
-            d['id'] = ele.dataset.jiid;
-            assigned_items.push(d);
-        }
-    });
-    return assigned_items;
-}
-
-
-function get_special_instructions_as_list(){
-    let special_instructions = [];
-    let container_ele = document.querySelector('.' + CLASS_INSTRUCTIONS_SECTION);
-    let parent_ele = container_ele.querySelector('.existing');
-
-    Array.from(parent_ele.children).forEach(ele => {
-        if(!ele.classList.contains('no-special-instructions')){
-            let d = {}
-            d['id'] = ele.dataset.siid;
-            d['contents'] = ele.querySelector('.contents').innerHTML;
-            special_instructions.push(d);
-        }
-    });
-    return special_instructions;
-}
-
-
-
-
-
-
-function add_special_instruction_to_page(e){
-    let section_div = document.querySelector('.special-instructions');
-    let input = section_div.querySelector('textarea');
-    let new_instruction = input.value;
-    input.value = '';
-
-    let new_instruction_div = create_instructions_display_div(new_instruction);
-
-    let destination_parent = document.querySelector('.existing');
-    destination_parent.prepend(new_instruction_div);
-
-    update_no_special_instructions_ele();
-    show_save_warning_ele();
-}
-
-
-
-function create_instructions_display_div(display_str){
-    let main_div = document.createElement('div');
-    main_div.classList.add('read_row');
-
-    main_div.append(create_special_instructions_contents(display_str));
-
-    let edit_btn = create_generic_ele_edit_button();
-    edit_btn.setAttribute('data-siid', '0');
-    edit_btn.addEventListener('click', (e) => {
-        open_edit_mode_special_instruction(e.target);
-    });
-    main_div.append(edit_btn);
-    main_div.append(create_temporary_who_and_when_div());
-
-    return main_div;
-}
-
-function create_temporary_who_and_when_div(){
-    let info_div = document.createElement('div');
-    info_div.classList.add('who-and-when');
-
-    let username_span = document.createElement('span');
-    username_span.classList.add('username');
-    username_span.innerHTML = 'You';
-    info_div.append(username_span);
-
-    let text_on = document.createTextNode(' on ');
-    info_div.append(text_on);
-
-    let when_span = document.createElement('span');
-    when_span.classList.add('when');
-    when_span.innerHTML = get_date_time();
-    info_div.append(when_span);
-
-    return info_div;
-}
-
-function create_special_instructions_contents(display_str){
-    let contents_div = document.createElement('div');
-    contents_div.classList.add('contents');
-    contents_div.innerHTML = display_str;
-    return contents_div;
-}
-
-
-
-function find_special_instructions_heading(){
-    let section_div = document.querySelector('.special-instructions');
-    return section_div.querySelector('h3');
-}
-
-
-function open_edit_mode_special_instruction(btn){
-    let target_div = btn.parentElement;
-    let contents_div = target_div.querySelector('.contents');
-    let old_str = contents_div.innerHTML;
-    
-    contents_div.classList.add('hide');
-    hide_all_by_class('edit-icon');
-
-    target_div.prepend(create_ele_edit_mode_special_instruction(old_str));
-}
-
-function create_ele_edit_mode_special_instruction(old_str){
-    let edit_div = document.createElement('div');
-    edit_div.classList.add('editing-special-instruction');
-    edit_div.classList.add(CSS_GENERIC_PANEL);
-    edit_div.classList.add(CSS_GENERIC_FORM_LIKE);
-
-    let cancel_btn = create_generic_ele_cancel_button();
-    cancel_btn.addEventListener('click', (e) => {
-        close_edit_mode_special_instruction(e.target);
-    });
-    edit_div.append(cancel_btn);
-
-    let heading = document.createElement('h5');
-    heading.classList.add(CSS_GENERIC_PANEL_HEADING);
-    heading.innerHTML = 'Edit Special Instruction';
-    edit_div.append(heading);
-
-    let input = document.createElement('textarea');
-    input.innerHTML = old_str;
-    edit_div.append(input);
-    edit_div.append(create_ele_edit_mode_special_instruction_button_container());
-
-    return edit_div;
-}
-
-function create_ele_edit_mode_special_instruction_button_container(){
-    let button_container = document.createElement('div');
-    button_container.classList.add('controls');
-
-    let ok_btn = create_generic_ele_submit_button();
-    ok_btn.innerHTML = 'change';
-    ok_btn.addEventListener('click', (e) => {
-        update_special_instructions_contents(e.target);
-    });
-    button_container.append(ok_btn);
-
-    let del_btn = create_generic_ele_delete_button();
-    del_btn.setAttribute('data-siid', '0');
-    del_btn.addEventListener('click', (e) => {
-        delete_special_instruction(e.target);
-    }); 
-    button_container.append(del_btn);
-
-    return button_container;
-}
-
-
-function close_edit_mode_special_instruction(btn){
-    let edit_div = btn.closest('.editing-special-instruction');
-    let target_div = edit_div.parentElement;
-
-    edit_div.remove();
-    let contents_div = target_div.querySelector('.contents');
-    contents_div.classList.remove('hide');
-    unhide_all_by_class('edit-icon');
-}
-
-function update_special_instructions_contents(btn){
-    let edit_ele = btn.closest('.editing-special-instruction');
-    let input_ele = edit_ele.querySelector('textarea');
-    let new_str = input_ele.value;
-
-    let special_inst_ele = btn.closest('.read_row');
-    let target_ele = special_inst_ele.querySelector('.contents');
-    target_ele.innerHTML = new_str;
-    target_ele.classList.remove('hide');
-    close_edit_mode_special_instruction(btn);
-    show_save_warning_ele();
-}
-
-function delete_special_instruction(btn){
-    btn.parentElement.remove();
-    update_no_special_instructions_ele();
-    show_save_warning_ele();
-}
-
-
-
-
-function update_no_special_instructions_ele(){
-    let section_div = document.querySelector('.special-instructions');
-    let none_p = section_div.querySelector('.no-special-instructions');
-
-    let want_none_p = section_div.querySelector('.read_row') == null;
-    let have_none_p = none_p != null;
-
-    if(want_none_p && !have_none_p){
-        let existing = document.querySelector('.existing');
-        existing.append(create_no_special_instructions_ele()); 
-    }
-    else if(!want_none_p && have_none_p){
-        none_p.remove();
-    }
-}
-
-function create_no_special_instructions_ele(){
-    let p = document.createElement('p');
-    p.classList.add('no_special_instructions');
-    p.innerHTML = "No special instructions on this document.";
-    return p;
-}
-
-
-function create_unsaved_changes_ele(){
-    let div = document.createElement('div');
-    div.classList.add('unsaved-changes');
-    div.innerHTML = 'warning: unsaved changes exist';
-    return div;
-}
-
-
-function show_save_warning_ele(){
-    let existing_unsaved_ele = document.querySelector('.unsaved-changes');
-
-    if(existing_unsaved_ele == null){
-        let anchor_ele = document.querySelector('.status-controls');
-        let new_unsaved_ele = create_unsaved_changes_ele();
-        anchor_ele.append(new_unsaved_ele);
-    }
-}
-
-function remove_save_warning_ele(){
-    let existing_unsaved_ele = document.querySelector('.unsaved-changes');
-    if(existing_unsaved_ele != null){
-        existing_unsaved_ele.remove();
-    }
-}
-
-
-
-function delete_document(){
-    let delete_confirmed = confirm('Deleting a document cannot be undone except by a system administrator. Are you sure?');
-
-    if(delete_confirmed){
-        fetch(`${URL_DOCBUILDER}?id=${DOC_ID}`,{
-            method: 'DELETE',
-            headers: getDjangoCsrfHeaders(),
-            credentials: 'include'         
-        })
-        .then(response => response.json())
-        .then(data => {
-            if ('redirect' in data){
-                window.location.href = data['redirect'];
-            } else {
-                display_document_response_message(data);
-            }
-        })
-        .catch(error => {
-            console.log('Error: ', error)
-        })
-    }
-}
