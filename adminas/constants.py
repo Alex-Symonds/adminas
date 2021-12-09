@@ -1,3 +1,8 @@
+# PDF document variables to adjust the CSS and the "company" header and footer.
+CSS_FORMATTING_FILENAME = 'document_user'
+HTML_HEADER_FILENAME = 'pdf_doc_2_user_h'
+HTML_FOOTER_FILENAME = 'pdf_doc_2_user_f'
+
 # Address dropdown
 ADDRESS_DROPDOWN = [
     'Agent',

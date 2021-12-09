@@ -6,8 +6,7 @@ from django.db.models import Sum
 
 from django_countries.fields import CountryField
 
-from decimal import Decimal
-from adminas.constants import DOCUMENT_TYPES, MAX_ROWS_WO, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
+from adminas.constants import DOCUMENT_TYPES, MAX_ROWS_WO, MAX_ROWS_OC, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
 from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
 import datetime
 import re
@@ -16,8 +15,6 @@ import re
 from django.db.models import Q
 from django.db.models import F
 
-# Copied from views.py due to moving info processing for document to the model
-from adminas.constants import MAX_ROWS_OC
 
 # Size fields
 JOB_NAME_LENGTH = 8 # YYMM-NNN
@@ -34,11 +31,10 @@ PO_NAME_LENGTH = 50
 PERSON_NAME_LENGTH = 100
 
 
+
+
 class User(AbstractUser):
     todo_list_jobs = models.ManyToManyField('Job', related_name='users_monitoring')
-    formatting_filename = models.TextField(blank=True)
-    header_filename = models.TextField(blank=True)
-    footer_filename = models.TextField(blank=True)
 
 class AdminAuditTrail(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
@@ -46,6 +42,8 @@ class AdminAuditTrail(models.Model):
 
     class Meta:
         abstract = True
+
+
 
 
 # "System data" tables. That is, stuff that should already be in place when you begin processing a PO
@@ -114,7 +112,7 @@ class Site(AdminAuditTrail):
     default_delivery = models.BooleanField(default=False)
 
     def current_address(self):
-        # If a site has moved around, the database should still contain all their old addresses so that backdated documents are still correct.
+        # If a site has moved around, the database should still contain all their old addresses for record-keeping purposes
         return Address.objects.filter(site = self).order_by('-created_by')[0]
  
     def __str__(self):
@@ -148,12 +146,12 @@ class Product(AdminAuditTrail):
 
     # Some products have an ID for each individual item; some have an ID for a batch; others have no ID at all
     id_type = models.CharField(max_length=UID_CODE_LENGTH, choices=UID_OPTIONS)
-
+    
     hs_code = models.CharField(max_length=10, blank=True)
     origin_country = CountryField(blank=True)
 
     # Support for package deals and standard accessories
-    includes = models.ManyToManyField('self', through='StandardAccessory', related_name='supplied_with')
+    includes = models.ManyToManyField('self', through='StandardAccessory')
 
     # Resale support
     #   resale_category is for "standard" resale discounts (each Product should only be in one category).
@@ -176,7 +174,7 @@ class Product(AdminAuditTrail):
 
 
 class StandardAccessory(AdminAuditTrail):
-    parent = models.ForeignKey(Product, on_delete=models.SET_NULL, related_name='my_stdaccs', null=True)
+    parent = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     accessory = models.ForeignKey(Product, on_delete=models.SET_NULL, related_name='stdacc_for', null=True)
     quantity = models.IntegerField()
 
@@ -265,11 +263,11 @@ class Slot(models.Model):
     def choice_list(self):
         return self.choice_group.choices.all()
 
-    def valid_jobitems(self, parent):
-        # Deprecated: this was used when jobModules used a JobItem child instead of a product
-        sibling_jobitems = JobItem.objects.filter(job=parent.job).exclude(id=parent.id).filter(included_with=None)
-        slot_eligible_siblings = sibling_jobitems.filter(product__id__in=self.choice_group.choices.all())
-        return slot_eligible_siblings
+    # def valid_jobitems(self, parent):
+    #     # Deprecated: this was used when jobModules used a JobItem child instead of a product
+    #     sibling_jobitems = JobItem.objects.filter(job=parent.job).exclude(id=parent.id).filter(included_with=None)
+    #     slot_eligible_siblings = sibling_jobitems.filter(product__id__in=self.choice_group.choices.all())
+    #     return slot_eligible_siblings
 
     def fillers_on_job(self, job):
         result = []
@@ -306,6 +304,8 @@ class PurchaseOrder(AdminAuditTrail):
     date_received = models.DateField()
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
     value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
+
+    # PO records are not deleted (for audit trail reasons); instead they are deactivated
     active = models.BooleanField(default=True)
 
     def value_f(self):
@@ -934,7 +934,7 @@ class JobModule(models.Model):
     quantity = models.IntegerField(default=1)
 
     def __str__(self):
-        return f"{self.parent.product.name}'s {self.slot.name} slot filled by {self.product.name}"
+        return f"[{self.parent.pk}] {self.parent.product.name}: {self.slot.name} slot filled by {self.child.name}"
 
 
 
@@ -978,12 +978,10 @@ class DocumentVersion(AdminAuditTrail):
     # This should be set to False in two situations: version is deleted; version is replaced
     active = models.BooleanField(default=True)
 
-    # Suppose a customer places an order, then moves premises prior to delivery. The Job record should be updated with their new address,
-    # but documents which have already been issued should preserve the address as it was when they were issued.
-    # These two fields are intended for that purpose. PROTECT because this could touch on financial documents: don't want to mess with those.
+    # On draft documents the final text hasn't been created yet, so this is where we store the "instructions".
+    # On an issued document these would allow someone to lookup a list of documents based on the address or the JobItem (YAGNI, but it's here anyway...)
     invoice_to = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, related_name='financial_documents')
     delivery_to = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, related_name='delivery_documents')
-
     items = models.ManyToManyField(JobItem, related_name='on_documents', through='DocAssignment')
 
 
@@ -1025,8 +1023,7 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def get_doc_fields(self):
-        # Many documents contain a section which lists a bunch of label/value pairs, where every item has the same formatting.
-        # "Fields" is for storing all those in a list so that in the template you can setup a loop for "field in fields" and be done with it.
+        """ List of label/value pairs for a generic "fields" block on a document. ['h'] = label, ['body'] = value """
         fields = []
 
         # Add purchase order info.
@@ -1083,7 +1080,7 @@ class DocumentVersion(AdminAuditTrail):
 
     def save_issued_state(self):
         """
-        Save a set of data used to populate a document as-is, so future updates to the database won't retroactively alter historical documents
+        Save a set of data used to populate a document as strings, so future updates to the database won't retroactively alter documents
         """
         data = self.get_display_data_dict()
 
@@ -1195,14 +1192,24 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def deactivate(self):
+        """ Deactivate instead of really deleting for restoration purposes """
         self.active = False
         self.save()
 
     def reactivate(self):
+        """ Undo the deactivation """
         self.active = True
         self.save()
 
     def get_replacement_version(self, user):
+        """ 
+            Make a copy of this DocumentVersion, but with the version number incremented and issue date removed: then deactivate self.
+
+            Purpose:
+            It's beneficial to keep a record of *all* PDFs that have been "released into the wild", regardless of whether or not they're correct.
+            If anything, the incorrect ones are particularly valuable, since they can help explain why something or other went horribly wrong.
+            To this end, edit-via-replacement is required for issued documents (rather than edit-by-overwrite).
+        """
         r = DocumentVersion(
             created_by = user,
             document = self.document,
@@ -1223,9 +1230,24 @@ class DocumentVersion(AdminAuditTrail):
         return r
 
     def revert_to_previous_version(self):
+        """ 
+            Attempt to revert a replacement DocumentVersion.
+
+            Note: this will fail in the event of the older version being incompatible with currently active documents.
+            e.g. 
+                WO 1.0 is issued containing two items, A and B.
+                Someone decides item B should be on a separate WO, not grouped with item A.
+                WO 1.1 is issued as a replacement for WO 1.0: 1.1 contains only one item, item A.
+                WO 2.0 is saved as a draft, containing item B.
+                Someone changes their mind and decides that items A and B should be on the same WO after all.
+                User tries to revert from WO 1.1 (item A only) to WO 1.0 (items A and B).
+                Result = revert fails because item B already appears on WO 2.0 and an item can only appear on one WO.
+
+                Fix = if you want item B on WO 1.0, it's necessary to first delete/deactivate WO 2.0. 
+        """
         previous = DocumentVersion.objects.filter(document=self.document).filter(version_number=self.version_number - 1).order_by('-created_on')[0]
 
-        # Deactivate self to "free up" all assigned items before testing for a clash (otherwise if the item list hasn't changed, previous will clash with its future self)
+        # Deactivate self to "free up" all assigned items before testing for a clash (otherwise previous's item_assignments could clash with self)
         self.deactivate()
         if previous.item_assignments_clash():
             # If it clashes anyway, reactivate self and abort the revert
@@ -1238,12 +1260,9 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def item_assignments_clash(self):
-        # Part of the "revert to previous version" process
-        # Suppose a user: issued WO #A v1, including 1/1 of Item #X; then created WO #A v2 in which 1/1 of Item #X is removed; then created WO #B v1, including 1/1 of Item #X;
-        # then they try to revert WO #A to v1.
-        # To avoid 1/1 of Item #X appearing in two places (#A and #B), reverting WO #A to v1 is forbidden until 1/1 Item #X no longer appears on WO #B.
-        # This is where we check if any of the possible "Item #Xs" on this WO already appear elsewhere.
-
+        """
+            Check that there are no duplications of JobItems across documents of the same type.
+        """
         for assignment in DocAssignment.objects.filter(version=self):
             if assignment.quantity > assignment.max_quantity_excl_self():
                 return True
@@ -1253,8 +1272,9 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def get_included_items(self):
-        # List of items assigned to this particular document.
-        # Use for populating the "included" list in the builder page.
+        """
+            List of JobItems assigned to this document version.
+        """
         if self.items.all().count() == 0:
             return None
 
@@ -1265,12 +1285,16 @@ class DocumentVersion(AdminAuditTrail):
                 this_dict = {}
                 this_dict['id'] = a.pk
                 this_dict['jiid'] = a.item.pk
+                this_dict['total_quantity'] = a.item.quantity
                 this_dict['display'] = a.item.display_str().replace(str(a.item.quantity), str(a.quantity))
                 result.append(this_dict)
             return result
 
 
     def get_excluded_items(self):
+        """
+            List of JobItems excluded from this document version.
+        """
         available = self.get_available_items()
         unavailable = self.get_unavailable_items()
         if available == None or self.id == None:
@@ -1281,6 +1305,9 @@ class DocumentVersion(AdminAuditTrail):
             return available + unavailable
 
     def get_empty_body_line(self):
+        """
+            Make a dict for displaying an empty row on a document.
+        """
         empty_body_line = {}
         empty_body_line['quantity'] = ''
         empty_body_line['part_number'] = ''
@@ -1296,6 +1323,9 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def get_body_lines(self):
+        """
+            Format JobItem data in a dict for display on a document.
+        """
         if self.document.doc_type == 'WO':
             max_rows = MAX_ROWS_WO
         elif self.document.doc_type == 'OC':
@@ -1339,15 +1369,19 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def get_available_items(self):
-        # List of items assigned to this Job which have not yet been assigned to a document of this type.
-        # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
-        # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
+        """
+            List of items assigned to this Job which have not yet been assigned to a document of this type.
+            On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
+            On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
+        """
         return get_document_available_items(self.document.job.main_item_list(), self.document.doc_type)
 
 
     def get_unavailable_items(self):
-        # List of items already assigned to another document of this type.
-        # Used to populate the "excluded" list.
+        """
+            List of items already assigned to another document of this type.
+            Used to populate the "excluded" list.
+        """
         assigned_elsewhere = DocAssignment.objects\
                             .filter(version__document__job=self.document.job)\
                             .filter(version__document__doc_type=self.document.doc_type)\
@@ -1362,6 +1396,7 @@ class DocumentVersion(AdminAuditTrail):
             this_dict = {}
             this_dict['id'] = ae.pk
             this_dict['jiid'] = ae.item.pk
+            this_dict['total_quantity'] = ae.item.quantity
             this_dict['display'] = ae.item.display_str().replace(str(ae.item.quantity), str(ae.quantity))
             this_dict['is_available'] = False
             this_dict['used_by'] = ae.version.document.reference
@@ -1371,9 +1406,13 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def update_item_assignments_and_get_create_list(self, required):
-        # required = a list of dicts with two fields, JobItem id and quantity, which reflects the desired end state for DocAssignment records.
-        # Here we compare "required" to existing DocAssignments and handle cases of update, "no change" and delete.
-        # Creating new DocAssignments will be handled elsewhere, so return a list of everything that doesn't already have a record.
+        """
+            Update or delete DocAssignments according to their difference to/absence from "required".
+            Following an update, the dict is removed from "required".
+            What remains (and is returned) is a list of new DocAssignments requiring creation, for use elsewhere.
+
+            Note: the "required" argument must be a list of dicts with two fields (id and quantity).
+        """
         for ea in DocAssignment.objects.filter(version=self):
             found = False
             for req in required:
@@ -1392,6 +1431,13 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def update_special_instructions_and_get_create_list(self, required):
+        """
+            Update or delete SpecialInstructions according to their difference to/absence from "required".
+            Following an update, the dict is removed from "required".
+            What remains (and is returned) is a list of new DocAssignments requiring creation, for use elsewhere.
+
+            Note: the "required" argument must be a list of dicts with two fields (id and quantity).
+        """
         for ei in SpecialInstruction.objects.filter(version=self):
             found = False
             for req in required:
@@ -1497,7 +1543,7 @@ class DocumentStaticMainFields(models.Model):
     css_filename = models.TextField(blank=True)
 
     def __str__(self):
-        return f'Static main data for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+        return f'Static main data for issued document {self.doc_version.document.reference}, version {self.doc_version.version_number} dated {self.doc_version.issue_date}'
 
 
 class DocumentStaticOptionalFields(models.Model):
@@ -1508,7 +1554,7 @@ class DocumentStaticOptionalFields(models.Model):
     css_id = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True, null=True)
 
     def __str__(self):
-        return f'Static optional field ({self.h}) for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+        return f'Static optional field ({self.h}) for issued document {self.doc_version.document.reference}, version {self.doc_version.version_number} dated {self.doc_version.issue_date}'
 
 class DocumentStaticSpecialInstruction(models.Model):
     doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_instructions')
@@ -1516,7 +1562,7 @@ class DocumentStaticSpecialInstruction(models.Model):
     instruction = models.TextField()
 
     def __str__(self):
-        return f'Static special instruction for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+        return f'Static special instruction for issued document {self.doc_version.document.reference}, version {self.doc_version.version_number} dated {self.doc_version.issue_date}'
 
 
 class DocumentStaticLineItem(models.Model):
@@ -1534,7 +1580,7 @@ class DocumentStaticLineItem(models.Model):
     line_number = models.IntegerField()
 
     def __str__(self):
-        return f'Static line item #{self.line_number} for issued document {self.doc_version.reference}, version {self.doc_version.version_number} dated {self.issue_date}'
+        return f'Static line item #{self.line_number} for issued document {self.doc_version.document.reference}, version {self.doc_version.version_number} dated {self.doc_version.issue_date}'
 
 
 

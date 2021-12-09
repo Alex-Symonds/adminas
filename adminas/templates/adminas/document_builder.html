@@ -95,8 +95,10 @@
                 <li data-jiid="{{ inc.jiid }}">
                     <span class="display">{{ inc.display }}</span>
                     <div class="button-container">
-                        <button class="split-docitem-btn button-primary-hollow">&laquo; split &raquo;</button>
                         <button class="toggle-docitem-btn button-primary">excl. &raquo;</button>
+        {% if inc.total_quantity > 1 %}
+                        <button class="split-docitem-btn button-primary-hollow">&laquo; split &raquo;</button>
+        {% endif %}
                     </div>
                 </li>
     {% empty %}
@@ -114,8 +116,10 @@
             {% if excl.is_available %}
                     </span>
                     <div class="button-container">
-                        <button class="split-docitem-btn button-primary-hollow">&laquo; split &raquo;</button>
                         <button class="toggle-docitem-btn button-primary">&laquo; incl.</button>
+                {% if excl.total_quantity > 1 %}
+                        <button class="split-docitem-btn button-primary-hollow">&laquo; split &raquo;</button>
+                {% endif %}
                     </div>
             {% else %}
                         <span><a href="{% url 'doc_builder' %}?id={{excl.doc_id}}">

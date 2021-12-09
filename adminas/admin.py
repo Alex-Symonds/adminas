@@ -1,16 +1,31 @@
 from django.contrib import admin
+from django import forms
 
 # Register your models here.
-from .models import JobItem, SpecialInstruction, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, StandardAccessory, ResaleCategory, AgentResaleGroup, PurchaseOrder, AccEventOE, DocumentData, ProductionData, DocumentVersion, DocAssignment
+from .models import JobItem, SpecialInstruction, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, ResaleCategory, AgentResaleGroup, PurchaseOrder, AccEventOE, DocumentData, ProductionData, DocumentVersion, DocAssignment, JobComment, JobModule, DocumentStaticMainFields, DocumentStaticOptionalFields, DocumentStaticSpecialInstruction, DocumentStaticLineItem
 
 # Register your models here.
+
+class POAdmin(admin.ModelAdmin):
+    model = PurchaseOrder
+    # Activating or deactivating a PO should always involve creating an AccEventOE record
+    # That can't be enforced via the Django Admin page, so deactivate the checkbox
+    exclude = ('active',)
 
 class POInline(admin.TabularInline):
     model = PurchaseOrder
     extra = 0
 
+    # Activating or deactivating a PO should always involve creating an AccEventOE record
+    # That can't be enforced via the Django Admin page, so deactivate the checkbox
+    exclude = ('active',)
+
 class JobItemInline(admin.TabularInline):
     model = JobItem
+    extra = 0
+
+class DocumentDataInline(admin.TabularInline):
+    model = DocumentData
     extra = 0
 
 class JobAdmin(admin.ModelAdmin):
@@ -18,6 +33,7 @@ class JobAdmin(admin.ModelAdmin):
     inlines = [
         POInline,
         JobItemInline,
+        DocumentDataInline,
     ]
 
 
@@ -88,9 +104,16 @@ class DescriptionInline(admin.TabularInline):
     model = Description
     extra = 0
 
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        formfield = super(DescriptionInline, self).formfield_for_dbfield(db_field, **kwargs)
+        if db_field.name == 'description':
+            formfield.widget = forms.Textarea(attrs=formfield.widget.attrs)
+        return formfield
+
+
 class StandardAccessoriesInline(admin.TabularInline):
     model = Product.includes.through
-    fk_name = 'accessory'
+    fk_name = 'parent'
     extra = 0
 
 class SlotsInline(admin.TabularInline):
@@ -105,6 +128,10 @@ class ProductAdmin(admin.ModelAdmin):
         SlotsInline,
     ]
 
+
+
+
+# Documents
 class ProductionDataInline(admin.TabularInline):
     model = ProductionData
     extra = 0
@@ -117,13 +144,44 @@ class SpecialInstructionInline(admin.TabularInline):
     model = SpecialInstruction
     extra = 0
 
+class DocumentStaticMainFieldsInline(admin.TabularInline):
+    model = DocumentStaticMainFields
+    extra = 0
+
+class DocumentStaticOptionalFieldsInline(admin.TabularInline):
+    model = DocumentStaticOptionalFields
+    extra = 0
+
+class DocumentStaticSpecialInstructionInline(admin.TabularInline):
+    model = DocumentStaticSpecialInstruction
+    extra = 0
+
+class DocumentStaticLineItemInline(admin.TabularInline):
+    model = DocumentStaticLineItem
+    extra = 0
+
 class DocumentVersionAdmin(admin.ModelAdmin):
     model = DocumentVersion
     inlines = [
         ProductionDataInline,
         DocAssignmentInline,
         SpecialInstructionInline,
+        DocumentStaticMainFieldsInline,
+        DocumentStaticOptionalFieldsInline,
+        DocumentStaticSpecialInstructionInline,
+        DocumentStaticLineItemInline
     ]
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -133,7 +191,7 @@ admin.site.register(Company, CompanyAdmin)
 admin.site.register(Site, SiteAdmin)
 admin.site.register(Address)
 admin.site.register(Product, ProductAdmin)
-admin.site.register(Description)
+#admin.site.register(Description)
 #admin.site.register(Price)
 admin.site.register(PriceList, PriceListAdmin)
 admin.site.register(SlotChoiceList)
@@ -142,8 +200,11 @@ admin.site.register(SlotChoiceList)
 admin.site.register(ResaleCategory, ResaleCategoryAdmin)
 admin.site.register(AgentResaleGroup, AgentResaleAdmin)
 admin.site.register(AccEventOE)
-admin.site.register(PurchaseOrder)
-admin.site.register(DocumentData)
+admin.site.register(PurchaseOrder, POAdmin)
+#admin.site.register(DocumentData)
 admin.site.register(DocumentVersion, DocumentVersionAdmin)
+admin.site.register(JobComment)
+admin.site.register(JobModule)
+
 
 

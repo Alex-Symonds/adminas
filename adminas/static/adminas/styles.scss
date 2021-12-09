@@ -21,21 +21,19 @@ $c_tone_07: #F6F6F6;
 $c_accent: #00D4F5;
 $c_accent_04: #6bfaff; /* #6bfaff */
 $c_accent_03: #4ADFF7; /*#00E4F5;*/
-$c_accent_02: #00A8C2; /*#00A4C5;*/
+$c_accent_02: #00c2e0; /*#00A4C5;*/
 $c_accent_01: #006675;
 $c_txt_on_accent: black;
-$g_accent_main: linear-gradient(135deg, $c_accent_02 0%, $c_accent 50%, $c_accent_04 100%);
+$g_accent_main: linear-gradient(135deg, $c_accent_02 0%, $c_accent 75%, $c_accent_04 100%);
 $g_accent_main_background: linear-gradient(135deg, rgb(48, 48, 48) 75%,  $c_accent_01 100%);
 
-$g_button_main: linear-gradient(45deg, $c_accent_03 0%, $c_accent 33%, $c_accent_02 100%);
+$g_button_main: linear-gradient(45deg, $c_accent_03 0%, $c_accent 50%, $c_accent_02 100%);
 $g_button_hover: linear-gradient(135deg, $c_accent_04, $c_accent_03 66%, $c_accent 100%);
 
 $c_warning: rgb(207, 0, 0);
 $c_warning_bright: rgb(255, 0, 0);
-//$g_warning: linear-gradient(0deg, rgb(139, 0, 0) 0%, rgb(192, 0, 0) 100%);
 $g_warning_hover: linear-gradient(0deg, rgb(172, 0, 0) 0%, rgb(230, 0, 0) 100%);
 $c_txt_warning_g: white;
-//$warning_shadow: 0 0 10px 1px rgba($c_warning, 50%);
 $warning_shadow: 0 0 2px 2px rgba(white, 80%);
 
 $g_secondary_btn: linear-gradient(335deg, rgb(48, 48, 48) 0%,  rgb(60, 60, 60) 100%);
@@ -1282,7 +1280,7 @@ p.empty-section-notice{
     border-radius: 8px;
 
     max-width: $MAX_WIDTH;
-    width: calc(100% - 1rem);
+    width: 93%;
 
     margin: 1rem 0.5rem 0 0.5rem;
 
@@ -1508,6 +1506,10 @@ p.empty-section-notice{
                 display: none;
             }
         }
+
+        &.panel{
+            width: 260px;
+        }
     }
 
     .controls{
@@ -1560,6 +1562,20 @@ p.empty-section-notice{
     }
 
 }
+
+@media screen and (min-width: 445px){
+    // Something about the proliferation of %-based widths results in width issues (on narrow screens)
+    // on the Job page whenever the form to add multiple items is visible.
+    // Setting a pixel-based width above solved the problem for narrow screens, but causes a problem
+    // on wide screens (= weirdly skinny form sections). This widens them again.
+
+    .form-like{
+        .form-row.panel{
+            width: 95%;
+        }
+    }
+}
+
 
 
 
@@ -1643,6 +1659,9 @@ p.empty-section-notice{
     width: 95%;
 
     .add-button{
+        // On a narrow screen, make it so the expansion occurs /over/ the "Add [_] more" box, 
+        // instead of pushing the box down.
+        position: absolute;
         margin: 0.5rem 0 0 0.5rem;
     }
 
@@ -1654,6 +1673,7 @@ p.empty-section-notice{
         width: fit-content;
 
         display: block;
+        float: right;
         margin: 0.5rem 0.5rem 0;
         padding: 0.15rem 0.35rem;
 
@@ -2709,8 +2729,6 @@ table.price-comparison{
         margin: 0.2rem 1rem;
         width: 5rem;
         border-radius: 0.3rem;
-    }
-    .toggle-docitem-btn{
         float: right;
     }
 

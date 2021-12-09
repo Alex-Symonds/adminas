@@ -1,13 +1,24 @@
 const ID_INCLUDES_UL = 'included';
 const ID_EXCLUDES_UL = 'excluded';
+const CLASS_SPLIT_PREVIEW_INCLUDES = 'included';
+const CLASS_SPLIT_PREVIEW_EXCLUDES = 'excluded';
+
 const CLASS_NONE_LI = 'none';
 const CLASS_SPLIT_BTN = 'split-docitem-btn';
 const CLASS_TOGGLE_BTN = 'toggle-docitem-btn';
 const CLASS_DISPLAY_SPAN = 'display';
+
 const CLASS_SPLIT_WINDOW = 'split-docitem-window';
+const CLASS_SPLIT_DIRECTION_SETTER = 'split-direction-setter';
+const CLASS_SPLIT_DIRECTION_STRIP = 'split-direction-strip';
+const CLASS_SPLIT_STATUS_CONTAINER = 'docitem-split-status-container';
 const ID_SPLIT_WINDOW_INCLUDES_ARROWS = 'id_split_includes_arrows';
 const ID_SPLIT_WINDOW_EXCLUDES_ARROWS = 'id_split_excludes_arrows';
 const ID_SPLIT_WINDOW_DIRECTION = 'id_split_controls';
+
+const STR_INCLUDES_BTN = '&laquo; incl.';
+const STR_EXCLUDES_BTN = 'excl. &raquo;';
+const STR_SPLIT_BTN = '&laquo; split &raquo;';
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -89,10 +100,10 @@ function get_toggle_display_str(dst_ul){
     let display_str = 'toggle';
 
     if(dst_ul.id === ID_EXCLUDES_UL){
-        display_str = '&laquo; incl.';
+        display_str = STR_INCLUDES_BTN;
     }
     else if(dst_ul.id === ID_INCLUDES_UL){
-        display_str = 'excl. &raquo;'
+        display_str = STR_EXCLUDES_BTN;
     }
 
     return display_str;
@@ -187,20 +198,7 @@ function get_combined_docitem_text(src_text, dst_text){
 
 // Split DocItem: main function called by clicking a "<< split >>"" button
 function split_doc_item(e){
-    let jobitem_id = e.target.closest('li').dataset.jiid;
-    let max_quantity = get_total_qty(jobitem_id);
-
-    if(max_quantity == 1){
-        // If there's only 1 in total, the only valid edit is setting the qty to 0, which is equivalent to toggling it. Skip to the end.
-        toggle_doc_item(e);
-
-    } else if (max_quantity > 1){
-        open_docitem_split_window(e.target);
-
-    } else {
-        // Something's gone wrong. Do nothing.
-        return;
-    }
+    open_docitem_split_window(e.target);
 }
 
 // Split DocItem: Create and place a window to set how to split the docitem
@@ -273,10 +271,12 @@ function get_individual_docitem_text_from_jobitem_id(ul_id, jobitem_id){
     } 
 }
 
+
+
 // Split DocItem Window: component, the bit where you actually click and input things
 function create_ele_docitem_split_controls(jobitem_id, calling_ul_id){
     const div = document.createElement('div');
-    div.classList.add('split-direction-setter');
+    div.classList.add(CLASS_SPLIT_DIRECTION_SETTER);
     div.append(create_ele_docitem_split_direction_div(calling_ul_id));
 
     let default_qty = get_docitem_qty(calling_ul_id, jobitem_id);
@@ -289,7 +289,7 @@ function create_ele_docitem_split_controls(jobitem_id, calling_ul_id){
 // Split DocItem Window: component, the strip where you can set whether the number you input is for included or excluded
 function create_ele_docitem_split_direction_div(called_from){
     const direction_div = document.createElement('div');
-    direction_div.classList.add('split-direction-strip');
+    direction_div.classList.add(CLASS_SPLIT_DIRECTION_STRIP);
 
     const includes_div = document.createElement('div');
     const excludes_div = document.createElement('div');
@@ -300,17 +300,19 @@ function create_ele_docitem_split_direction_div(called_from){
     if(called_from === ID_INCLUDES_UL){
         includes_div.innerHTML = '&laquo;&laquo;&laquo;';
         excludes_div.innerHTML = '';
+        var middle_display_str = CLASS_SPLIT_PREVIEW_INCLUDES;
     }
     else if(called_from === ID_EXCLUDES_UL){
         includes_div.innerHTML = '';
         excludes_div.innerHTML = '&raquo;&raquo;&raquo;';
+        var middle_display_str = CLASS_SPLIT_PREVIEW_EXCLUDES;
     }
 
     direction_div.append(includes_div);
 
     const middle_div = document.createElement('div');
     middle_div.id = ID_SPLIT_WINDOW_DIRECTION;
-    middle_div.innerHTML = called_from;
+    middle_div.innerHTML = middle_display_str;
     middle_div.addEventListener('click', (e) => {
         toggle_docitem_split_controls(e);
     });
@@ -338,26 +340,28 @@ function create_ele_docitem_edit_field(){
     return fld;
 }
 
+
+
 // Split DocItem Window: component, the bit that previews the outcome of your split input
 function create_ele_docitem_split_status_container(jobitem_id){
     let container = document.createElement('div');
-    container.classList.add('docitem-split-status-container');
-    container.append(create_ele_docitem_split_category_div(ID_INCLUDES_UL, jobitem_id));
-    container.append(create_ele_docitem_split_category_div(ID_EXCLUDES_UL, jobitem_id));
+    container.classList.add(CLASS_SPLIT_STATUS_CONTAINER);
+    container.append(create_ele_docitem_split_category_div(CLASS_SPLIT_PREVIEW_INCLUDES, jobitem_id));
+    container.append(create_ele_docitem_split_category_div(CLASS_SPLIT_PREVIEW_EXCLUDES, jobitem_id));
     return container;
 }
 
 // Split DocItem Window: component, one "side" of the results preview
-function create_ele_docitem_split_category_div(ul_id, jobitem_id){
+function create_ele_docitem_split_category_div(class_name, jobitem_id){
     const div = document.createElement('div');
-    div.classList.add(ul_id);
+    div.classList.add(class_name);
     div.classList.add('container');
 
     const heading = document.createElement('h5');
-    heading.innerHTML = ul_id[0].toUpperCase() + ul_id.substring(1);
+    heading.innerHTML = class_name[0].toUpperCase() + class_name.substring(1);
     div.append(heading);
 
-    let default_qty = get_docitem_qty(ul_id, jobitem_id);
+    let default_qty = get_docitem_qty(class_name, jobitem_id);
     let result_span = document.createElement('span');
     result_span.innerHTML = default_qty;
     div.append(result_span);
@@ -419,12 +423,13 @@ function toggle_docitem_split_controls(e){
 
 // Split DocItem Window: function, called by entering a number in the input. Updates the status section accordingly
 function update_split_window(input_fld){
-    let controls_state = get_docitem_split_controls_state()
-    let selected_id = controls_state;
-    let other_id = toggle_docitem_membership_id(controls_state);
+    let controls_state = get_docitem_split_controls_state();
 
-    let selected_ele = get_docitem_split_window_result_ele(selected_id);
-    let other_ele = get_docitem_split_window_result_ele(other_id);
+    let selected_class = controls_state;
+    let other_class = toggle_docitem_membership_id(controls_state);
+
+    let selected_ele = get_docitem_split_window_result_ele(selected_class);
+    let other_ele = get_docitem_split_window_result_ele(other_class);
     let selected_qty = parseInt(input_fld.value);
     let total_qty = get_total_qty(input_fld.closest('li').dataset.jiid);
     set_docitem_split_window(selected_ele, other_ele, total_qty, selected_qty);
@@ -432,27 +437,27 @@ function update_split_window(input_fld){
 
 // Split DocItem Window: function, flips the __cludes class to the other
 function toggle_docitem_membership_id(in_id){
-    if(in_id == ID_INCLUDES_UL){
-        return ID_EXCLUDES_UL;
-    } else {
-        return ID_INCLUDES_UL;
+    if(in_id == CLASS_SPLIT_PREVIEW_INCLUDES){
+        return CLASS_SPLIT_PREVIEW_EXCLUDES;
     }
+    return CLASS_SPLIT_PREVIEW_INCLUDES;
 }
 
-
+// Split DocItem Window: function, checks the current status of the "direction" slip and returns the class
 function get_docitem_split_controls_state(){
-    let split_controls_ele = document.querySelector('#id_split_controls');
+    let split_controls_ele = document.querySelector('#' + ID_SPLIT_WINDOW_DIRECTION);
     let display_text = split_controls_ele.innerHTML.toLowerCase();
 
-    if(display_text.includes(ID_EXCLUDES_UL)){
-        return ID_EXCLUDES_UL;
+    if(display_text.includes(CLASS_SPLIT_PREVIEW_EXCLUDES)){
+        return CLASS_SPLIT_PREVIEW_EXCLUDES;
     }
-    else if(display_text.includes(ID_INCLUDES_UL)){
-        return ID_INCLUDES_UL;
+    else if(display_text.includes(CLASS_SPLIT_PREVIEW_INCLUDES)){
+        return CLASS_SPLIT_PREVIEW_INCLUDES;
     }
     return
 }
 
+// Split DocItem Window: function, updates the two "result preview" values
 function set_docitem_split_window(selected_ele, other_ele, total_qty, selected_qty){
     if(selected_qty <= 0){
         selected_ele.innerHTML = 0;
@@ -468,6 +473,7 @@ function set_docitem_split_window(selected_ele, other_ele, total_qty, selected_q
     }
 }
 
+// Split DocItem Window: function, checks both <ul>s for <li>s for this JobItem, extracts the quantity/ies and sums them
 function get_total_qty(jiid){
     let result = 0;
 
@@ -480,11 +486,17 @@ function get_total_qty(jiid){
     return result;
 }
 
+// Split DocItem Window: function, find the quantity expressed in a JobItem <li> based on the UL ID and the JobItem ID
 function get_docitem_qty(class_name, jiid){
     let ul = document.querySelector('#' + class_name);
     const docitem_ele = get_li_with_same_jiid(ul, jiid);
+    return get_docitem_qty_from_li(docitem_ele);
+}
+
+// Split DocItem Window: function, find the quantity expressed in a JobItem <li> based on the <li> element
+function get_docitem_qty_from_li(docitem_ele){
     if(docitem_ele != null){
-        return parseInt(docitem_ele.querySelector('.display').innerHTML.match(QTY_RE)[0])
+        return parseInt(docitem_ele.querySelector('.' + CLASS_DISPLAY_SPAN).innerHTML.match(QTY_RE)[0])
     }
     return 0;
 }
@@ -494,14 +506,17 @@ function get_docitem_qty(class_name, jiid){
 
 
 
+
+
+// Split DocItem Activity: main function to call to make the split happen
 function process_split_request(calling_ele){
     const docitem_li = calling_ele.closest('li');
     const jobitem_id = docitem_li.dataset.jiid;
 
-    let window_result_span = get_docitem_split_window_result_ele(ID_INCLUDES_UL);
+    let window_result_span = get_docitem_split_window_result_ele(CLASS_SPLIT_PREVIEW_INCLUDES);
     const incl_value = parseInt(window_result_span.innerHTML);
 
-    window_result_span = get_docitem_split_window_result_ele(ID_EXCLUDES_UL);
+    window_result_span = get_docitem_split_window_result_ele(CLASS_SPLIT_PREVIEW_EXCLUDES);
     const excl_value = parseInt(window_result_span.innerHTML);
 
     if(incl_value === 0){
@@ -520,10 +535,10 @@ function process_split_request(calling_ele){
 }
 
 
-function process_docitem_split_N_and_0(src_id, jobitem_id){
+function process_docitem_split_N_and_0(ul_id, jobitem_id){
     // 0 quantity = one of the two uls should have no li for this JobItem. Check if that's already the case.
     // If so, assume everything's ok as-is and do nothing. If not, this is equivalent to a toggle, so run that.
-    var src_ul = document.querySelector('#' + src_id);
+    var src_ul = document.querySelector('#' + ul_id);
     const docitem_li = get_li_with_same_jiid(src_ul, jobitem_id);
     if(docitem_li != null){
         var dst_ul = get_dest_docitem_ul(src_ul);
@@ -533,29 +548,29 @@ function process_docitem_split_N_and_0(src_id, jobitem_id){
 
 
 
-function process_docitem_split_N_and_N(class_name, new_quantity, jobitem_id, description){
-    const target_ul = document.querySelector('#' + class_name);
+function process_docitem_split_N_and_N(ul_id, new_quantity, jobitem_id, description){
+    const target_ul = document.querySelector('#' + ul_id);
     const target_li = get_li_with_same_jiid(target_ul, jobitem_id);
 
     const have_li = target_li != null;
 
     if(have_li){
-        let display_span = target_li.querySelector('.display');
+        let display_span = target_li.querySelector('.' + CLASS_DISPLAY_SPAN);
         display_span.innerHTML = display_span.innerHTML.replace(QTY_RE, new_quantity);
     }
     else {
-        let new_li = create_docitem_li(jobitem_id, description.replace(QTY_RE, new_quantity), class_name);
+        let new_li = create_docitem_li(jobitem_id, description.replace(QTY_RE, new_quantity), ul_id);
         target_ul.append(new_li);
         remove_none_li(target_ul);
     }
 }
 
-function get_docitem_split_window_result_ele(class_name){
+function get_docitem_split_window_result_ele(result_preview_class){
     let window_div = document.querySelector('.' + CLASS_SPLIT_WINDOW);
-    return window_div.querySelector('.' + class_name).querySelector('span');
+    return window_div.querySelector('.' + result_preview_class).querySelector('span');
 }
 
-function create_docitem_li(jobitem_id, description, class_name){
+function create_docitem_li(jobitem_id, description, ul_id){
     const li = document.createElement('li');
     li.setAttribute('data-jiid', jobitem_id);
 
@@ -570,7 +585,7 @@ function create_docitem_li(jobitem_id, description, class_name){
     const split_btn = document.createElement('button');
     split_btn.classList.add(CLASS_SPLIT_BTN);
     split_btn.classList.add('button-primary-hollow');
-    split_btn.innerHTML = '&laquo; split &raquo;';
+    split_btn.innerHTML = STR_SPLIT_BTN;
     split_btn.addEventListener('click', (e) => {
         split_doc_item(e);
     });
@@ -580,11 +595,11 @@ function create_docitem_li(jobitem_id, description, class_name){
     toggle_btn.classList.add(CLASS_TOGGLE_BTN);
     toggle_btn.classList.add('button-primary');
 
-    if(class_name == ID_INCLUDES_UL){
-        toggle_btn.innerHTML = 'excl. &raquo;';
+    if(ul_id == ID_INCLUDES_UL){
+        toggle_btn.innerHTML = STR_EXCLUDES_BTN;
     }
-    else if(class_name == ID_INCLUDES_UL){
-        toggle_btn.innerHTML = '&laquo; incl.';
+    else if(ul_id == ID_EXCLUDES_UL){
+        toggle_btn.innerHTML = STR_INCLUDES_BTN;
     }
 
     toggle_btn.addEventListener('click', (e) => {
