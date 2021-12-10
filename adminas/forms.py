@@ -26,7 +26,7 @@ class SiteForm(ModelForm):
 class AddressForm(ModelForm):
     class Meta():
         model = Address
-        exclude = ['valid_until', 'site']
+        exclude = ['site',]
 
 
 class AddressModelChoiceField(ModelChoiceField):
@@ -36,8 +36,8 @@ class AddressModelChoiceField(ModelChoiceField):
         return "%s: %s %s%s" % (obj.site.company.name, obj.site.name, inv, deliv)
 
 class JobForm(ModelForm):
-    invoice_to = AddressModelChoiceField(queryset=Address.objects.filter(valid_until=None).order_by('-site__default_invoice'))
-    delivery_to = AddressModelChoiceField(queryset=Address.objects.filter(valid_until=None).order_by('-site__default_delivery'))
+    invoice_to = AddressModelChoiceField(queryset=Address.objects.order_by('-site__default_invoice'))
+    delivery_to = AddressModelChoiceField(queryset=Address.objects.order_by('-site__default_delivery'))
     class Meta():
         model = Job
         fields = ['name', 'quote_ref', 'country', 'language', 'agent', 'customer', 'currency', 'payment_terms', 'incoterm_code', 'incoterm_location', 'invoice_to', 'delivery_to']
@@ -113,7 +113,6 @@ class POForm(ModelForm):
             'job': HiddenInput()
         }
 
-
 class DocumentDataForm(ModelForm):
     class Meta():
         model = DocumentData
@@ -129,7 +128,6 @@ class ProductionReqForm(ModelForm):
     class Meta():
         model = ProductionData
         fields = ['date_requested']
-
  
 class JobCommentFullForm(ModelForm):
     pinned = BooleanField(label='Pin to order', required=False, widget=CheckboxInput())

@@ -83,7 +83,7 @@ def assign_new_prices(this_pl, multiplier):
     prev_pl = get_previous_price_list_obj(this_pl)
     notes = ''
 
-    for prd in Product.objects.all():
+    for prd in Product.objects.filter(available=True):
         for curr in SUPPORTED_CURRENCIES:
 
             # Work out the new value

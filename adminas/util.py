@@ -43,11 +43,6 @@ def add_jobitem(admin_user, form):
 
 
 
-# def create_oe_event(admin_user, po, reason, value):
-#     oe_event = adminas.models.AccEventOE(
-
-
-
 def debug(print_this):
     print("------------- here comes something you're checking on! --------------------")
     print(print_this)
