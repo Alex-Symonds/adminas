@@ -464,9 +464,11 @@ class Job(AdminAuditTrail):
             self.price_is_ok = False
             self.save()
 
+
     def total_value(self):
         # Change this to whatever is going to be the "main" value for the order
         return self.total_po_value()
+
 
     def total_value_f(self):
         return format_money(self.total_value())
@@ -724,11 +726,11 @@ class JobItem(AdminAuditTrail):
         spots_left = total_qty - qty_assigned
         return min(spots_left, slot.quantity_optional)
 
-    def num_empty_spaces(self, slot):
-        # This is used in the max_quantity GET call. If I remove that, I can also remove this.
-        total_qty = slot.quantity_required + slot.quantity_optional
-        qty_assigned = self.num_assigned(slot)
-        return total_qty - qty_assigned
+    # def num_empty_spaces(self, slot):
+    #     # This is used in the max_quantity GET call. If I remove that, I can also remove this.
+    #     total_qty = slot.quantity_required + slot.quantity_optional
+    #     qty_assigned = self.num_assigned(slot)
+    #     return total_qty - qty_assigned
 
     def get_slot_details_string_required(self, slot):
         # Get the "1/3" string for displaying the slot status for required slots
