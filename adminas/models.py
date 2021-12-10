@@ -941,22 +941,6 @@ class JobModule(models.Model):
 
 
 
-
-class AccEventOE(AdminAuditTrail):
-    """ Store data about a single change to OE, whether it's a new order or a modification to an existing order """
-    currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
-    value = models.DecimalField(max_digits=MAX_DIGITS_PRICE, decimal_places=2)
-    reason = models.TextField(blank=True)
-    job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='oe_events')
-    po = models.ForeignKey(PurchaseOrder, on_delete=models.PROTECT, related_name='oe_adjustments', blank=True, null=True)
-
-    def __str__(self):
-        return f'{get_plusminus_prefix(self.value)}{format_money(self.value)} {self.currency}. Job {self.job.name} @ {self.created_on.strftime("%Y-%m-%d %H:%M:%S")}'
-
-
-
-
-
 class DocumentData(models.Model):
     reference = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
     doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)

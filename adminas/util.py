@@ -43,18 +43,9 @@ def add_jobitem(admin_user, form):
 
 
 
-def create_oe_event(admin_user, po, reason, value):
-    oe_event = adminas.models.AccEventOE(
-        created_by = admin_user,
-        currency = po.currency,
-        value = value,
-        job = po.job,
-        po = po,
-        reason = reason
-    )
-    oe_event.save()
+# def create_oe_event(admin_user, po, reason, value):
+#     oe_event = adminas.models.AccEventOE(
 
-    return oe_event
 
 
 def debug(print_this):

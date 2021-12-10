@@ -2,23 +2,12 @@ from django.contrib import admin
 from django import forms
 
 # Register your models here.
-from .models import JobItem, SpecialInstruction, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, ResaleCategory, AgentResaleGroup, PurchaseOrder, AccEventOE, DocumentData, ProductionData, DocumentVersion, DocAssignment, JobComment, JobModule, DocumentStaticMainFields, DocumentStaticOptionalFields, DocumentStaticSpecialInstruction, DocumentStaticLineItem
+from .models import JobItem, SpecialInstruction, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, ResaleCategory, AgentResaleGroup, PurchaseOrder, DocumentData, ProductionData, DocumentVersion, DocAssignment, JobComment, JobModule, DocumentStaticMainFields, DocumentStaticOptionalFields, DocumentStaticSpecialInstruction, DocumentStaticLineItem
 
 # Register your models here.
-
-class POAdmin(admin.ModelAdmin):
-    model = PurchaseOrder
-    # Activating or deactivating a PO should always involve creating an AccEventOE record
-    # That can't be enforced via the Django Admin page, so deactivate the checkbox
-    exclude = ('active',)
-
 class POInline(admin.TabularInline):
     model = PurchaseOrder
     extra = 0
-
-    # Activating or deactivating a PO should always involve creating an AccEventOE record
-    # That can't be enforced via the Django Admin page, so deactivate the checkbox
-    exclude = ('active',)
 
 class JobItemInline(admin.TabularInline):
     model = JobItem
@@ -199,8 +188,7 @@ admin.site.register(SlotChoiceList)
 #admin.site.register(StandardAccessory)
 admin.site.register(ResaleCategory, ResaleCategoryAdmin)
 admin.site.register(AgentResaleGroup, AgentResaleAdmin)
-admin.site.register(AccEventOE)
-admin.site.register(PurchaseOrder, POAdmin)
+admin.site.register(PurchaseOrder)
 #admin.site.register(DocumentData)
 admin.site.register(DocumentVersion, DocumentVersionAdmin)
 admin.site.register(JobComment)
