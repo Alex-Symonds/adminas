@@ -1,7 +1,5 @@
 from django.shortcuts import render
 import adminas.models
-import json
-from django.http import JsonResponse, HttpResponse
 
 
 
@@ -11,23 +9,28 @@ def format_money(value):
     except:
         return value
 
-def get_plusminus_prefix(value):
+
+def get_plus_prefix(value):
     if value > 0:
         return '+'
-    #elif value < 0:
-    #    return '-'
     else:
         return ''
 
+
 def anonymous_user(request):
     return error_page(request, 'You must be logged in to view this page.', 401)
+
 
 def error_page(request, message, error_code):
     return render(request, 'adminas/error.html', {
         'message': message
     }, status=error_code)
     
+
 def add_jobitem(admin_user, form):
+    """
+        Add one JobItem, based on a validated form.
+    """
     ji = adminas.models.JobItem(
         created_by = admin_user,
         job = form.cleaned_data['job'],
@@ -42,20 +45,20 @@ def add_jobitem(admin_user, form):
     return ji
 
 
-
 def debug(print_this):
     print("------------- here comes something you're checking on! --------------------")
     print(print_this)
     print('---------------------------------------------------------------------------')
 
 
-
-
 def get_document_available_items(jobitems, doc_type):
-    # List of items assigned to a Job which have not yet been assigned to a document of this type.
-    # On a new document, the assumption is that the user is creating the new document to cover the leftover items, so this is used to populate the default "included" list.
-    # On an existing document, the user has already indicated which items they wish to include, so this is used to populate the top of the "excluded" list.
-
+    """
+        List of items assigned to a Job which have not yet been assigned to a document of this type.
+        On a new document, the assumption is that the user is creating the new document to cover the leftover items, 
+        so this is used to populate the default "included" list.
+        On an existing document, the user has already indicated which items they wish to include, so this is used to 
+        populate the top of the "excluded" list.
+    """
     if jobitems == None or jobitems.count() == 0:
         return None
 
@@ -84,6 +87,10 @@ def get_document_available_items(jobitems, doc_type):
 
 
 def copy_relations_to_new_document_version(existing_relations, new_version):
+    """
+        Support for replacement documents. Go through a set of relations making copies, assigning a new 
+        PK to the copy, then replacing the version FK.
+    """
     for record in existing_relations:
         r = record
         r.pk = None

@@ -1,3 +1,6 @@
+// Job page, "selling price is {NOT }CONFIRMED" indicator-button thing.
+// Toggles the price confirmation status on the server, then updates the page.
+
 document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('price_confirmation_button').addEventListener('click', (e) => {
@@ -7,8 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
-
+// Backend
 function toggle_price_check(e){
     fetch(`${URL_PRICE_CHECK}`, {
         method: 'POST',
@@ -27,6 +29,7 @@ function toggle_price_check(e){
 }
 
 
+// Frontend
 function update_price_check_on_page(btn, current_status){
     
     btn.dataset.current_status = current_status;
@@ -36,8 +39,8 @@ function update_price_check_on_page(btn, current_status){
         var unwanted_class = 'off';
     } else {
         btn.innerHTML = 'NOT CONFIRMED';
-        var unwanted_class = 'on';
         var wanted_class = 'off';
+        var unwanted_class = 'on';
     }
 
     let price_check_div = btn.parentElement;

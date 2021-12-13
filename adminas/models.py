@@ -6,8 +6,8 @@ from django.db.models import Sum
 
 from django_countries.fields import CountryField
 
-from adminas.constants import DOCUMENT_TYPES, MAX_ROWS_WO, MAX_ROWS_OC, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, UID_CODE_LENGTH, UID_OPTIONS, DOC_CODE_MAX_LENGTH
-from adminas.util import format_money, get_document_available_items, get_plusminus_prefix, debug, copy_relations_to_new_document_version
+from adminas.constants import DOCUMENT_TYPES, MAX_ROWS_WO, MAX_ROWS_OC, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, DOC_CODE_MAX_LENGTH
+from adminas.util import format_money, get_document_available_items, get_plus_prefix, copy_relations_to_new_document_version
 import datetime
 
 from django.db.models import Q
@@ -46,15 +46,17 @@ class AdminAuditTrail(models.Model):
 
 # Customers and partners
 class Company(AdminAuditTrail):
+    """
+        One Company.
+
+        There are incoming FK links from Sites, which in turn have incoming FK links from Addresses.
+        In this way a single Company can have multiple locations which can move geographically while 
+        causing minimal disruption.
+    """
     full_name = models.CharField(max_length=COMPANY_NAME_LENGTH)
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES, blank=True)
-
     is_agent = models.BooleanField(default=False)
-
-    # def invoice_address(self):
-    #     inv_site = self.sites.filter(default_invoice=True)[0]
-    #     return inv_site.current_address()
 
     def __str__(self):
         if self.name == '':
@@ -63,14 +65,22 @@ class Company(AdminAuditTrail):
 
 
 class Address(AdminAuditTrail):
+    """
+        One Address, linked to a "Site".
+        Note: Address reflects the street location; Site reflects its purpose/function within the Company.
+
+        e.g. the Site record would reflect the concept of "CompanyX's Accounting Office", while 
+        the Address reflects the concept of "35 Main Street".
+    """
+    # The general idea being that users issuing documents are more likely to know they need this 
+    # made out to "CompanyX's Accounting Office" rather than a particular geographic location.
+
     site = models.ForeignKey('Site', on_delete=models.CASCADE, related_name='addresses')
     country = CountryField()
     region = models.CharField(max_length=REGION_NAME_LENGTH)
     postcode = models.CharField(max_length=10, blank=True)
     address = models.TextField()
     contact = models.CharField(max_length=PERSON_NAME_LENGTH, blank=True)
-
-    #valid_until = models.DateField(blank=True, null=True)
 
     def display_str_newlines(self):
         return f'{self.address},\n{self.region},\n{self.postcode},\n{self.country.name}'
@@ -89,6 +99,13 @@ class Address(AdminAuditTrail):
 
 
 class Site(AdminAuditTrail):
+    """
+        One Site, linked to a Company. There are incoming FK links from "Address".
+        Note: Address is the street location; Site is its purpose/function within the Company.
+
+        e.g. the Site record would reflect the concept of "CompanyX's Accounting Office", while 
+        the Address reflects the concept of "35 Main Street".
+    """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='sites')
     name = models.CharField(max_length=COMPANY_NAME_LENGTH)
 
@@ -97,6 +114,11 @@ class Site(AdminAuditTrail):
 
     def current_address(self):
         # If a site has moved around, the database may still contain all their old addresses for record-keeping purposes
+        all_addresses = Address.objects.filter(site = self)
+
+        if all_addresses.count() == 0:
+            return None
+
         return Address.objects.filter(site = self).order_by('-created_by')[0]
  
     def __str__(self):
@@ -123,6 +145,10 @@ class Site(AdminAuditTrail):
 
 # Stuff on offer
 class Product(AdminAuditTrail):
+    """
+        One Product / standard item on sale.
+    """
+
     available = models.BooleanField(default=True)
 
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
@@ -134,7 +160,7 @@ class Product(AdminAuditTrail):
 
     # Resale support
     #   resale_category is for "standard" resale discounts (each Product should only be in one category).
-    #   special_resale is for when an agent negotiates something different.
+    #   special_resale is for when an agent negotiates something different (each Product could appear in multiple categories)
     # System will interpret resale_category = Null as 0% resale discount.
     resale_category = models.ForeignKey('ResaleCategory', on_delete=models.SET_NULL, related_name='members', null=True)
     special_resale = models.ManyToManyField('AgentResaleGroup', related_name='special_deal_products', blank=True)
@@ -143,10 +169,18 @@ class Product(AdminAuditTrail):
         return Price.objects.filter(currency=currency).filter(price_list=price_list).get(product=self).value
 
     def get_description(self, lang):
-        return self.descriptions.filter(language=lang).order_by('-last_updated')[0].description
+        descriptions_qs = self.descriptions.filter(language=lang)
+
+        if descriptions_qs.count() == 0:
+            return 'Indescribable'
+
+        return descriptions_qs.order_by('-last_updated')[0].description
 
     # Some products are incomplete in and of themselves: they have empty "slots" which must be filled with selected options.
     def is_modular(self):
+        """
+            Check for the presence of this Product as a parent in Slots.
+        """
         return self.slots.all().count() > 0
 
     def __str__(self):
@@ -154,6 +188,9 @@ class Product(AdminAuditTrail):
 
 
 class StandardAccessory(AdminAuditTrail):
+    """
+        When Item A is supplied with 2 x Item B at no extra charge, store the link between A, B and 2 right here.
+    """
     parent = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     accessory = models.ForeignKey(Product, on_delete=models.SET_NULL, related_name='stdacc_for', null=True)
     quantity = models.IntegerField()
@@ -163,6 +200,9 @@ class StandardAccessory(AdminAuditTrail):
 
 
 class Description(AdminAuditTrail):
+    """
+        One-liner document description of a Product, in a given language.
+    """
     last_updated = models.DateTimeField(auto_now=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='descriptions')
     language = models.CharField(max_length=2, choices=SUPPORTED_LANGUAGES)
@@ -171,22 +211,46 @@ class Description(AdminAuditTrail):
     def __str__(self):
         return f'[{self.language}, {self.product.part_number}] {self.product.name}, {self.last_updated - datetime.timedelta(microseconds=self.last_updated.microsecond)}'
 
-class PriceList(AdminAuditTrail):
-    valid_from = models.DateField()
-    name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
-
-    def __str__(self):
-        return self.name
 
 class ResaleCategory(AdminAuditTrail):
-    """ Standard resale discount rates by category """
+    """ 
+        Standard resale discount rates by category 
+    """
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
     resale_perc = models.FloatField()
 
     def __str__(self):
         return self.name
 
+
+class AgentResaleGroup(AdminAuditTrail):
+    """ 
+        Agent-specific resale discount group 
+    """
+    agent = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='resale_prices')
+    name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
+    percentage = models.FloatField()
+
+    def __str__(self):
+        return f'{self.agent}, {self.name}'
+
+
+class PriceList(AdminAuditTrail):
+    """
+        Name and "valid_from" for a PriceList. Incoming FK from Prices.
+    """
+    valid_from = models.DateField()
+    name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
+
+    def __str__(self):
+        return self.name
+
+
 class Price(models.Model):
+    """
+        PriceList line item. Store the link between the product, the numerical value, which currency that is and which 
+        price list it belongs to.
+    """
     price_list = models.ForeignKey(PriceList, on_delete=models.CASCADE, related_name = 'prices')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='list_prices')
     currency = models.CharField(max_length=3, choices=SUPPORTED_CURRENCIES)
@@ -198,14 +262,7 @@ class Price(models.Model):
     def __str__(self):
         return f'{self.price_list.name} {self.product.name} @ {self.currency} {self.value}'
 
-class AgentResaleGroup(AdminAuditTrail):
-    """ Agent-specific resale discount group """
-    agent = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='resale_prices')
-    name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
-    percentage = models.FloatField()
 
-    def __str__(self):
-        return f'{self.agent}, {self.name}'
 
 
 
@@ -226,6 +283,9 @@ class AgentResaleGroup(AdminAuditTrail):
 
 # Support for modular ordering
 class SlotChoiceList(models.Model):
+    """
+        Set of Products suitable for filling a Slot.
+    """
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
     choices = models.ManyToManyField(Product, related_name='in_slot_lists')
 
@@ -233,6 +293,13 @@ class SlotChoiceList(models.Model):
         return self.name
 
 class Slot(models.Model):
+    """
+        Describes an "empty spot" in a Product, which can/must be filled by another Product.
+
+        e.g. Suppose the Product is hollow chocolate egg with space for 1 - 4 little toys inside (0 toys is forbidden
+        for business reasons). "Toy-filled Chocolate Egg" would be the parent; the name might be something like "Toys Inside";
+        required would be 1; optional would be 3; choice_group would be whichever "Choice Group" record reflects a list of all the suitable little toys.
+    """
     parent = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='slots')
     name = models.CharField(max_length=SYSTEM_NAME_LENGTH)
 
@@ -241,9 +308,15 @@ class Slot(models.Model):
     choice_group = models.ForeignKey(SlotChoiceList, on_delete=SET_NULL, related_name='used_by', null=True)
 
     def choice_list(self):
+        """
+            Cut out the middle man and go straight to the list of valid slot fillers.
+        """
         return self.choice_group.choices.all()
 
     def fillers_on_job(self, job):
+        """
+            Given a particular Job, return a list of Products *on that Job* which are suitable for filling this Slot.
+        """
         result = []
         for product in self.choice_list():
             product_count = job.quantity_of_product(product)
@@ -269,6 +342,9 @@ class Slot(models.Model):
 # PO-specific stuff
 # PO
 class PurchaseOrder(AdminAuditTrail):
+    """
+        Enter data as it appears on a customer's PO.
+    """
     job = models.ForeignKey('Job', on_delete=models.CASCADE, related_name='po')
     reference = models.CharField(max_length=PO_NAME_LENGTH)
     date_on_po = models.DateField()
@@ -288,6 +364,9 @@ class PurchaseOrder(AdminAuditTrail):
 
 #Job stuff
 class Job(AdminAuditTrail):
+    """
+        Reflects the concept of "one work thing we must enter into the system".
+    """
     name = models.CharField(max_length=JOB_NAME_LENGTH)
     agent = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_sold',  blank=True, null=True)
     customer = models.ForeignKey(Company, on_delete=models.PROTECT, related_name='jobs_ordered', blank=True, null=True)
@@ -309,15 +388,20 @@ class Job(AdminAuditTrail):
 
 
 
-    # Modular: Get how many of a particular Product exist on this Job (it's entirely possible to create multiple JobItems for the same Product)
     def quantity_of_product(self, product):
+        """
+            Modular item support. Count how many of a given Product exists on the Job. (It could be split across multiple line items.)
+        """
         instances_of_product = JobItem.objects.filter(job=self).filter(product=product)
         if instances_of_product.count() == 0:
             return 0
         return instances_of_product.aggregate(Sum('quantity'))['quantity__sum']
 
-    # Modular: For "child" JobItems. How many are still available to be assigned to other slots?
+
     def num_unassigned(self, product):
+        """
+            Modular item support (children). How many are still available to be assigned to other slots?
+        """
         job_qty = self.quantity_of_product(product)
         assignments = JobModule.objects.filter(parent__job=self).filter(child=product)
         if assignments.count() == 0:
@@ -330,8 +414,10 @@ class Job(AdminAuditTrail):
         return job_qty - a_qty
 
 
-    # Comments: Get all comments the user is entitled to see, regardless of pinned/highlighted status
     def get_all_comments(self, user, setting_for_order_by):
+        """
+            Comment support. Get all comments the user is entitled to see, regardless of pinned/highlighted status
+        """
         all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
         result = []
         for c in all_comments:
@@ -342,8 +428,10 @@ class Job(AdminAuditTrail):
 
         return result
 
-    # Comments: Get just the comments which have been pinned by this user
     def get_pinned_comments(self, user, setting_for_order_by):
+        """
+            Comment support. Get all comments "pinned" by this User
+        """
         all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
         result = []
         for c in all_comments:
@@ -355,8 +443,11 @@ class Job(AdminAuditTrail):
 
         return result
 
-    # Comments: Get just the comments highlighted by this user
+
     def get_highlighted_comments(self, user, setting_for_order_by):
+        """
+            Comment support. Get all comments "highlighted" by this User
+        """
         all_comments = JobComment.objects.filter(job=self).filter(Q(created_by=user) | Q(private=False)).order_by(setting_for_order_by)
         result = []
         for c in all_comments:
@@ -370,12 +461,17 @@ class Job(AdminAuditTrail):
 
 
 
-    # Todo: Check if this Job is on the todo list for the specified User
     def on_todo_list(self, user):
+        """
+            To-do list. Check if this Job is on the todo list for the specified User
+        """
         return self in user.todo_list_jobs.all()
 
-    # Todo: Produce a list of some things remaining to be done/resolved on this Job
+
     def admin_warnings(self):
+        """
+            Produce a list of some things remaining to be done/resolved on this Job
+        """
         result = {}
 
         result['strings'] = []
@@ -401,8 +497,10 @@ class Job(AdminAuditTrail):
 
         return result
 
-    # Todo: Run through all modular JobItems on the Job, checking for empty required slots
     def modules_are_missing(self):
+        """
+            Check if modular items on the Job have any empty "required" slots
+        """
         main_items = self.main_item_list()
         if main_items == None:
             return False
@@ -414,6 +512,9 @@ class Job(AdminAuditTrail):
 
 
     def get_document_warnings(self):
+        """
+            List of unfinished document business (unissued documents; unassigned items)
+        """
         result = []
         for loop_tuple in DOCUMENT_TYPES:
             doc_type = loop_tuple[0]
@@ -429,6 +530,9 @@ class Job(AdminAuditTrail):
 
 
     def unissued_documents_exist(self, doc_type):
+        """
+            Check the Job for for unissued documents of a specific type.
+        """
         try:
             qs = self.related_documents()
             dvs = qs.filter(document__doc_type=doc_type)
@@ -440,36 +544,50 @@ class Job(AdminAuditTrail):
 
 
 
-    # Prices: take any actions necessary when something-or-other happens that affects the total price of the Job
     def price_changed(self):
+        """
+            Make any necessary adjustments when something just happened that could impact the overall price of the Job.
+        """
+
         if self.price_is_ok:
             self.price_is_ok = False
             self.save()
 
 
-
-    # Prices: value and string for the "main" price
     def total_value(self):
-        # Change this to whatever is going to be the "main" value for the order
+        """
+            Get the total value for this Job (number).
+        """
+        # Change this to whatever is going to be considered the "default" value for the order
         return self.total_po_value()
 
     def total_value_f(self):
+        """
+            Get the total value for this Job (formatted string).
+        """
         return format_money(self.total_value())
 
 
-    # Prices: value and string for the list price
     def total_list_price(self):
+        """
+            Get the total list price for this Job (number).
+        """
         try:
             return sum([item.list_price() for item in self.items.filter(included_with=None)])
         except:
             return 0
 
     def total_list_price_f(self):
+        """
+            Get the total list price for this Job (formatted string).
+        """
         return format_money(self.total_list_price())
 
 
-    # Prices: value and string summing all the prices assigned to JobItems
     def total_line_value(self):
+        """
+            Get the total JobItem / line item sum for this Job (number).
+        """
         order_value = self.items.aggregate(order_value=Sum('selling_price'))['order_value']
         if order_value == None:
             return 0
@@ -477,28 +595,46 @@ class Job(AdminAuditTrail):
             return order_value
 
     def total_line_value_f(self):
+        """
+            Get the total JobItem / line item sum for this Job (formatted string).
+        """
         return format_money(self.total_line_value())
 
 
     # Prices: value and string of all POs assigned to this Job
     def total_po_value(self):
+        """
+            Get the total PO sum for this Job (number).
+        """
         try:
             return sum([po.value for po in self.po.all()])
         except:
             return 0
 
     def total_po_value_f(self):
+        """
+            Get the total PO sum for this Job (formatted string).
+        """
         return format_money(self.total_po_value())
 
 
     # Price comparison: value, formatted string and formatted % for checking the PO total against JobItem total
     def total_difference_value_po_vs_line(self):
+        """
+            Get the difference between the Job's line item sum and the PO sum (value)
+        """
         return self.total_po_value() - self.total_line_value()
 
     def total_po_difference_value_f(self):
+        """
+            Get the difference between the Job's line item sum and the PO sum (formatted string)
+        """
         return format_money(self.total_difference_value_po_vs_line())
 
     def total_po_difference_perc(self):
+        """
+            Get the difference between the Job's line item sum and the PO sum (percentage)
+        """
         if self.total_po_value() == 0 or self.total_po_value() == None:
             return 0
         return round( self.total_difference_value_po_vs_line() / self.total_po_value() * 100 , 2)
@@ -507,20 +643,31 @@ class Job(AdminAuditTrail):
 
     # Price comparison: value, formatted string and formatted % for checking the list total against JobItem total
     def total_difference_value_line_vs_list(self):
+        """
+            Get the difference between the Job's line item sum and the list price sum (value)
+        """
         return self.total_line_value() - self.total_list_price()
 
     def total_list_difference_value_f(self):
+        """
+            Get the difference between the Job's line item sum and the list price sum (formatted string)
+        """
         return format_money(self.total_difference_value_line_vs_list())
 
     def total_list_difference_perc(self):
+        """
+            Get the difference between the Job's line item sum and the list price sum (percentage)
+        """
         if self.total_list_price() == 0 or self.total_list_price() == None:
             return 0
         return round( self.total_difference_value_line_vs_list() / self.total_list_price() * 100, 2)
 
 
 
-    # Prices: formatted string of total resale price (i.e. list price, with the expected discount subtracted)
     def total_resale_price_f(self):
+        """
+            Get the Job's total resale value (formatted string)
+        """
         return format_money(sum([item.resale_price() for item in self.items.all()]))
 
 
@@ -528,34 +675,49 @@ class Job(AdminAuditTrail):
 
 
 
-    # Lists: List of only the JobItems which were entered by the user (i.e. excluding automatically added stdAccs)
     def main_item_list(self):
+        """
+            List of only the JobItems which were entered by the user (i.e. excluding automatically added stdAccs)
+        """
         item_list = JobItem.objects.filter(job=self).filter(included_with=None)
         if item_list.count() == 0:
             return None
         return item_list
 
-    # Lists: list of documents related to this order
     def related_documents(self):
+        """
+            List of documents related to this order
+        """
         qs = DocumentVersion.objects.filter(document__job=self).filter(active=True)
         return qs.order_by('issue_date').order_by('document__doc_type')
 
-    # Lists: list of POs related to this order
     def related_po(self):
+        """
+            List of POs related to this order
+        """
         return PurchaseOrder.objects.filter(job=self).filter(active=True).order_by('date_received')
 
 
 
 
-    # Documents: on a new document, get a list of JobItems which have not yet been assigned to a document of this type to pre-populate "Included" <ul>.
     def get_default_included_items(self, doc_type):
-        # Note: this is also (ab)used on existing documents as a means to effectively get "excluded, but available" to populate the top of the "Excluded" <ul>
+        """
+            Get a list of JobItems which have not yet been assigned to a document of this type.
+            
+            On a new document, this is used to pre-populate "Included" <ul>.
+            On existing documents, (ab)used to get "excluded, but available" to populate the top of the "Excluded" <ul>.
+        """
         result = get_document_available_items(self.main_item_list(), doc_type)
         return result
 
-    # Documents: on a new document, get a list of JobItems which have already been assigned to a document of this type to pre-populate "Excluded" <ul>.   
+
     def get_default_excluded_items(self, doc_type):
-        # Note: on existing documents, this is used to populate the bottom of the "Excluded" <ul>
+        """
+            Get a list of JobItems which have already been assigned to a document of this type.
+
+            On a new document, this is used to pre-populate "Excluded" <ul>.
+            On existing documents, (ab)used to populate the bottom of the "Excluded" <ul>.
+        """        
         assigned_elsewhere = DocAssignment.objects\
                             .filter(version__document__job=self)\
                             .filter(version__document__doc_type=doc_type)\
@@ -589,6 +751,31 @@ class Job(AdminAuditTrail):
 
 
 class JobComment(AdminAuditTrail):
+    """
+        A User's comment regarding a Job. Comments can be "private", "pinned" and/or "highlighted". 
+        
+        "Private", as you'd expect, determines whether the comment can be seen by anyone or just the author.
+        
+        "Pinned" and "highlighted" are used to emphasise chosen comments. In some ways they have similar effects:
+        the main Job page and on the Job comments page have a special panel for each, listing all comments
+        with the relevant status.
+        
+        In addition to this:
+            > "Pinned" comments also appear on the to-do list, at the bottom of the Job panel
+            > "Highlighted" comments get special formatting (most noticably on the Job Comments page)
+
+        The purpose of "pinned" is to "pin" the comment to the to-do list panel. This allows Users to add 
+        reminders (e.g. "MUST ISSUE OC BY $DATE") and to add notes to help them distinguish between similar Jobs 
+        (e.g. "Alice is chasing this one"; "Bob is chasing this one"). Analogue folks might think of it as a post-it
+        stuck to the front of a cardboard folder.
+
+        "Highlighted" is intended as an intermediate step, allowing the user to separate the comment-wheat from 
+        the comment-chaff without spamming up the to-do list (e.g. "The order confirmation must be sent to email1 
+        and email2" might be highlight-worthy: you don't want that buried under back-and-forth comments, but you're 
+        probably only interested in reading it when you're looking at the Job page). Analogue folks might think 
+        of this as taking a yellow highlighter pen to some written instructions.
+    """
+
     contents = models.TextField()
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='comments')
     private = models.BooleanField(default=True)
@@ -626,6 +813,9 @@ class JobComment(AdminAuditTrail):
 
 
 class JobItem(AdminAuditTrail):
+    """
+        One product on a Job.
+    """
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='items')
 
     product = models.ForeignKey(Product, on_delete=models.PROTECT, null=True)
@@ -638,152 +828,31 @@ class JobItem(AdminAuditTrail):
     # with the dispenser ("included_with" would refer to the JobItem for the dispenser) and one to cover the three spares ("included_with" would be blank).
     included_with = models.ForeignKey('self', on_delete=models.CASCADE, related_name='includes', null=True, blank=True)
 
-    # Display string: "main" description
     def display_str(self):
+        """
+            The "main" description to appear on documents and the webpage.
+        """
         return f'{self.quantity} x [{self.product.part_number}] {self.product.name}'
 
-    # Display string: "main" description, plus money details
+
     def display_str_with_money(self):
+        """
+            Variaton on the "main" description to appear on documents and the webpage.
+            Adds money information at the end.
+        """
         return f'{self.display_str()} @ {self.job.currency}&nbsp;{self.selling_price_f()}'
 
-    # Modular: Child. When editing the qty, check the new qty is compatible with JobModule assignments
-    # (i.e. user hasn't subtracted so many that there aren't enough to fulfill all existing slot assignments)
-    def quantity_is_ok_for_modular_as_child(self, new_qty):
-        module_assignments = self.module_assignments()
-        num_needed_for_assignments = 0
-        if module_assignments.count() > 0:
-            for ma in module_assignments:
-                num_needed_for_assignments += ma.quantity * ma.parent.quantity
-        
-        product_qty_without_me = self.job.quantity_of_product(self.product) - self.quantity
 
-        return product_qty_without_me + new_qty >= num_needed_for_assignments
-
-    # Modular: Parent. When editing the qty, check the new qty is compatible with JobModule assignments
-    # (i.e. user hasn't added so many that there aren't enough "children" to fulfill all existing slot assignments)
-    def quantity_is_ok_for_modular_as_parent(self, new_qty):
-        for module_assignment in self.modules.all():
-            total_quantity_needed = new_qty * module_assignment.quantity
-            total_quantity_exists = self.job.quantity_of_product(module_assignment.child)
-            if total_quantity_needed > total_quantity_exists:
-                return False
-        return True
-
-    # Modular: Child. Summary of module assignment status
-    def module_data(self):
-        result = {}
-        result['product_total'] = self.job.quantity_of_product(self.product)
-        result['num_unassigned'] = self.job.num_unassigned(self.product)
-        result['num_assigned'] = result['product_total'] - result['num_unassigned']
-        return result
-
-    # Modular: Child. Check if this product has any assignments
-    def has_module_assignments(self):
-        return self.module_assignments().count() > 0
-
-    # Modular: Child. Get a list of relevant JobModules
-    def module_assignments(self):
-        return JobModule.objects.filter(parent__job=self.job).filter(child=self.product)
-
-    # Modular: Parent. Is this a functional spec, with all required filled?
-    def all_required_modules_assigned(self):
-        if self.product.is_modular():
-            for slot in self.product.slots.all():
-                if self.num_assigned(slot) < slot.quantity_required:
-                    return False
-        return True
-
-    # Modular: Parent. Offer the user more spots?
-    def all_optional_modules_assigned(self):
-        if self.product.is_modular():
-            for slot in self.product.slots.all():
-                if self.num_assigned(slot) < slot.quantity_required + slot.quantity_optional:
-                    return False                
-        return True
-
-    # Modular: Parent. Each modular item specifies a number of required and optional slots.
-    # Usually required + optional should represent an upper limit on assignments.
-    # However, sometimes clients ask for special modifications and sometimes nothing is impossible if they're
-    # willing to pay enough: to support this, the program accepts surplus slots (but displays warnings).
-    def excess_modules_assigned(self):
-        if self.product.is_modular():
-            for slot in self.product.slots.all():
-                if self.num_assigned(slot) > slot.quantity_required + slot.quantity_optional:
-                    return True          
-        return False   
-
-
-    # Modular: Parent. Use to find out number of children *per parent* for this slot.
-    def num_assigned(self, slot):
-        assignments = JobModule.objects.filter(parent=self).filter(slot=slot)
-        if assignments.count() == 0:
-            qty_assigned = 0
-        else:
-            qty_assigned = assignments.aggregate(Sum('quantity'))['quantity__sum']
-        return qty_assigned
-
-    def remaining_slot_elements(self, slot):
-        # Use when displaying the + Slot button on the module management page
-        total_qty = slot.quantity_required + slot.quantity_optional
-        qty_assigned = self.num_assigned(slot)
-        spots_left = total_qty - qty_assigned
-        return min(spots_left, slot.quantity_optional)
-
-    # def num_empty_spaces(self, slot):
-    #     # This is used in the max_quantity GET call. If I remove that, I can also remove this.
-    #     total_qty = slot.quantity_required + slot.quantity_optional
-    #     qty_assigned = self.num_assigned(slot)
-    #     return total_qty - qty_assigned
-
-    def get_slot_details_string_required(self, slot):
-        # Get the "1/3" string for displaying the slot status for required slots
-        if self.product.is_modular():
-            num_assignments = self.num_assigned(slot)
-            if num_assignments <= slot.quantity_required:
-                result = num_assignments
-            else:
-                result = slot.quantity_required
-            return f'{result}/{slot.quantity_required}'
-        return ''
-
-    def get_slot_details_string_optional(self, slot):
-        # Get the "1/3" string for displaying the slot status for optional slots
-        if self.product.is_modular():
-            num_assignments = self.num_assigned(slot)    
-
-            if num_assignments <= slot.quantity_required:
-                result = 0
-            elif num_assignments <= slot.quantity_required + slot.quantity_optional:
-                result = num_assignments - slot.quantity_required
-            else:
-                result = slot.quantity_optional
-            return f'{result}/{slot.quantity_optional}'
-        return ''
-    
-    def get_num_excess(self, slot):
-        # Get the number of excess assignments to this slot
-        if self.product.is_modular():
-            num_assignments = self.num_assigned(slot)  
-            if num_assignments <= slot.quantity_required + slot.quantity_optional:
-                return 0
-            else:
-                return num_assignments - slot.quantity_required - slot.quantity_optional
-        return 0
-
-
-    def get_slot_status_dictionary(self, slot):
-        return {
-            'jobitem_has_excess': self.excess_modules_assigned(),
-            'slot_num_excess': self.get_num_excess(slot),
-            'required_str': self.get_slot_details_string_required(slot),
-            'optional_str': self.get_slot_details_string_optional(slot)
-        }
 
     def get_post_edit_dictionary(self):
+        """
+            Everything on the Job page that could possibly change as a result of a JobItem edit.
+        """
         return {
             'part_number': self.product.part_number,
             'name': self.product.name,
             'quantity': self.quantity,
+            'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()],
             'currency': self.job.currency,
             'selling_price': self.selling_price,
             'selling_price_f': self.selling_price_f(),
@@ -803,21 +872,128 @@ class JobItem(AdminAuditTrail):
             'total_po_difference_value': self.job.total_difference_value_po_vs_line(),
             'total_po_difference_value_f': self.job.total_po_difference_value_f(),
             'total_po_difference_perc': self.job.total_po_difference_perc(),
-            'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()]
         }
 
     def serialise_stdAcc(self):
+        """
+            JSON-friendly dict for one standard accessory 
+        """
         return {
             'quantity': self.quantity,
             'name': str(self.product)
         }
 
 
-    def add_standard_accessories(self):
-        # Suppose the Thingummy product includes 3 x Widgets. Someone orders 2 x Thingummies. The system will store:
-        #   > JobItem record for 2 x Thingummy
-        #   > JobItem record for 6 x Widgets
+    def selling_price_f(self):
+        """
+            Format the selling price for display.
+        """
+        return format_money(self.selling_price)
 
+
+    def list_price(self):
+        """
+            List price for this JobItem (value)
+        """
+        try:
+            return self.quantity * Price.objects.filter(currency=self.job.currency).filter(price_list=self.price_list).get(product=self.product).value
+
+        except:
+            return None
+
+    def list_price_f(self):
+        """
+            List price for this JobItem (formatted string)
+        """
+        return format_money(self.list_price())
+
+    def resale_price(self):
+        """ 
+            Get current list price, in the Job currency, less resale discount (value)
+        """
+        resale_multiplier = 1 - (self.resale_percentage() / 100)
+        value = float(self.list_price()) * float(resale_multiplier)
+        return round(value, 2)
+
+    def resale_price_f(self):
+        """ 
+            Get current list price, in the Job currency, less resale discount (formatted string)
+        """
+        return format_money(self.resale_price())
+
+    def resale_percentage(self):
+        """ 
+            If the invoice is going to an agent, work out and report the resale discount percentage.
+        """
+        # End early if resale doesn't apply (because we're not invoicing an agent or because the product doesn't have one)
+        if not self.job.invoice_to.site.company.is_agent or (self.product.resale_category == None and self.product.special_resale.all().count() == 0):
+            return 0
+
+        else:
+            # Check if the agent has their own special deal
+            deal = self.product.special_resale.filter(agent=self.job.invoice_to.site.company)
+
+            # Handle an agent with their own special deal
+            if len(deal) != 0:
+                return deal[0].percentage
+            
+            # Handle an agent on standard resale discount
+            else:
+                return self.product.resale_category.resale_perc
+
+
+    def list_difference_value_f(self):
+        """
+            Difference between sum of JobItem selling price and list price (formatted string)
+        """
+        diff = self.selling_price - self.list_price()
+        return get_plus_prefix(diff) + format_money(diff)
+
+    def resale_difference_value_f(self):
+        """
+            Difference between sum of JobItem selling price and resale price (formatted string)
+        """
+        diff = float(self.selling_price) - self.resale_price()
+        return get_plus_prefix(diff) + format_money(diff)
+
+    def list_difference_perc(self):
+        """
+            Difference between sum of JobItem selling price and list price expressed as a percentage (value)
+        """
+        if self.selling_price == 0 or self.selling_price == None:
+            return 0
+        return round((self.selling_price - self.list_price())/self.selling_price*100, 2)
+
+    def list_difference_perc_f(self):
+        """
+            Difference between sum of JobItem selling price and list price expressed as a percentage (formatted string)
+        """
+        return get_plus_prefix(self.list_difference_perc()) + format_money(self.list_difference_perc())
+
+    def resale_difference_perc(self):
+        """
+            Difference between sum of JobItem selling price and resale price expressed as a percentage (value)
+        """
+        if self.selling_price == 0 or self.selling_price == None:
+            return 0
+        return round((float(self.selling_price) - self.resale_price())/float(self.selling_price)*100, 2)
+
+    def resale_difference_perc_f(self):
+        """
+            Difference between sum of JobItem selling price and resale price expressed as a percentage (formatted string)
+        """
+        return get_plus_prefix(self.resale_difference_perc()) + format_money(self.resale_difference_perc())
+
+
+
+
+    def add_standard_accessories(self):
+        """
+            Consult the product and quantity, then create additional JobItems to reflect the set of standard accessories supplied with this product.
+            e.g. Suppose the Thingummy product is supplied with 3 x Widgets. Someone orders 2 x Thingummies. The system will store:
+                > JobItem record for 2 x Thingummy
+                > JobItem record for 6 x Widgets
+        """
         stdAccs = StandardAccessory.objects.filter(parent=self.product)
         for stdAcc in stdAccs:
             sa = JobItem(
@@ -831,13 +1007,23 @@ class JobItem(AdminAuditTrail):
             )
             sa.save()
     
+
     def reset_standard_accessories(self):
+        """
+            Delete all existing standard accessory JobItems linked to self and replace them with a fresh set.
+            (For when a user edits the product on an existing JobItem, necessitating a completely different set)   
+        """
         stdAccs = self.includes.all()
         if stdAccs.count() > 0:
             stdAccs.delete()
         self.add_standard_accessories()
 
+
     def update_standard_accessories_quantities(self):
+        """
+            Run through existing standard accessory JobItems linked to self and update the quantities.
+            (For when a user edits the quantity on an existing JobItem, necessitating the same set but more/fewer)
+        """
         for stdAcc in self.includes.all():
             accessory_obj = StandardAccessory.objects.filter(parent=self.product).filter(accessory=stdAcc.product)[0]
             qty_per_parent = accessory_obj.quantity
@@ -848,84 +1034,163 @@ class JobItem(AdminAuditTrail):
 
  
 
-    def selling_price_f(self):
-        return format_money(self.selling_price)
 
-    def inv_description(self):
-        if self.invoice_wording != None:
-            return self.invoice_wording.description
-        elif self.description != '':
-            return self.description
-        else:
-            try:
-                self.product.get_description(self.job.language)
-            except:
-                return "Words can't describe it."
-    
-    def inv_part_number(self):
-        if self.invoice_wording != None:
-            return self.invoice_wording.part_number
-        elif self.product != '':
-            return self.product.part_number
-        else:
-            return '-'
-    
-    def resale_percentage(self):
-        # Resale discount will apply. Check if the agent has negotiated a special deal on this item.
-        if not self.job.invoice_to.site.company.is_agent:
-            return 0
 
-        else:
-            if self.product.resale_category == None and self.product.special_resale.all().count() == 0:
-                return 0
+    def quantity_is_ok_for_modular_as_child(self, new_qty):
+        """
+            Modular: Child. When editing the qty, check the new qty is compatible with JobModule assignments
+            (i.e. user hasn't subtracted so many that there aren't enough to fulfill all existing slot assignments)
+        """        
+        module_assignments = self.module_assignments()
+        num_needed_for_assignments = 0
+        if module_assignments.count() > 0:
+            for ma in module_assignments:
+                num_needed_for_assignments += ma.quantity * ma.parent.quantity
+        
+        product_qty_without_me = self.job.quantity_of_product(self.product) - self.quantity
 
-            deal = self.product.special_resale.filter(agent=self.job.invoice_to.site.company)
-            if len(deal) != 0:
-                # There's a special deal, so use the special deal percentage
-                return deal[0].percentage
+        return product_qty_without_me + new_qty >= num_needed_for_assignments
+
+
+    def quantity_is_ok_for_modular_as_parent(self, new_qty):
+        """
+            Modular: Parent. When editing the qty, check the new qty is compatible with JobModule assignments
+            (i.e. user hasn't added so many that there aren't enough "children" to fulfill all existing slot assignments)       
+        """
+        for module_assignment in self.modules.all():
+            total_quantity_needed = new_qty * module_assignment.quantity
+            total_quantity_exists = self.job.quantity_of_product(module_assignment.child)
+            if total_quantity_needed > total_quantity_exists:
+                return False
+        return True
+
+
+    def module_data(self):
+        """
+            Modular: Child. Summary of module assignment status
+        """
+        result = {}
+        result['product_total'] = self.job.quantity_of_product(self.product)
+        result['num_unassigned'] = self.job.num_unassigned(self.product)
+        result['num_assigned'] = result['product_total'] - result['num_unassigned']
+        return result
+
+
+    def has_module_assignments(self):
+        """
+            Modular: Child. Check if this product has any assignments
+        """
+        return self.module_assignments().count() > 0
+
+
+    def module_assignments(self):
+        """
+            Modular: Child. Get a list of relevant JobModules
+        """
+        return JobModule.objects.filter(parent__job=self.job).filter(child=self.product)
+
+
+    def all_required_modules_assigned(self):
+        """
+            Modular: Parent. Is this a functional spec, with all required filled?
+        """
+        if self.product.is_modular():
+            for slot in self.product.slots.all():
+                if self.num_assigned(slot) < slot.quantity_required:
+                    return False
+        return True
+
+
+    def all_optional_modules_assigned(self):
+        """
+            Modular: Parent. Are the optional slots all filled as well?
+        """
+        if self.product.is_modular():
+            for slot in self.product.slots.all():
+                if self.num_assigned(slot) < slot.quantity_required + slot.quantity_optional:
+                    return False                
+        return True
+
+
+    def excess_modules_assigned(self):
+        """
+            Modular: Parent. The program allows users to exceed the required + optional total: 
+            so this is used to find out if the user has taken advantage of that ability.
+            
+            (The purpose of allowing the user to exceed the maximum is to support the possibility of 
+            customers ordering bespoke modifications to increase the slots on a product.)
+        """
+        if self.product.is_modular():
+            for slot in self.product.slots.all():
+                if self.get_num_excess(slot) > 0:
+                    return True          
+        return False   
+
+    def num_assigned(self, slot):
+        """
+            Modular: Parent. Use to find out number of children *per parent* for this slot.
+        """
+        assignments = JobModule.objects.filter(parent=self).filter(slot=slot)
+        if assignments.count() == 0:
+            qty_assigned = 0
+        else:
+            qty_assigned = assignments.aggregate(Sum('quantity'))['quantity__sum']
+        return qty_assigned
+
+
+    def get_slot_details_string_required(self, slot):
+        """
+            Modular: Parent. Slot status string for required, e.g. "1/3" = 1 filled, 3 required.
+        """
+        if self.product.is_modular():
+            num_assignments = self.num_assigned(slot)
+            if num_assignments <= slot.quantity_required:
+                result = num_assignments
             else:
-                # No special arrangements, so use the standard percentage
-                return self.product.resale_category.resale_perc
+                result = slot.quantity_required
+            return f'{result}/{slot.quantity_required}'
+        return ''
 
-    def list_price(self):
-        return self.quantity * Price.objects.filter(currency=self.job.currency).filter(price_list=self.price_list).get(product=self.product).value
+    def get_slot_details_string_optional(self, slot):
+        """
+            Modular: Parent. Slot status string for optional, e.g. "1/3" = 1 filled, 3 available (as standard).
+        """
+        if self.product.is_modular():
+            num_assignments = self.num_assigned(slot)    
 
-    def list_price_f(self):
-        return format_money(self.list_price())
+            if num_assignments <= slot.quantity_required:
+                result = 0
+            elif num_assignments <= slot.quantity_required + slot.quantity_optional:
+                result = num_assignments - slot.quantity_required
+            else:
+                result = slot.quantity_optional
+            return f'{result}/{slot.quantity_optional}'
+        return ''
+    
+    def get_num_excess(self, slot):
+        """
+            Modular: Parent. Get the number of excess assignments to this specific slot
+        """
+        if self.product.is_modular():
+            num_assignments = self.num_assigned(slot)  
+            if num_assignments <= slot.quantity_required + slot.quantity_optional:
+                return 0
+            else:
+                return num_assignments - slot.quantity_required - slot.quantity_optional
+        return 0
 
-    def resale_price(self):
-        """ Get current list price, in the Job currency, less resale discount """
-        # Apply percentage to list price
-        resale_multiplier = 1 - (self.resale_percentage() / 100)
-        value = float(self.list_price()) * float(resale_multiplier)
-        return round(value, 2)
 
-    def resale_price_f(self):
-        return format_money(self.resale_price())
+    def get_slot_status_dictionary(self, slot):
+        """
+            Modular: Parent. Dict for updating the page after something slotty changes.
+        """
+        return {
+            'jobitem_has_excess': self.excess_modules_assigned(),
+            'slot_num_excess': self.get_num_excess(slot),
+            'required_str': self.get_slot_details_string_required(slot),
+            'optional_str': self.get_slot_details_string_optional(slot)
+        }
 
-    def list_difference_value_f(self):
-        diff = self.selling_price - self.list_price()
-        return get_plusminus_prefix(diff) + format_money(diff)
-
-    def resale_difference_value_f(self):
-        diff = float(self.selling_price) - self.resale_price()
-        return get_plusminus_prefix(diff) + format_money(diff)
-
-    def list_difference_perc(self):
-        if self.selling_price == 0 or self.selling_price == None:
-            return 0
-        return round((self.selling_price - self.list_price())/self.selling_price*100, 2)
-
-    def list_difference_perc_f(self):
-        return get_plusminus_prefix(self.list_difference_perc()) + format_money(self.list_difference_perc())
-
-    def resale_difference_perc(self):
-        if self.selling_price == 0 or self.selling_price == None:
-            return 0
-        return round((float(self.selling_price) - self.resale_price())/float(self.selling_price)*100, 2)
-
-    def resale_difference_perc_f(self):
-        return get_plusminus_prefix(self.resale_difference_perc()) + format_money(self.resale_difference_perc())
 
     def __str__(self):
         return f'({self.job.name}) {self.quantity} x {self.product.name}'
@@ -934,6 +1199,9 @@ class JobItem(AdminAuditTrail):
 
 
 class JobModule(models.Model):
+    """
+        Store one slot filler on a modular item.
+    """
     parent = models.ForeignKey(JobItem, on_delete=models.CASCADE, related_name='modules')
     child = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='module_assignment', null=True, blank=True)
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='usages')
@@ -945,30 +1213,36 @@ class JobModule(models.Model):
 
 
 
+
 class DocumentData(models.Model):
+    """
+        Document main class: one of these for each document
+        (e.g. Suppose post-issuing changes were necessary, so there are multiple versions of a single document. 
+        This class represents "a single document", the thing which links them)
+    """
     reference = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
     doc_type = models.CharField(max_length=DOC_CODE_MAX_LENGTH, choices=DOCUMENT_TYPES, null=True)
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name='documents')
-
-    def previous_versions(self):
-        try:
-            return DocumentVersion.objects.filter(document=self).filter(active=False).order_by('created_on')
-        except:
-            return None
 
     def __str__(self):
         return f'{self.doc_type} {self.reference}'
 
 
+
 class DocumentVersion(AdminAuditTrail):
+    """
+        Document: one of these for each version of a document.
+        (e.g. Suppose post-issuing changes were necessary, so there are multiple versions of a single document. 
+        This class is what we use for each of the "multiple versions".)
+    """
     document = models.ForeignKey(DocumentData, on_delete=models.CASCADE, related_name='versions')
     version_number = models.IntegerField()
     issue_date = models.DateField(null=True, blank=True)
 
-    # This should be set to False in two situations: version is deleted; version is replaced
+    # This should be set to False in two situations: version is deleted; version is replaced.
     active = models.BooleanField(default=True)
 
-    # On draft documents the final text hasn't been created yet, so this is where we store the "instructions".
+    # On draft documents the final text hasn't been created yet, so this is where we store the "instructions" for where to find the text when the time comes to issue it.
     # On an issued document these would allow someone to lookup a list of documents based on the address or the JobItem (YAGNI, but it's here anyway...)
     invoice_to = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, related_name='financial_documents')
     delivery_to = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, related_name='delivery_documents')
@@ -977,7 +1251,7 @@ class DocumentVersion(AdminAuditTrail):
 
     def get_display_data_dict(self):
         """
-        Retrieve data for populating a document, based on the current state of the database 
+            Retrieve data for populating a document, based on the current state of the database 
         """
 
         data = {}
@@ -1013,7 +1287,9 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def get_doc_fields(self):
-        """ List of label/value pairs for a generic "fields" block on a document. ['h'] = label, ['body'] = value """
+        """ 
+            List of label/value pairs for a generic "fields" block on a document. ['h'] = label, ['body'] = value 
+        """
         fields = []
 
         # Add purchase order info.
@@ -1070,7 +1346,7 @@ class DocumentVersion(AdminAuditTrail):
 
     def save_issued_state(self):
         """
-        Save a set of data used to populate a document as strings, so future updates to the database won't retroactively alter documents
+            Save a set of data used to populate a document as strings, so future updates to the database won't retroactively alter documents
         """
         data = self.get_display_data_dict()
 
@@ -1128,7 +1404,7 @@ class DocumentVersion(AdminAuditTrail):
 
     def get_issued_state(self):
         """
-        Data for populating an issued document, based on the "static" records produced when the document was issued.
+            Data for populating an issued document, based on the "static" records produced when the document was issued.
         """
         data = {}
         data['mode'] = 'issued'
@@ -1182,12 +1458,16 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def deactivate(self):
-        """ Deactivate instead of really deleting for restoration purposes """
+        """ 
+            Deactivate instead of really deleting (for restoration purposes) 
+        """
         self.active = False
         self.save()
 
     def reactivate(self):
-        """ Undo the deactivation """
+        """ 
+            Undo the deactivation 
+        """
         self.active = True
         self.save()
 
@@ -1223,26 +1503,34 @@ class DocumentVersion(AdminAuditTrail):
         """ 
             Attempt to revert a replacement DocumentVersion.
 
-            Note: this will fail in the event of the older version being incompatible with currently active documents.
-            e.g. 
-                WO 1.0 is issued containing two items, A and B.
-                Someone decides item B should be on a separate WO, not grouped with item A.
-                WO 1.1 is issued as a replacement for WO 1.0: 1.1 contains only one item, item A.
-                WO 2.0 is saved as a draft, containing item B.
-                Someone changes their mind and decides that items A and B should be on the same WO after all.
-                User tries to revert from WO 1.1 (item A only) to WO 1.0 (items A and B).
-                Result = revert fails because item B already appears on WO 2.0 and an item can only appear on one WO.
+            Note: this will fail in the event of the older version being incompatible with other currently active documents.
 
-                Fix = if you want item B on WO 1.0, it's necessary to first delete/deactivate WO 2.0. 
+            Example/definition of "incompatible":
+                Obviously duplication of items on documents = bad.
+
+                As soon as the previous version of this document was deactivated, all its JobItems became "available" for assignment to 
+                other documents: someone might've made use of that. The program therefore checks if all the JobItems on the previous version 
+                are still available *now*. If not, the revert fails.
+
+                If the user wishes to proceed with the revert, it is necessary to first deactivate/delete/edit other documents of the same 
+                type such that all items featured on the previous version are available.
         """
-        previous = DocumentVersion.objects.filter(document=self.document).filter(version_number=self.version_number - 1).order_by('-created_on')[0]
+        previous_qs = DocumentVersion.objects.filter(document=self.document).filter(version_number=self.version_number - 1)
+        
+        if previous_qs.count() == 0:
+            return None
+        
+        previous = previous_qs.order_by('-created_on')[0]
 
-        # Deactivate self to "free up" all assigned items before testing for a clash (otherwise previous's item_assignments could clash with self)
+        # Deactivate self in order to "free up" its item assignments before testing for a clash (otherwise "previous" can clash with "self", which would be silly)
         self.deactivate()
+
+        # If previous clashes with other documents' item assignments, reactivate self and abort the revert
         if previous.item_assignments_clash():
-            # If it clashes anyway, reactivate self and abort the revert
             self.reactivate()
             return None
+
+        # Otherwise, proceed with the revert.
         else:
             previous.reactivate()
             return previous
@@ -1397,8 +1685,9 @@ class DocumentVersion(AdminAuditTrail):
 
     def update_item_assignments_and_get_create_list(self, required):
         """
-            Update or delete DocAssignments according to their difference to/absence from "required".
-            Following an update, the dict is removed from "required".
+            Update or delete DocAssignments according to their difference to/absence from the "required" argument (which is a list).
+
+            Following each update, the method removes the relevant dict from "required".
             What remains (and is returned) is a list of new DocAssignments requiring creation, for use elsewhere.
 
             Note: the "required" argument must be a list of dicts with two fields (id and quantity).
@@ -1422,9 +1711,10 @@ class DocumentVersion(AdminAuditTrail):
 
     def update_special_instructions_and_get_create_list(self, required):
         """
-            Update or delete SpecialInstructions according to their difference to/absence from "required".
-            Following an update, the dict is removed from "required".
-            What remains (and is returned) is a list of new DocAssignments requiring creation, for use elsewhere.
+            Update or delete SpecialInstructions according to their difference to/absence from the "required" argument (which is a list).
+
+            Following each update, the method removes the relevant dict from "required".
+            What remains (and is returned) is a list of new SpecialInstructions requiring creation, for use elsewhere.
 
             Note: the "required" argument must be a list of dicts with two fields (id and quantity).
         """
@@ -1443,6 +1733,9 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def update_requested_production_date(self, prod_data_form):
+        """
+            Find the ProductionData associated with this document and update it.
+        """
         if self.document.doc_type == 'WO':
             proddata_qs = ProductionData.objects.filter(version=self)
 
@@ -1469,9 +1762,15 @@ class DocumentVersion(AdminAuditTrail):
 
 
     def total_value(self):
+        """
+            Get the total sum of values of all line items on this specific document (value)
+        """
         return sum(item['total_price'] for item in self.get_body_lines() if 'total_price' in item)
 
     def total_value_f(self):
+        """
+            Get the total sum of values of all line items on this specific document (formatted string)
+        """
         return format_money(self.total_value())
 
     def __str__(self):
@@ -1479,15 +1778,17 @@ class DocumentVersion(AdminAuditTrail):
 
 
 class DocAssignment(models.Model):
+    """
+        Through MTM for line item assignments to documents. 
+    """
     version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE)
     item = models.ForeignKey(JobItem, on_delete=models.CASCADE)
     quantity = models.IntegerField()
 
     def max_quantity_incl_self(self):
-        return self.max_quantity_excl_self() + self.quantity
-
-    def max_quantity_excl_self(self):
-        total = self.item.quantity
+        """
+            Get the maximum quantity that can be assigned, including self.quantity.
+        """
         qty_assigned = DocAssignment.objects\
                     .filter(item=self.item)\
                     .filter(version__document__doc_type=self.version.document.doc_type)\
@@ -1496,14 +1797,23 @@ class DocAssignment(models.Model):
 
         if qty_assigned == None:
             qty_assigned = 0
+        
+        return qty_assigned
 
-        return total - qty_assigned
+    def max_quantity_excl_self(self):
+        """
+            Get the maximum quantity that can be assigned, excluding self.quantity.
+        """
+        return self.max_quantity_incl_self() - self.item.quantity
 
     def __str__(self):
         return f'{self.quantity} x {self.item.product.name} assigned to {self.version.document.doc_type} {self.version.document.reference}'
 
 
 class ProductionData(models.Model):
+    """
+        Information about production plans, to appear on work orders.
+    """
     version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='production_data')
     date_requested = models.DateField(blank=True, null=True)
     date_scheduled = models.DateField(blank=True, null=True)
@@ -1511,7 +1821,11 @@ class ProductionData(models.Model):
     def __str__(self):
         return f'Production of {self.version.document.doc_type} {self.version.document.reference}. Req = {self.date_requested}, Sch = {self.date_scheduled}'
 
+
 class SpecialInstruction(AdminAuditTrail):
+    """
+        Miscellaneous comments/statements. Can be added to any type of document.
+    """
     version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='instructions')
     instruction = models.TextField(blank=True)
 
@@ -1520,6 +1834,9 @@ class SpecialInstruction(AdminAuditTrail):
 
 
 class DocumentStaticMainFields(models.Model):
+    """
+        For issued documents. Store all the universal fields as they were at the time the document was issued.
+    """
     doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_main_fields')
 
     issue_date = models.DateField()
@@ -1537,6 +1854,9 @@ class DocumentStaticMainFields(models.Model):
 
 
 class DocumentStaticOptionalFields(models.Model):
+    """
+        For issued documents. Store a heading/value/CSS ID set as it was at the time the document was issued.
+    """
     doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_optional_fields')
 
     h = models.CharField(max_length=SYSTEM_NAME_LENGTH, blank=True)
@@ -1547,6 +1867,9 @@ class DocumentStaticOptionalFields(models.Model):
         return f'Static optional field ({self.h}) for issued document {self.doc_version.document.reference}, version {self.doc_version.version_number} dated {self.doc_version.issue_date}'
 
 class DocumentStaticSpecialInstruction(models.Model):
+    """
+        For issued documents. Store a single special instruction as it was at the time the document was issued.
+    """
     doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_instructions')
 
     instruction = models.TextField()
@@ -1556,6 +1879,9 @@ class DocumentStaticSpecialInstruction(models.Model):
 
 
 class DocumentStaticLineItem(models.Model):
+    """
+        For issued documents. Store a single line item as it was at the time the document was issued.
+    """
     doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_line_items')
 
     quantity = models.TextField(blank=True)

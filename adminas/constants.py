@@ -3,13 +3,6 @@ CSS_FORMATTING_FILENAME = 'document_user'
 HTML_HEADER_FILENAME = 'pdf_doc_2_user_h'
 HTML_FOOTER_FILENAME = 'pdf_doc_2_user_f'
 
-# Address dropdown
-ADDRESS_DROPDOWN = [
-    'Agent',
-    'Customer',
-    'Other'
-]
-
 
 # Supported currencies
 GBP = 'GBP'
@@ -21,6 +14,7 @@ SUPPORTED_CURRENCIES = [
     (USD, 'USD')
 ]
 
+
 # Supported languages
 EN = 'EN'
 DE = 'DE'
@@ -30,16 +24,6 @@ SUPPORTED_LANGUAGES = [
     (DE, 'Deutsch')
 ] 
 
-# Serial/Batch numbers
-UID_CODE_LENGTH = 4
-ANON_CODE = 'NONE'
-SERIAL_CODE = 'ONE'
-BATCH_CODE = 'MANY'
-UID_OPTIONS = [
-    (ANON_CODE, 'None'),
-    (SERIAL_CODE, 'Per item'),
-    (BATCH_CODE, 'Per batch')
-]
 
 # Shipping
 INCOTERMS = [

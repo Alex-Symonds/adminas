@@ -1,29 +1,26 @@
-from django.core.exceptions import RequestDataTooBig
-from django.db.models.fields import NullBooleanField
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.db import IntegrityError
 from django.urls import reverse
-from django.contrib.auth.decorators import login_required
 import json
 from django.db.models import Sum, Count
 from django.core.paginator import Paginator
 
-from decimal import Decimal
 import datetime
 from django.utils import formats
-from django.db.models import Q
 
 # PDF stuff ----------------------------------------------
-from django.views.generic.base import View
 from wkhtmltopdf.views import PDFTemplateResponse
 # --------------------------------------------------------
 
-from adminas.models import SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, Slot, Price, JobModule, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment, Company
-from adminas.forms import DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
+from adminas.models import  SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, Slot, Price, \
+                            JobModule, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment, Company
+from adminas.forms import   DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, \
+                            JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
 from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, CSS_FORMATTING_FILENAME, HTML_HEADER_FILENAME, HTML_FOOTER_FILENAME
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money
+
 
 # Create your views here.
 def login_view(request):
@@ -44,6 +41,7 @@ def login_view(request):
             })
     else:
         return render(request, 'adminas/login.html')
+
 
 def logout_view(request):
     logout(request)
@@ -80,15 +78,10 @@ def register(request):
 
 
 
-
-
-
-
-
-
-
-
 def index(request):
+    """
+        Index page, containing to-do list.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -116,10 +109,10 @@ def index(request):
     })
 
 
-
-
-
 def todo_list_management(request):
+    """
+        Process changes to the to-do list.
+    """
     if not request.user.is_authenticated:
         return JsonResponse({
             'message': "You must be logged in to update the to-do list."
@@ -171,9 +164,10 @@ def todo_list_management(request):
             }, status=400)
 
 
-
-
 def edit_job(request):
+    """
+        Create/Edit Job page.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -197,10 +191,8 @@ def edit_job(request):
             job_form = JobForm(instance=job)
             job_id = job.id
 
-
         return render(request, 'adminas/edit.html',{
             'job_form': job_form,
-            'addr_ddopt': ADDRESS_DROPDOWN,
             'task_name': task_name,
             'job_id': job_id
         })
@@ -251,16 +243,13 @@ def edit_job(request):
 
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': redirect_id}))
 
-
-    
     return render(request, 'adminas/edit.html')
 
 
-
-
-
-
 def job(request, job_id):
+    """
+        "Main" Job page.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -268,7 +257,7 @@ def job(request, job_id):
     item_formset = JobItemFormSet(queryset=JobItem.objects.none(), initial=[{'job':job_id}])
     user_is_watching = my_job.on_todo_list(request.user)
 
-    # Comments stuff
+    # Prepare comment dicts
     setting_for_order_by = '-created_on'
 
     pinned_dict = {}
@@ -296,13 +285,20 @@ def job(request, job_id):
 
 
 def job_comments(request, job_id):
+    """
+        Job Comments page, plus processing for JobComments.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
     
+    # User wants to create, update or delete a JobComment
     if request.method == 'POST':
-        # Check if this comment ID is valid and the user is allowed to change it
+
+        # Check if this comment ID is valid and the user is allowed to change it.
+        # Note: comment_id == 0 means it's a new comment, so skip this bit. (We already know ID = 0 is no good; any logged-in user is 
+        # allowed to create a comment; we also can't assign "comment" because we need to create it.
         comment_id = request.GET.get('id')
-        if comment_id != '0': # 0 would mean it's a new comment, so no check is needed (any logged-in user is allowed to create a comment)
+        if comment_id != '0': 
             try:
                 comment = JobComment.objects.get(id=comment_id)
             except JobComment.DoesNotExist:
@@ -315,13 +311,13 @@ def job_comments(request, job_id):
                     'denied': "You are not the owner of this comment."
                 }, status=403) 
 
-        # Check if the user wants to delete a comment. if so, we have all the info we need, so delete it.
+        # If the user wants to delete comment, we have all the info we need, so delete it and done.
         posted_data = json.loads(request.body)
         if 'task' in posted_data and posted_data['task'] == 'delete':
             comment.delete()
             return JsonResponse({'ok': 'ok'}, status=200)                     
 
-        # If it's create/update, stick the data into the form for cleaning and check it's all ok.
+        # If it's create or update, stick the data into the form for cleaning and check it's all ok.
         comment_form = JobCommentFullForm({
             'private': posted_data['private'],
             'contents': posted_data['contents'],
@@ -336,8 +332,8 @@ def job_comments(request, job_id):
             }, status=400)   
 
         else:
+            # Add new comment
             if comment_id == '0':
-                # Add new comment
                 try:
                     job = Job.objects.get(id=job_id)
                 except Job.DoesNotExist:
@@ -345,6 +341,7 @@ def job_comments(request, job_id):
                         'error': "Can't find Job."
                     }, status=400)
 
+                # Create comment here because we couldn't assign it via the ID earlier.
                 comment = JobComment(
                     created_by = request.user,
                     job = job,
@@ -363,13 +360,14 @@ def job_comments(request, job_id):
                     comment.highlighted_by.add(request.user)
                     comment.save()
 
+            # Edit the existing comment.
+            # Note: comment was assigned during the initial "is it ok to proceed?" checks.
             else:
-                # Edit the existing comment
                 comment.contents = comment_form.cleaned_data['contents']
                 comment.private = comment_form.cleaned_data['private']
-
                 user = User.objects.get(username=request.user.username)
 
+                # Handle pinned status
                 want_pinned = comment_form.cleaned_data['pinned']
                 have_pinned = comment.is_pinned_by(user)
 
@@ -378,6 +376,7 @@ def job_comments(request, job_id):
                 elif not want_pinned and have_pinned:
                     comment.pinned_by.remove(request.user)
 
+                # Handle highlighted status
                 want_highlighted = comment_form.cleaned_data['highlighted']
                 have_highlighted = comment.is_highlighted_by(user)
 
@@ -388,14 +387,15 @@ def job_comments(request, job_id):
 
                 comment.save()
             
+            # Respond with the current data.
             data = comment.get_display_dict(request.user)
             data['job_id'] = job_id
             data['created_on'] = formats.date_format(comment.created_on, "DATETIME_FORMAT")
 
             return JsonResponse(data, status=200)
 
+    # User wants to see the page. Begin by getting the general purpose info for the heading and subheading.
     my_job = Job.objects.get(id=job_id)
-
     job = {}
     job['id'] = my_job.id
     job['name'] = my_job.name
@@ -406,63 +406,39 @@ def job_comments(request, job_id):
     job['currency'] = my_job.currency
     job['value'] = my_job.total_value_f()
 
+    # Paginate "all comments"
+    # (Assumption: users will only pin/highlight a few comments, so pagination won't be needed there)
+    # (Assertion: if they pin/highlight a bajillion comments, it's their own fault if they have to scroll a lot)
+    # (Amended quotation: When everything is highlighted, NOTHING WILL BE)
     setting_for_order_by = '-created_on'
 
-    # title is used on the frontend to set the innerHTML of a <h#> tag.
-    # class_suffix is used when creating a new comment: use it to allow JS to identify the correct container divs to prepend the new comment div.
-    # In the cases below, they are the same except for capitalisation, but they're separate fields in case I wanted to change a title without changing the class name.
-    pinned_dict = {}
-    pinned_dict['title'] = 'Pinned'
-    pinned_dict['class_suffix'] = 'pinned'
-    pinned_dict['empty_message_suffix'] = 'pinned'
-    pinned_dict['comments'] = my_job.get_pinned_comments(request.user, setting_for_order_by)
-
-    highlighted_dict = {}
-    highlighted_dict['title'] = 'Highlighted'
-    highlighted_dict['class_suffix'] = 'highlighted'
-    highlighted_dict['empty_message_suffix'] = 'highlighted'
-    highlighted_dict['comments'] = my_job.get_highlighted_comments(request.user, setting_for_order_by)
-    
-    all_dict = {}
-    all_dict['title'] = 'All'
-    all_dict['class_suffix'] = 'all-comments'
-    all_dict['empty_message_suffix'] = 'added'
-
-    # Paginate the comments for all_dict
-    num_comments_per_page = 10
     requested_page_num = request.GET.get('page')
-    all_comments = my_job.get_all_comments(request.user, setting_for_order_by)
-
     if(requested_page_num == None):
         requested_page_num = 1
     
+    all_comments = my_job.get_all_comments(request.user, setting_for_order_by)
+    num_comments_per_page = 10
     if(all_comments != None):
         paginator = Paginator(all_comments, num_comments_per_page)
         requested_page = paginator.page(requested_page_num)
-        all_dict['comments'] = requested_page.object_list
+        all_comments = requested_page.object_list
     else:
-        all_dict['comments'] = None
+        all_comments = None
         requested_page = None
-
-    comment_data = []
-    comment_data.append(highlighted_dict)
-    comment_data.append(all_dict)
-
-    pinned = my_job.get_pinned_comments(request.user, setting_for_order_by)
 
     return render(request, 'adminas/job_comments.html', {
         'job': job,
-        'comment_data': comment_data,
-        'pinned': pinned,
+        'pinned': my_job.get_pinned_comments(request.user, setting_for_order_by),
         'highlighted': my_job.get_highlighted_comments(request.user, setting_for_order_by),
-        'all_comments': all_dict['comments'],
+        'all_comments': all_comments,
         'page_data': requested_page
     })
 
-         
-
 
 def comment_status_toggle(request):
+    """
+        Process requests to alter the status of a JobComment.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)   
 
@@ -511,15 +487,10 @@ def comment_status_toggle(request):
             }, status=400)            
 
 
-
-
-
-
-
-
-
-
 def price_check(request, job_id):
+    """
+        Process the Job page's "selling price is {NOT }CONFIRMED" indicator/button
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -532,17 +503,12 @@ def price_check(request, job_id):
         return JsonResponse({
             'current_status': my_job.price_is_ok
         }, status=200)
-
-
-        
-
-
-
-
-
+   
 
 def purchase_order(request):
-# View to handle PO C_UD
+    """
+        Process purchase orders.
+    """
 
     if not request.user.is_authenticated:
         return anonymous_user(request)
@@ -598,12 +564,10 @@ def purchase_order(request):
                 return error_page(request, 'PO form was invalid', 400)
 
 
-
-
-
-
-
 def items(request):
+    """
+        Process JobItems.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
     
@@ -762,16 +726,10 @@ def items(request):
         }, status=200)        
 
 
-
-
-
-
-
-
-
-
 def manage_modules(request, job_id):
-
+    """
+        Module Management page.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -794,6 +752,9 @@ def manage_modules(request, job_id):
     
 
 def module_assignments(request):
+    """
+        Process Module Assignments
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -816,14 +777,6 @@ def module_assignments(request):
         
         
         if data_wanted == 'jobitems':
-            # eligible_ji_unsorted = slot.valid_jobitems(parent)
-            # sorted_eligible = sorted(eligible_ji_unsorted, key= lambda t: t.num_unassigned(), reverse=True)
-            # for ji in sorted_eligible:
-            #     ji_f = {}
-            #     ji_f['id'] = ji.id
-            #     ji_f['quantity'] = ji.num_unassigned()
-            #     ji_f['name'] = ji.product.part_number + ': ' + ji.product.name
-            #     data_f.append(ji_f)
             existing_on_job = slot.fillers_on_job(parent.job)
             prd_list = []
             for product in existing_on_job:
@@ -853,16 +806,6 @@ def module_assignments(request):
             data_f = sorted(data_f, key= lambda pr: pr['value'])
             for d in data_f:
                 del d['value']
-
-        # elif data_wanted == 'max_quantity':
-        #     # As of 2021-09-06, this isn't used for anything. Keep for now, since it seems it could be useful. If not, delete later
-        #     child = JobItem.objects.get(id=request.GET.get('child'))
-        #     child_remaining = child.num_unassigned()
-        #     slot_remaining = parent.num_empty_spaces(slot)
-
-        #     qty = {}
-        #     qty['max_qty'] = min(child_remaining, slot_remaining)
-        #     data_f.append(qty)
 
         return JsonResponse({
             'data': data_f
@@ -966,12 +909,10 @@ def module_assignments(request):
             return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
 
 
-
-
-
-
-
 def get_data(request):
+    """
+        On the Edit Job page, responds to requests to update the automatic address displayed under the address selection dropdowns.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -1010,14 +951,10 @@ def get_data(request):
             return JsonResponse(response_data, status=200)
 
 
-
-
-
-
-
-
-
 def records(request):
+    """
+        Records page.
+    """
     jobs = Job.objects.all().order_by('-created_on')
     total_count = jobs.count()
 
@@ -1067,37 +1004,16 @@ def records(request):
     })
 
 
-
-
-def BKP_records(request):
-    all_jobs = Job.objects.all().order_by('created_on')
-    data = all_jobs.annotate(total_po_value=Sum('po__value')).annotate(num_po=Count('po'))
-
-    for j in data:
-        j.total_po_value_f = format_money(j.total_po_value)
-
-    return render(request, 'adminas/records.html', {
-        'data': data
-    })
-
-
-
-
-
-
-
-
-
-
-
-
 def doc_builder(request):
+    """
+        Document Builder page.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
     # Note about GET parameters:
-    #   CREATE / READ NEW will pass "job" and "type", since there is no DocumentData record yet.
-    #   UPDATE / READ EXISTING will pass "id" (= the DocumentData PK).
+    #   CREATE and READ NEW will pass "job" and "type", since there is no DocumentData record yet.
+    #   UPDATE and READ EXISTING will pass "id" (= the DocumentData PK).
     #   DELETE will pass "id" and "delete=true"
 
     if request.method == 'DELETE':
@@ -1146,8 +1062,8 @@ def doc_builder(request):
     if request.method == 'POST':
 
         if doc_obj != None and doc_obj.issue_date != None:
-            # This condition can only be True if the user played at silly buggers with the frontend, presumably in an attempt to circumvent
-            # rules preventing updating of issued documents.
+            # This condition can only be True if the user fiddled about in the browser's inspector, presumably in an 
+            # attempt to circumvent rules preventing updating of issued documents.
             return JsonResponse({
                 'message': "Can't update a document that has already been issued (nice try though)"
             }, status=403)
@@ -1262,7 +1178,6 @@ def doc_builder(request):
                     'message': 'Invalid data.'
                 }, status=500)   
     
-
     # doc_obj will only == None at this stage if this is a GET request for a "blank" new document, since POST>CREATE will have created a doc_obj by now.
     doc_specific_obj = None
     if doc_obj != None:
@@ -1285,7 +1200,6 @@ def doc_builder(request):
         special_instructions = None
         version_num = 1
 
-
     return render(request, 'adminas/document_builder.html', {
         'doc_title': doc_title,
         'doc_id': doc_obj.id if doc_obj != None else 0,
@@ -1301,8 +1215,10 @@ def doc_builder(request):
     })
 
 
-
 def document_pdf(request, doc_id):
+    """
+        Generates a PDF of a given document and displays it in the browser window.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -1315,7 +1231,6 @@ def document_pdf(request, doc_id):
 
     context['css_doc_type'] = f'adminas/{context["css_filename"]}'
 
-    user = request.user
     if CSS_FORMATTING_FILENAME != '':
         context['css_doc_user'] = f'adminas/{CSS_FORMATTING_FILENAME}.css'
     if HTML_HEADER_FILENAME != '':
@@ -1341,16 +1256,18 @@ def document_pdf(request, doc_id):
                                     show_content_in_browser=True,
                                     cmd_options={
                                             'dpi': 77,
-                                            'margin-bottom': margin_bottom_setting, # started off at 10
+                                            'margin-bottom': margin_bottom_setting,
                                             "zoom":1,
-                                            'quiet': None, # Added to try to resolve CalledProcessError (2)
-                                            'enable-local-file-access': True}, # Added to try to resolve CalledProcessError (1)
+                                            'quiet': None,
+                                            'enable-local-file-access': True},
                                 )
     return response
    
 
-
 def document_main(request, doc_id):
+    """
+        The read-only Document page.
+    """
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -1394,8 +1311,6 @@ def document_main(request, doc_id):
                 return JsonResponse({
                     'redirect': reverse('doc_main', kwargs={'doc_id': previous_version.pk})
                 }, status=200)
-
-
 
     try:
         doc_obj = DocumentVersion.objects.get(id=doc_id)

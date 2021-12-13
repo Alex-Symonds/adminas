@@ -12,7 +12,8 @@ class CompanyForm(ModelForm):
             'is_agent': 'This company is an agent',
             'currency': 'Account currency'
         }
- 
+
+
 class SiteForm(ModelForm):
     class Meta():
         model = Site
@@ -22,6 +23,7 @@ class SiteForm(ModelForm):
             'default_invoice': 'Set as default invoice address',
             'default_delivery': 'Set as default delivery address'
         }
+
 
 class AddressForm(ModelForm):
     class Meta():
@@ -33,7 +35,8 @@ class AddressModelChoiceField(ModelChoiceField):
     def label_from_instance(self, obj):
         inv = '[inv]' if obj.site.default_invoice else ''
         deliv = '[ship]' if obj.site.default_delivery else ''
-        return "%s: %s %s%s" % (obj.site.company.name, obj.site.name, inv, deliv)
+        return f'{obj.site.company.name}: {obj.site.name} {inv}{deliv}'
+
 
 class JobForm(ModelForm):
     invoice_to = AddressModelChoiceField(queryset=Address.objects.order_by('-site__default_invoice'))
@@ -70,6 +73,7 @@ class JobItemPriceForm(ModelForm):
         model = JobItem
         fields = ['selling_price']
 
+
 class JobItemForm(ModelForm):
     class Meta():
         model = JobItem
@@ -85,21 +89,25 @@ class JobItemForm(ModelForm):
         super(JobItemForm, self).__init__(*args, **kwargs)
         self.fields['product'].queryset = Product.objects.order_by('part_number')
 
+
 JobItemFormSet = modelformset_factory(
     JobItem,
     form=JobItemForm,
     extra=1
 )
 
+
 class JobItemEditForm(ModelForm):
     class Meta():
         model = JobItem
         fields = ['quantity', 'product', 'price_list', 'selling_price']
 
+
 class JobModuleForm(ModelForm):
     class Meta():
         model = JobModule
         exclude = ['quantity']
+
 
 class POForm(ModelForm):
     class Meta():
@@ -113,10 +121,12 @@ class POForm(ModelForm):
             'job': HiddenInput()
         }
 
+
 class DocumentDataForm(ModelForm):
     class Meta():
         model = DocumentData
         fields = ['reference']
+
 
 class DocumentVersionForm(ModelForm):
       class Meta():
@@ -129,6 +139,7 @@ class ProductionReqForm(ModelForm):
         model = ProductionData
         fields = ['date_requested']
  
+
 class JobCommentFullForm(ModelForm):
     pinned = BooleanField(label='Pin to order', required=False, widget=CheckboxInput())
     highlighted = BooleanField(label='Highlight', required=False, widget=CheckboxInput())
