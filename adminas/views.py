@@ -18,7 +18,7 @@ from adminas.models import  SpecialInstruction, User, Job, Address, PurchaseOrde
                             JobModule, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment, Company
 from adminas.forms import   DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, \
                             JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
-from adminas.constants import ADDRESS_DROPDOWN, DOCUMENT_TYPES, CSS_FORMATTING_FILENAME, HTML_HEADER_FILENAME, HTML_FOOTER_FILENAME
+from adminas.constants import DOCUMENT_TYPES, CSS_FORMATTING_FILENAME, HTML_HEADER_FILENAME, HTML_FOOTER_FILENAME
 from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money
 
 

@@ -1,9 +1,12 @@
 /*
-    Edit JobItem functions, covering:
+    Edit JobItem functions for the Job page.
+    
+    Covers:
         > Entering "edit mode", i.e. creating a form populated with the current info in a "read-only" row
-        > Sending the edit form to the server, then updating the DOM to return it to "read-mode" (including price checks)
+        > Sending the edit form to the server
+        > Updating the DOM and returning it to "read-mode" (including price checks elsewhere on the Job page)
         > Cancel button to return to read-mode without contacting the server
-        > Delete button to remove a JobItem
+        > Delete button to remove a JobItem entirely
 */
 
 // Constants
@@ -19,6 +22,8 @@ const CLASS_JOBITEM_DIV = 'job-item-container';
 const CLASS_PO_CHECK_DIV = 'po-discrepancy';
 const CLASS_MONEY_ELE = 'money';
 
+const CSS_CLASS_WARNING_MESSAGE = 'temp-warning-msg';
+const CLASS_JOBITEM_EDIT_BTN = 'ji-edit';
 
 // DOMContentLoaded eventListener additions
 document.addEventListener('DOMContentLoaded', function(e) {
@@ -29,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function(e) {
         });
     });
 
-    document.querySelectorAll('.ji-edit').forEach(btn => {
+    document.querySelectorAll('.' + CLASS_JOBITEM_EDIT_BTN).forEach(btn => {
         btn.addEventListener('click', function(e){
             edit_mode_job_item(e);
         });
@@ -63,13 +68,14 @@ function delete_job_item(e){
     })
     .then(response => response.json())
     .then(data => {
+        // If there's a message, display it.
         if('message' in data){
             let jobitem_ele = document.getElementById(`jobitem_${e.target.dataset.jiid}`);
             display_error_message_in_job_item(jobitem_ele, data['message']);
             read_mode_job_item(jobitem_ele, document.querySelector(`#${EDIT_ITEM_CONTAINER_ID}`));
         }
+        // Reload the page to update module assignments on all the remaining JobItems
         else if('reload' in data){
-            // Reload the page to update module assignments on all the remaining JobItems
             location.reload();
         }
     })
@@ -105,18 +111,19 @@ function edit_mode_job_item(e){
     display_div.after(edit_form);
     display_div.classList.add('hide');
 
-    // Move "currency" text from the hidden read_div to a spot near the selling price input
+    // Move "currency" text from the hidden read_div to a spot near the selling price input in the "form-like"
     document.querySelector('#id_' + EDIT_ITEM_ID_PREFIX + 'selling_price').before(display_div.querySelector('.currency'));
 
     // Hide all the edit buttons, so only one item can be added at a time
-    document.querySelectorAll('.ji-edit').forEach(btn => {
+    hide_all_by_class()
+    document.querySelectorAll('.' + CLASS_JOBITEM_EDIT_BTN).forEach(btn => {
         btn.classList.add('hide');
     });
 }
 
 // Edit JobItem (before): Create a form element for editing an existing JobItem
 function create_ele_jobitem_editor(display_div, edit_btn){
-    // Here's the form
+    // Here's the "form-like"
     let edit_mode_ele = document.createElement('div');
     edit_mode_ele.id = EDIT_ITEM_CONTAINER_ID;
     edit_mode_ele.classList.add(CSS_GENERIC_PANEL);
@@ -149,12 +156,13 @@ function create_ele_jobitem_editor(display_div, edit_btn){
         }
     }
     
-    // Open the doors and here's all the... people? P-imputs?
+    // Open the doors and here's all the... people? P-inputs?
     // Buttons. Here are the buttons.
     edit_mode_ele.append(create_ele_jobitem_editor_button_container(edit_btn));
     return edit_mode_ele;
 }
 
+// Edit JobItem: display ele component. Button container.
 function create_ele_jobitem_editor_button_container(edit_btn){
     let container_ele = document.createElement('div');
     container_ele.classList.add('controls');
@@ -163,6 +171,7 @@ function create_ele_jobitem_editor_button_container(edit_btn){
     return container_ele;
 }
 
+// Edit JobItem: display ele component. Heading.
 function create_ele_jobitem_editor_heading(){
     let heading = document.createElement('h5');
     heading.classList.add(CSS_GENERIC_PANEL_HEADING);
@@ -245,7 +254,7 @@ function edit_item_delete_btn(edit_btn){
 
 
 
-// One liners
+// Supporting one-liner functions
 function get_form_element_from_job_item_formset(field_name){
     return document.querySelector(`#id_form-${EDIT_ITEM_CLONED_FORMSET_ID}${field_name}`);
 }
@@ -255,7 +264,7 @@ function edit_item_field_id(prefix, name){
 }
 
 function remove_formset_id(str){
-    // FYI: this is intended to remove the "-0" formset numbering from names/IDs/whatever
+    // Note: this is intended to remove the "-0" formset numbering from names/IDs/whatever
     return str.replace(EDIT_ITEM_CLONED_FORMSET_ID, '');
 }
 
@@ -286,34 +295,31 @@ function update_job_item(e){
 
     let prefix = '#id_' + EDIT_ITEM_ID_PREFIX;
     let prl_sel = edit_ele.querySelector(prefix + 'price_list')
-    let new_info = {};
-    new_info['quantity'] = parseInt(edit_ele.querySelector(prefix + 'quantity').value.trim());
-    new_info['product_id'] = edit_ele.querySelector(prefix + 'product').value.trim();
-    new_info['price_list'] = prl_sel[prl_sel.selectedIndex].text;
-    new_info['selling_price'] = edit_ele.querySelector(prefix + 'selling_price').value.trim();
 
     // PUT it into the database and call functions to handle the DOM
     fetch(`/items?id=${e.target.dataset.jiid}&edit=all`, {
         method: 'POST',
         body: JSON.stringify({
-            'quantity': new_info['quantity'],
-            'product': new_info['product_id'],
+            'quantity': parseInt(edit_ele.querySelector(prefix + 'quantity').value.trim()),
+            'product': edit_ele.querySelector(prefix + 'product').value.trim(),
             'price_list': prl_sel.value.trim(),
-            'selling_price': new_info['selling_price']
+            'selling_price': edit_ele.querySelector(prefix + 'selling_price').value.trim()
         }),
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
     .then(response => response.json())
     .then(data => {
+        // If there's a message, display it
         if('message' in data){
             display_error_message_in_job_item(result_div, data['message']);
             read_mode_job_item(result_ele, edit_ele);
         }
+        // Updating all the module assignments is handled via reloading the page
         else if(data['edit_affected_module_assignments'] == true){
-            // Reload the page to update all the incoming/outgoing module assignment sections
             location.reload();
         }
+        // If there's no message and the modular items are unaffected, update the page without reloading
         else{
             update_job_item_in_dom(result_div, edit_ele, data, e.target.dataset.jiid);
         } 
@@ -323,16 +329,20 @@ function update_job_item(e){
     });
 }
 
-const CSS_CLASS_WARNING_MESSAGE = 'temp-warning-msg';
 
+// Edit JobItem (response): create an ele to display an error message and position it inside a JobItem panel.
 function display_error_message_in_job_item(result_ele, message_str){
+
+    // Clear any previous errors. One error at a time.
     existing_warning = document.querySelector(`.${CSS_CLASS_WARNING_MESSAGE}`);
     if(existing_warning != null){
         existing_warning.remove();
     }
 
+    // Create the ele
     error_message_ele = create_ele_error_message(message_str);
 
+    // Position it
     preceding_ele = result_ele.querySelector('.' + CLASS_MONEY_ELE);
     if(preceding_ele != null){
         preceding_ele.after(error_message_ele)
@@ -341,9 +351,10 @@ function display_error_message_in_job_item(result_ele, message_str){
         result_ele.append(error_message_ele)
     }
     
-    return
+    return;
 }
 
+// Edit JobItem (response): display ele. Error message for going inside JobItem panels
 function create_ele_error_message(message_str){
     let ele = document.createElement('div');
     ele.classList.add(CSS_CLASS_WARNING_MESSAGE);
@@ -351,10 +362,9 @@ function create_ele_error_message(message_str){
     return ele;
 }
 
-// Edit JobItem (after): Updates one JobItem element in DOM to reflect any/all edits
+// Edit JobItem (response): Update one JobItem element in DOM to reflect any/all edits
 function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id){
     // Check if the product changed and, if so, update the standard accessories
-    // Note: Conditional because of vague plans to make standard accessories individually delete-able. Don't want to undo the user's deleting.
     // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
     if(product_has_changed(result_div, edit_div)){
         update_standard_accessories_in_dom(result_div, response_data);
@@ -377,7 +387,7 @@ function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id)
     update_price_checks_in_dom(response_data, jobitem_id);
 }
 
-// Edit JobItem (after): Update a single piece of display text with the contents of an edit form field
+// Edit JobItem (response): Update a single piece of display text with the contents of an edit form field
 function update_one_field_in_jobitem_panel_from_edit_all_form(read_div, edit_div, field_name){
     let result_ele = read_div.querySelector(`.${field_name}`);
     let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, field_name)}`);
@@ -395,23 +405,21 @@ function update_one_field_in_jobitem_panel_from_edit_all_form(read_div, edit_div
     }
 }
 
-// Edit JobItem (after): Remove the edit form and update the read-only div. Called by cancel button and during the post-edit process
+// Edit JobItem (response): Remove the edit form. Called by cancel button and during the post-edit process
 function read_mode_job_item(result_div, edit_form){
     // Move currency back to its original position (i.e. before the read-only selling price)
     result_div.querySelector('.selling_price').before(edit_form.querySelector('.currency'));
 
     // Unhide stuff that's hidden during edit-mode
     result_div.classList.remove('hide');
-    document.querySelectorAll('.ji-edit').forEach(btn => {
-        btn.classList.remove('hide');
-    });
+    unhide_all_by_class(CLASS_JOBITEM_EDIT_BTN);
 
     // Remove the edit form
     // NOTE: Refactoring code? Make sure the line moving the currency element comes before this.
     edit_form.remove();
 }
 
-// Edit JobItem (after): see if the edit changed the product
+// Edit JobItem (after): check if the edit changed the product
 function product_has_changed(read_div, edit_div){
     let result_ele = read_div.querySelector('.product');
     let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, 'product')}`);
@@ -442,7 +450,7 @@ function update_standard_accessories_in_dom(target_div, response_data){
     return;
 }
 
-// Edit JobItem (after): create a standard accessories div and populate it with a ul of stdAccs
+// Edit JobItem (response): create a standard accessories div and populate it with a ul of stdAccs
 function get_standard_accessories_div(stdAccs_list){
     let div = document.createElement('div');
     div.classList.add(STD_ACC_CLASS);
@@ -457,7 +465,7 @@ function get_standard_accessories_div(stdAccs_list){
     return div;
 }
 
-// Edit JobItem (after): create a ul where each li shows the quantity and the name
+// Edit JobItem (response): create a ul where each li shows the quantity and the name
 function get_ul_with_qty_name(item_list){
     let new_ul = document.createElement('ul');
     for(let i = 0; i < item_list.length; i++){
@@ -469,13 +477,15 @@ function get_ul_with_qty_name(item_list){
 }
 
 
-// Edit JobItem (after): Get a row in the table for a particular item
+
+
+// Edit JobItem (response), Delete: Get a row in the table for a particular item
 function find_price_check_tr(jobitem_id){
     // Note: used for editing AND deleting, so don't get ideas about removing this one liner and incorporating it into the edit function
     return document.querySelector('#' + ID_PREFIX_PRICE_CHECK_ROW + jobitem_id);
 }
 
-// Edit JobItem (after): Update the price check section in the DOM
+// Edit JobItem (response): Update the price check section in the DOM
 function update_price_checks_in_dom(server_data, jobitem_id){
 
     // Update the Price Check summary
@@ -487,7 +497,7 @@ function update_price_checks_in_dom(server_data, jobitem_id){
         summary_div.querySelector('.diff-perc').innerHTML = server_data['total_list_difference_perc'];
     }
 
-    // Update the PO discrepancy panel
+    // Update the PO discrepancy panel, aka "PO Check"
     let po_discrepancy_ele = document.querySelector('.' + CLASS_PO_CHECK_DIV);
     if(po_discrepancy_ele != null){
         po_discrepancy_ele.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
@@ -513,9 +523,12 @@ function update_price_checks_in_dom(server_data, jobitem_id){
     item_row.querySelector('.resale-price').innerHTML = server_data['resale_price_f'];
     item_row.querySelector('.resale-diff-val').innerHTML = server_data['resale_difference_value_f'];
     item_row.querySelector('.resale-diff-perc').innerHTML = `${server_data['resale_difference_perc_f']}%`;
+
+    return;
 }
 
 
+// Edit JobItem (response): adjust the presence of the PO discrepancy panel according to the response_data.
 function update_po_check_presence_in_dom(response_data){
 
     let want_po_check = 0 != response_data['total_po_difference_value'];
@@ -532,6 +545,9 @@ function update_po_check_presence_in_dom(response_data){
     return;
 }
 
+
+
+// Edit JobItem (response): display ele for PO check discrepancy. Create the ele warning of a price difference.
 function create_po_check_div(response_data){
     const div = document.createElement('div');
     div.classList.add(CLASS_PO_CHECK_DIV);
@@ -551,6 +567,7 @@ function create_po_check_div(response_data){
     return div;
 }
 
+// Edit JobItem (response): display component ele for PO check discrepancy panel. This is the little mini-table.
 function get_po_check_table(response_data){
     currency = response_data['currency'];
     po_total_value = response_data['total_po_f'];
@@ -565,7 +582,7 @@ function get_po_check_table(response_data){
     return table;
 }
 
-
+// Edit JobItem (response): display component ele for PO check discrepancy panel. This is one row in the mini-table.
 function get_po_check_table_row(str_th, str_currency, class_main_value_td, main_value, class_perc_span, str_perc){
     const tr = document.createElement('tr');
 
@@ -588,6 +605,7 @@ function get_po_check_table_row(str_th, str_currency, class_main_value_td, main_
     return tr;
 }
 
+// Edit JobItem (response): display component ele for PO check discrepancy panel. This is the <td> with the % change.
 function get_po_check_difference_td(str_perc, class_perc_span){
     const td_percent = document.createElement('td');
     if(str_perc != ''){
@@ -605,7 +623,7 @@ function get_po_check_difference_td(str_perc, class_perc_span){
     return td_percent; 
 }
 
-
+// Edit JobItem (response): remove the PO discrepancy check ele.
 function remove_po_check_div(){
     document.querySelector('.' + CLASS_PO_CHECK_DIV).remove();
     return;
@@ -636,7 +654,7 @@ function edit_mode_price_check(e){
     hide_all_by_class('edit-btn');
 }
 
-// Price check edit (before): creates a window for editing a price
+// Price check edit (before): creates a panel for editing a price
 function create_ele_jobitem_editor_price_only(table_row_ele){
     let div = document.createElement('div');
     div.classList.add(CLASS_PRICE_CHECKER_EDIT_WINDOW);
@@ -661,6 +679,7 @@ function create_ele_jobitem_editor_price_only(table_row_ele){
     return div;
 }
 
+// Price check edit (before): display ele component. A container with the pre-set prices inside.
 function create_ele_jobitem_editor_price_only_preset_prices(table_row_ele){
     let main_ele = document.createElement('div');
     main_ele.classList.add('price-options-container');
@@ -670,10 +689,10 @@ function create_ele_jobitem_editor_price_only_preset_prices(table_row_ele){
     main_ele.append(heading);
 
     // Note: the purposes of the list and resale buttons are: 1) to speed up entering two common selling prices; 2) to inform the user of those two common prices,
-    // to help them identify irregularities.
+    // to help them identify irregularities on the PO they're processing. The buttons are NOT intended as special pre-validated prices.
     // Validation of prices is outside the scope of this project; users can enter any selling price they wish, so long as it's within the database size limitations.
     // The easiest way for a user to enter any price they wish is via the input cell, but if they'd prefer to open the inspector and fiddle with the settings on 
-    // the list and/or resale button, by all means, they can do it that way if they like.
+    // the list and/or resale button, by all means, they can if they like.
     let list_price = table_row_ele.querySelector('.list-price').innerHTML;
     let list_btn = get_price_set_button('list', list_price);
     main_ele.append(list_btn);
@@ -686,10 +705,9 @@ function create_ele_jobitem_editor_price_only_preset_prices(table_row_ele){
 }
 
 
-// Price check edit (before): create an X button to close the window
+// Price check edit (before): create a button to close the window
 function get_price_edit_close_btn(){
-    let btn = document.createElement('button');
-    btn.classList.add('close');
+    let btn = create_generic_ele_cancel_button();
     btn.addEventListener('click', () => {
         cancel_price_edit_mode()
     });
@@ -722,7 +740,6 @@ function get_price_set_button(price_type, value_as_str){
 // Price check edit (before): create an input field for the user to edit the price to anything they like
 function create_ele_jobitem_editor_price_only_manual_price(){
     let div = document.createElement('div');
-    //div.classList.add('manual-price-container');
     div.classList.add('combo-input-and-button');
 
     let txt = document.createElement('span');
@@ -735,9 +752,7 @@ function create_ele_jobitem_editor_price_only_manual_price(){
     input.name = 'new_price';
     div.append(input);
 
-    let btn = document.createElement('button');
-    btn.classList.add('button-primary');
-    btn.innerHTML = 'submit';
+    let btn = create_generic_ele_submit_button();
     btn.addEventListener('click', (e) => {
         edit_price_custom(e);
     });
@@ -755,27 +770,18 @@ function cancel_price_edit_mode(){
 
 // Price check edit (action): onclick of a preset button, calls the edit function based on the preset value
 function edit_price_preset(e){
-    // let tr = e.target.closest('tr');
-    // let jiid = extract_jiid_from_price_check_tr_id(tr.id);
-
     let new_price = e.target.dataset.new_price.replaceAll(',', '');
-    
-    // edit_price_on_server(jiid, new_price);
     edit_price(e.target, new_price);
 }
 
 // Price check edit (action): onclick of the submit button following the input, calls the edit function based on the input value
 function edit_price_custom(e){
-    // let tr = e.target.closest('tr');
-    // let jiid = extract_jiid_from_price_check_tr_id(tr.id);
-
     let input = e.target.previousElementSibling;
     let new_price = input.value.trim();
-
-    // edit_price_on_server(jiid, new_price);
     edit_price(e.target, new_price);
 }
 
+// Price check edit (action): obtain the JobItem ID from the calling <tr> and send it and the price to the server-handling function.
 function edit_price(btn, new_price){
     let tr = btn.closest('tr');
     let jiid = tr.id.trim().replace(ID_PREFIX_PRICE_CHECK_ROW, '');
@@ -783,7 +789,7 @@ function edit_price(btn, new_price){
     edit_price_on_server(jiid, new_price);
 }
 
-// Price check edit (action): PUTs the data to the server and calls for the page update
+// Price check edit (action): POSTs the data to the server and calls for the page update
 function edit_price_on_server(jiid, new_price){
     fetch(`/items?id=${jiid}&edit=price_only`, {
         method: 'POST',
@@ -820,9 +826,9 @@ function update_price_on_page(jiid, data){
     cancel_price_edit_mode();
 }
 
-// Price check edit (after): find the div corresponding to a particular JobItem ID
+// Price check edit (after): find the ele corresponding to a particular JobItem ID
 function find_jobitem_panel(jiid){
-    let buttons = document.querySelectorAll('.ji-edit');
+    let buttons = document.querySelectorAll('.' + CLASS_JOBITEM_EDIT_BTN);
     for(i=0; i < buttons.length; i++){
         var btn = buttons[i];
         if(btn.dataset.jiid == jiid){

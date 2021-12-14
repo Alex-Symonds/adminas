@@ -1,9 +1,23 @@
+/*
+    Functionality for JobComments, which appear on:
+        > to-do list (presently populating the home page)
+        > job
+        > job_comments
+
+    This handles:
+        > Edit and delete a comment from any of the three pages
+        > Create a comment from to-do and job_comments
+        > Two types of create/edit form (one with checkboxes, one without)
+        > Two ways of displaying a comment (the bigger ones on the job_comments page vs. the streamlined ones on job and to-do list)
+        > Toggle the status of pinned and highlight via clicking a button
+*/
+
+
 const CLASS_ADD_BUTTON = 'add-button';
 const CLASS_ADD_COMMENT = 'comment';
 
 const DEFAULT_COMMENT_ID = '0';
 const CLASS_COMMENT_EDIT_BTN = 'edit-comment';
-const CLASS_COMMENT_DELETE_BTN = 'delete-comment-btn';
 const CLASS_COMMENT_PINNED_TOGGLE = 'pinned-toggle';
 const CLASS_COMMENT_HIGHLIGHTED_TOGGLE = 'highlighted-toggle';
 
@@ -45,9 +59,6 @@ const CLASS_HOVER_PARENT = 'hover-parent';
 
 const CLASS_JOB_PANEL = 'job-panel';
 const ID_PREFIX_JOB_PANEL_ON_TODO_LIST = 'todo_panel_job_';
-
-const CLASS_BTN_PRIMARY = 'button-primary';
-const CLASS_BTN_WARNING = 'button-warning';
 
 const CLASS_JOB_IDENTIFIER_PANEL = 'job-identifier-pane';
 const CLASS_COMMENT_INPUT_CHECKBOX_CONTAINER = 'checkbox-container';
@@ -104,6 +115,7 @@ function open_jobcomment_editor_for_create(btn){
     // so if the user has somehow managed to open one copy and ask for a second, close the old before opening the new.
     close_jobcomment_editor();
 
+    // Check what type of "form-like" this button is supposed to open, then create an appropriate element
     if(btn.dataset.form_type === VALUE_FORM_TYPE_CONTENT_ONLY){
         var job_comment_form = create_ele_jobcomment_editor(DEFAULT_COMMENT_ID, false);
     }
@@ -137,11 +149,12 @@ function create_ele_jobcomment_editor(comment_id, want_settings){
     return container;
 }
 
+// Open Create Mode (also used for Update): component.
+// Container for private, pinned and highlighted checkboxes, used only in the "full" version of the form-like.
 function create_ele_jobcomment_checkbox_container(){
     let container = document.createElement('div');
     container.classList.add(CLASS_COMMENT_INPUT_CHECKBOX_CONTAINER);
     
-    // Inputs unqiue to this "with settings" version
     let private_label = document.createElement('label');
     private_label.innerHTML = 'Private';
     private_label.for = ID_COMMENT_CHECKBOX_PRIVATE;
@@ -178,7 +191,7 @@ function create_ele_jobcomment_checkbox_container(){
 
 
 
-// Create Job Comment Inputs
+// Open Create Mode (also used for Update): various components.
 function create_ele_jobcomment_main_container(){
     let container = document.createElement('div');
     container.classList.add(CLASS_COMMENT_CU_ELEMENT);
@@ -208,9 +221,8 @@ function create_ele_jobcomment_controls_container(comment_id, form_type){
     container.classList.add(CLASS_COMMENT_CONTROLS);
 
     container.append(create_ele_jobcomment_btn_save(comment_id, form_type));
-    //container.append(create_ele_jobcomment_btn_close());
 
-    // Delete button is only relevant when editing an existing comment, so check before trying to append null.
+    // Delete button is only relevant when editing an existing comment, so check if it's null before trying to append it.
     let delete_btn = create_ele_jobcomment_btn_delete(comment_id);
     if(delete_btn != null){
         container.append(delete_btn);
@@ -219,9 +231,7 @@ function create_ele_jobcomment_controls_container(comment_id, form_type){
     return container;
 }
 function create_ele_jobcomment_btn_save(comment_id, form_type){
-    let save_btn = document.createElement('button');
-    save_btn.classList.add(CLASS_BTN_PRIMARY);
-    save_btn.innerHTML = 'submit';
+    let save_btn = create_generic_ele_submit_button();
     save_btn.setAttribute('data-comment_id', comment_id);
     save_btn.setAttribute('data-form_type', form_type);
     save_btn.addEventListener('click', (e) => {
@@ -230,17 +240,11 @@ function create_ele_jobcomment_btn_save(comment_id, form_type){
     return save_btn;
 }
 function create_ele_jobcomment_btn_close(){
-    let close_btn = document.createElement('button');
-    //close_btn.classList.add(CLASS_BTN_PRIMARY);
-    close_btn.classList.add('close');
+    let close_btn = create_generic_ele_cancel_button();
 
     close_btn.addEventListener('click', () => {
         close_jobcomment_editor();
     });
-
-    let span = document.createElement('span');
-    span.innerHTML = 'cancel';
-    close_btn.append(span);
 
     return close_btn;
 }
@@ -248,10 +252,7 @@ function create_ele_jobcomment_btn_delete(comment_id){
     // Create and Update forms are the same except there's no need for a delete button on the create form.
     // Check if we're making an edit form (via the comment_id) then return a button or null.
     if(comment_id != DEFAULT_COMMENT_ID){
-        let delete_btn = document.createElement('button');
-        delete_btn.classList.add(CLASS_COMMENT_DELETE_BTN);
-        delete_btn.classList.add(CLASS_BTN_WARNING);
-        delete_btn.innerHTML = 'delete';
+        let delete_btn = create_generic_ele_delete_button();
         delete_btn.addEventListener('click', (e) => {
             delete_job_comment(e.target);
         });
@@ -304,8 +305,9 @@ function open_jobcomment_editor_for_update(btn){
     visibility_comment_content(comment_ele, false);
 }
 
+// Populate the "form" with the existing information for this comment
 function populate_ele_jobcomment_editor_with_existing(editor_ele, comment_ele, want_settings){
-    // Populate the "form" with the existing information for this comment
+
     // Contents default = empty, so fill it with the old comment
     let old_contents = comment_ele.querySelector('.' + CLASS_COMMENT_CONTENTS).innerHTML.trim();
     editor_ele.querySelector('#' + ID_COMMENT_TEXTAREA).value = old_contents;
@@ -381,13 +383,14 @@ function visibility_add_comment_btn(want_visibility){
 // Sends data to the backend then calls the appropriate page update function.
 
 async function save_job_comment(btn){
+
+    // Prepare a dict with data to send to the server, then send it and wait for the response.
     if(btn.dataset.form_type == VALUE_FORM_TYPE_CONTENT_ONLY){
         data = make_jobcomment_dict_simplified(btn);   
     }
     else {
         data = make_jobcomment_dict_with_settings();
     }
-
     let response = await backend_save_job_comment(btn, data);
 
     // Case: "new comment". Add a new comment div to the list
@@ -446,7 +449,7 @@ function make_jobcomment_dict_simplified(btn){
     let result = {};
     result['contents'] = document.getElementById(ID_COMMENT_TEXTAREA).value;
 
-    // Set default status toggles for use on new comments.
+    // Set the "default statuses" for use on new comments.
     //  >> Presently the simplified form is only in use on the todo list, which only displays pinned comments. As such, "pinned = true" is a reasonable assumption.
     //  >> "private = true" is a safer default than the alternative.
     //  >> "highlight = false" because highlighting is really intended for picking out the wheat from the chaff on the Job Comments page.
@@ -470,9 +473,9 @@ function make_jobcomment_dict_simplified(btn){
 
 // Backend (all): determine the URL for Job Comments
 function get_jobcomments_url(ele_inside_comment_div){
-    //  The URL for POSTing data contains the job ID number, which needs to be handled slightly differently on different pages.
+    // The URL for POSTing data contains the job ID number, which needs to be handled slightly differently on different pages.
+    // If the page covers a single job, all comments on the page will use the same URL, which will be declared as a const in the script tags.
     if(typeof URL_JOB_COMMENTS !== 'undefined'){
-        // If the page covers a single job, all comments on the page will use the same URL, which will be declared as a const in the script tags.
         return URL_JOB_COMMENTS;
     }
     else {

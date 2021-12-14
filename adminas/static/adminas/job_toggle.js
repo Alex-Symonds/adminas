@@ -1,5 +1,8 @@
 /*
-    Hide/show stuff on the Job page.
+    Job page has two forms added via the Django templates and set with the "hide" class on-load.
+    here:
+        > Associated "add" buttons gain the ability to unhide the forms
+        > Associated "close" buttons gain the ability to re-hide the forms
 */
 const CLASS_HIDE = 'hide';
 

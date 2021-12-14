@@ -1,3 +1,11 @@
+/*
+    Job page PO handling.
+
+    > Open "edit mode" on an existing PO via cloning the "add new PO" form and modifying it a bit
+    > Delete a PO via the button on the form
+*/
+
+
 const ID_PO_EDIT_FORM = 'po_edit_form';
 const CLASS_PO_EDIT_BTN = 'po-edit';
 
@@ -9,6 +17,8 @@ document.addEventListener('DOMContentLoaded', (e) => {
     });
 });
 
+
+// Edit PO: Display an "edit existing PO" form
 function open_po_editor(e){
     // Grab existing edit form for existence check and usage
     let edit_po_form = document.querySelector('#' + ID_PO_EDIT_FORM);
@@ -30,19 +40,19 @@ function open_po_editor(e){
     // Add to DOM
     e.target.after(form_div);
 
-    //form_div.after(get_edit_po_delete_btn(e.target.dataset.po));
-    let button_container = form_div.querySelector('.controls');//button-container');
+    let button_container = form_div.querySelector('.controls');
     button_container.append(get_edit_po_delete_btn(e.target.dataset.po));
 
     populate_po_edit_form(form_div);
 }
 
+// Edit PO: Create an element for editing an existing PO
 function get_ele_edit_po_div(edit_btn){
     let create_po_form = document.querySelector('#po_form');
     let div = create_po_form.cloneNode(true);
 
     div.id = ID_PO_EDIT_FORM;
-    div.action = `/purchase_order?id=${edit_btn.dataset.po}`;
+    div.action = `${URL_PO}?id=${edit_btn.dataset.po}`;
     if(div.classList.contains('hide')){
         div.classList.remove('hide');
     }
@@ -57,22 +67,11 @@ function get_ele_edit_po_div(edit_btn){
     return div;
 }
 
-// function get_edit_po_cancel_btn(){
-//     let btn = document.createElement('button');
-//     btn.classList.add('button-primary-hollow');
-//     btn.innerHTML = 'cancel';
-//     btn.addEventListener('click', (e) => {
-//         close_edit_form();
-//     });
-//     return btn;
-// }
-
+// Edit PO: Create a delete button for the PO editing form
 function get_edit_po_delete_btn(po_id){
-    let btn = document.createElement('button');
-    btn.innerHTML = 'delete';
+    let btn = create_generic_ele_delete_button();
     btn.id = 'delete_po_btn';
-    btn.classList.add('button-warning');
-    btn.classList.add('delete-btn');
+
     btn.setAttribute('data-po', po_id);
     btn.addEventListener('click', (e) => {
         delete_po(e);
@@ -80,6 +79,7 @@ function get_edit_po_delete_btn(po_id){
     return btn;
 }
 
+// Edit PO: Find the edit PO form and close it.
 function close_edit_form(){
     let form = document.querySelector('#' + ID_PO_EDIT_FORM);
     if(form != null){
@@ -87,6 +87,7 @@ function close_edit_form(){
     }
 }
 
+// Edit PO: Enter the existing contents of the PO into the edit form
 function populate_po_edit_form(edit_form){
     let po_row = edit_form.parentElement;
     po_row.querySelectorAll('span').forEach(span => {
@@ -111,10 +112,9 @@ function populate_po_edit_form(edit_form){
             }
         }
     });
-
 }
 
-// Edit PO: Convert "01 Feb 2021" to "01/02/2021" (Django's form validation doesn't recognise the former as a valid date)
+// Edit PO: Convert "01 Feb 2021" to "01/02/2021" (Django's form validation doesn't recognise the former as a valid date, even though Django output it that way)
 function convert_display_date_to_input_date(dd_mmm_yyyy){
     var months = {
         'Jan' : '01',
@@ -136,19 +136,23 @@ function convert_display_date_to_input_date(dd_mmm_yyyy){
     return dd_mmm_yyyy.replace(re, '/' + month_num + '/');
 }
 
+
+
+
+
+// Delete PO: called by the delete button inside the PO form
 function delete_po(e){
     delete_po_from_server(e.target.dataset.po);
 }
 
+// Delete PO: do the deletey deed
 function delete_po_from_server(po_id){
-    //let response = 
-    fetch(`/purchase_order?id=${po_id}&delete=true`, {
+    fetch(`${URL_PO}?id=${po_id}&delete=true`, {
         method: 'POST',
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
     .catch(error => {
         console.log('Error: ', error);
-    })
-    //return response.json();
+    });
 }

@@ -1,11 +1,16 @@
+/* 
+    The Edit Job page has dropdowns showing a display name for each address in the database.
+    When the user changes the dropdown, this code looks up the actual address on the server 
+    and displays it underneath.
+ */
+
 CLASS_ADDRESS_DROPDOWN = 'address-dropdown';
 
-
-// Add event handlers to the address dropdowns
+// Add event handlers to all address dropdowns
 document.addEventListener('DOMContentLoaded', (e) => {
 
-    document.querySelectorAll('.' + CLASS_ADDRESS_DROPDOWN).forEach(div => {
-        let dd = div.querySelector('select');
+    document.querySelectorAll('.' + CLASS_ADDRESS_DROPDOWN).forEach(ele => {
+        let dd = ele.querySelector('select');
         update_address(dd);
         dd.addEventListener('change', (e) => {
             update_address(e.target);
@@ -14,8 +19,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
 });
 
-
-// Address Lookup: called when the page loads and when the address dropdowns change
+// Address Lookup: main function. Called when the page loads and when the address dropdowns change
 async function update_address(ele){
     let display_div = ele.closest('.form-row').querySelector('.display-address');
 
@@ -28,7 +32,7 @@ async function update_address(ele){
     }
 }
 
-// Address Lookup: Get the address from the server
+// Address Lookup: Request the address from the server
 async function get_address_from_server(address_id){
     let response = await fetch(`${URL_SITE_ADDRESS}?info=site_address&id=${address_id}`)
     .catch(error => {

@@ -1,3 +1,8 @@
+/*
+    Used on the read-only document page.
+    Covers the functionality of the "replace with new version" and "revert to previous version" buttons.
+*/
+
 const ID_DOCUMENT_REPLACEMENT_BTN = 'replace_document_btn';
 const ID_DOCUMENT_REVERT_BTN = 'revert_document_btn';
 
@@ -10,7 +15,7 @@ const CLASS_INSTRUCTIONS_SECTION = 'special-instructions';
 const CLASS_SHOW_ADD_INSTRUCTION_FORMLIKE = 'special-instruction';
 const CLASS_HIDE_ADD_INSTRUCTION_FORMLIKE = 'close-new-instr';
 
-
+// Add event listeners
 document.addEventListener('DOMContentLoaded', () => {
 
     replace_btn = document.querySelector('#' + ID_DOCUMENT_REPLACEMENT_BTN);
@@ -20,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-
     revert_btn = document.querySelector('#' + ID_DOCUMENT_REVERT_BTN);
     if(revert_btn != null){
 
@@ -29,11 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     }
-
 });
 
 
-
+// Adjust the version on the server and update the frontend
 function next_or_previous_document_version(btn, taskname){
     fetch(`${URL_DOC_MAIN}`, {
         method: 'POST',
@@ -45,10 +48,13 @@ function next_or_previous_document_version(btn, taskname){
     })
     .then(response => response.json())
     .then(data => {
+        // If the server responds with "redirect", go to the page.
         if ('redirect' in data){
             window.location.href = data['redirect'];
+        // If the server responds with a "message", display it.
         } else if ('message' in data) {
             display_document_response_message(data, btn);
+        // If the server falls on its face, display a generic message.   
         } else {
             data = {}
             data['message'] = 'Something went wrong';

@@ -1,3 +1,12 @@
+/*
+    Module Management page functionality.
+        > Click an empty slot to open a panel with options to assign an existing JobItem to the slot or create a new JobItem
+            >> Adding a new JobItem opens a form inside the slot
+        > Click the "+Slot" button to add more slots of a particular type.
+        > Edit an existing slot
+*/
+
+
 const CLASS_SLOT_ELEMENT = 'modular-slot-container';
 const CLASS_MODULE_SLOT = 'module-slot';
 const CLASS_MODULE_SLOT_EMPTY = 'empty';
@@ -42,23 +51,7 @@ document.addEventListener('DOMContentLoaded', (e) =>{
 
 
 
-
-
-
-
-
-// -------------------------------------------------------------------
-// Adding extra "slots" to the page
-// -------------------------------------------------------------------
-// Add New Slot: called onclick of a + Slot button
-function add_empty_module_slot_to_page(e){
-    let slot_ele = e.target.closest('.' + CLASS_SLOT_ELEMENT);
-    let contents_ele = slot_ele.querySelector('.contents');
-    let new_slot = create_ele_empty_module_slot(e.target.dataset.slot, e.target.dataset.parent);
-    contents_ele.append(new_slot);
-}
-
-// Add New Slot, plus some delete/cancel operations: create an empty slot div
+// General Support: create an empty slot div
 function create_ele_empty_module_slot(slot_id, parent_id){
     let div = document.createElement('div');
     div.classList.add(CLASS_MODULE_SLOT);
@@ -77,6 +70,20 @@ function create_ele_empty_module_slot(slot_id, parent_id){
     return div;
 }
 
+
+
+
+
+// -------------------------------------------------------------------
+// Adding extra "slots" to the page
+// -------------------------------------------------------------------
+// Add New Slot: called onclick of a + Slot button
+function add_empty_module_slot_to_page(e){
+    let slot_ele = e.target.closest('.' + CLASS_SLOT_ELEMENT);
+    let contents_ele = slot_ele.querySelector('.contents');
+    let new_slot = create_ele_empty_module_slot(e.target.dataset.slot, e.target.dataset.parent);
+    contents_ele.append(new_slot);
+}
 
 
 
@@ -109,7 +116,7 @@ function close_module_slot_filler_popout(){
     document.querySelector('.' + CLASS_MODULE_SLOT_FILLER_POPOUT_MENU).remove();
 }
 
-// Module Slot Filler: find the div for the "empty slot", regardless of whether what you just clicked counts as that div or a child
+// Module Slot Filler: find the div for the "empty slot", regardless of whether the clicked element counts as that div or a child of the div
 function find_empty_module_slot_div(target){
     if(target.classList.contains(CLASS_MODULE_SLOT_EMPTY)){
         return target;
@@ -295,7 +302,6 @@ async function get_module_slot_with_new_item_form(slot_id, parent_id){
 }
 
 
-
 // New JI Form: get a select element with options from the server (list of products suitable for this slot, in asc price order)
 async function create_ele_jobitem_module_dropdown(slot_id, parent_id){
     let sel = document.createElement('select');
@@ -329,6 +335,7 @@ function create_ele_slot_filler_submit_btn(slot_id, parent_id){
     return btn;
 }
 
+
 // New JI Form: get a cancel button
 function create_ele_slot_filler_cancel_btn(){
     let btn = create_generic_ele_cancel_button();
@@ -339,6 +346,7 @@ function create_ele_slot_filler_cancel_btn(){
 
     return btn; 
 }
+
 
 // Cancel New JI Form: called onclick of the cancel button. Replaces the form with an empty slot.
 function close_new_slot_filler_mode(btn){
@@ -381,7 +389,7 @@ async function add_new_jobitem_and_jobmodule(e){
     form_div.remove();
 }
 
-// New JI Form Action: takes "ABC123456: Thingummyjigger @ GBP 12,3456.00" and extracts the part num and desc
+// New JI Form Action: takes "ABC123456: Thingummyjigger @ GBP 12,3456.00" and extracts the first bit with the part num and desc
 function get_product_desc_from_select_desc(select_ele){
     let desc_with_price = select_ele.options[select_ele.selectedIndex].text;
     let re = /^.+(?=( @ ))/;
@@ -459,8 +467,6 @@ async function assign_jobitem_to_slot(e){
 }
 
 
-
-
 // Assignment: create a new JobModule on the server, storing the relationship between the parent, slot, and child
 async function create_jobmodule_on_server(child_id, parent_id, slot_id){ 
     let response = await fetch(`${URL_ASSIGNMENTS}`, {
@@ -497,6 +503,7 @@ function create_ele_filled_module_slot(description, quantity, slot_id, parent_id
     return div;
 }
 
+
 // Assignment: Creates a span containing "$N x [ABC123456] Thingummy Jigger", where $N is replaced by the second arg to the function
 function create_ele_slot_filler_desc_span(description, quantity){
     let re = QTY_RE;
@@ -505,6 +512,7 @@ function create_ele_slot_filler_desc_span(description, quantity){
     span.innerHTML = description.replace(re, quantity); 
     return span;
 }
+
 
 // Assignment: Create an edit button for a filled slot
 function create_ele_slot_filler_edit_btn(jobmod_id){
@@ -662,10 +670,9 @@ function get_qty_submit_btn(){
     return btn;
 }
 
+
 // Edit Mode: Creates an X button for removing the JobItem from the slot
 function get_slot_filler_remove_btn(jobmod_id){
-    //let btn = document.createElement('button');
-    //btn.classList.add(CLASS_REMOVE_SLOT_FILLER_BTN);
     let btn = document.createElement('button');
     btn.classList.add('delete-panel');
 
@@ -673,7 +680,6 @@ function get_slot_filler_remove_btn(jobmod_id){
     span.innerHTML = 'unassign';
     btn.append(span);
 
-    //btn.innerHTML = 'unassign';
     btn.setAttribute('data-jobmod', jobmod_id);
     btn.addEventListener('click', (e) => {
         remove_jobmodule(e);

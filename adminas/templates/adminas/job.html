@@ -16,7 +16,7 @@
         const REPLACE_TODO_BTN = 'div';
         const URL_JOB_COMMENTS = '{% url "job_comments" job.id %}';
         const URL_COMMENT_STATUS = '{% url "comment_status" %}';
-        //const URL_PO = '{% url 'purchase_order' %}';
+        const URL_PO = '{% url "purchase_order" %}';
     </script>
     <script src="{% static 'adminas/job_toggle.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/items_new_form.js' %}" type="text/javascript"></script>
@@ -280,7 +280,7 @@
         {% endfor %}
                         <button id="add_item_btn" class="add-button"><span>add 1 more</span></button>
                         <div class="add-multiple">
-                            Add <input type="number" id="add_multi_items"> more <button id="add_multi_items_btn" class="button-primary">ok</button>
+                            add <input type="number" id="add_multi_items"> more <button id="add_multi_items_btn" class="button-primary">ok</button>
                         </div>
                         <input type="submit" action="submit" id="items_submit_button" class="button-primary full-width-button" value="submit">
                     </form>

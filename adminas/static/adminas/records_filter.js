@@ -1,12 +1,15 @@
+/*
+    Enable simple filtering of the Records page.
+*/
+
+
 const ID_BEGIN_FILTER_BUTTON = 'id_filter_records';
 const ID_FILTER_OPTIONS_ELE = 'id_filter_options';
 const CLASS_FILTER_OPTIONS_BODY = 'filter-options-body';
 const ID_FILTER_CONTROLS_CONTAINER = 'filter_controls';
-
 const ID_PREFIX_FILTER_FIELDS = 'id_filter_';
 
 const FALLBACK_STR = '-';
-
 const RANGE_START = 's';
 const RANGE_END = 'e';
 
@@ -45,6 +48,7 @@ const RECORDS_FILTER_SETTINGS = [
 
 
 
+// Evenet listeners for existing buttons
 document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById(ID_BEGIN_FILTER_BUTTON).addEventListener('click', () => {
@@ -256,12 +260,14 @@ async function get_options_from_server(field_id){
 /* ----------------------------------------------------------------------------------------------------
 Submit Filter Options
 ---------------------------------------------------------------------------------------------------- */
+// Apply Filter: main function, called by the "apply filter" button
 function reload_page_with_filters(){
     let get_params = create_get_parameters_for_records_filter();
     window.location.href = `${URL_RECORDS}${get_params}`;
     return;
 }
 
+// Apply Filter: GET parameters obtained and formatted for use in the URL
 function create_get_parameters_for_records_filter(){
     let get_param_list = create_list_get_parameters_for_records_filter();
 
@@ -276,7 +282,7 @@ function create_get_parameters_for_records_filter(){
     return '';
 }
 
-
+// Apply Filter: GET parameters in a list. Contents derived from the user's inputs
 function create_list_get_parameters_for_records_filter(){
     let get_param_list = [];
 
@@ -308,23 +314,24 @@ function create_list_get_parameters_for_records_filter(){
     return get_param_list;
 }
 
-
+// Apply Filter: Check the input is not blank, then format it for the GET list
 function get_param_from_input(field_name, input_value){
-    // Check the input is not blank, then get-ify it
     if(input_value !== ''){
         return create_str_get_param(field_name, input_value);
     } 
     return ''; 
 }
 
+// Apply Filter: Check the select is not on the default option, then format it for the GET list
 function get_param_from_select(field_name, input_value){
-    // Check the select is not on the default option, then get-ify it
     if(input_value !== '0'){
         return create_str_get_param(field_name, input_value);
     } 
     return '';
 }
 
+// Apply Filter: Check for inputs in the start and end dates.
+// Note: In the event of a start and end date, this returns two parameters "stuck together".
 function get_param_from_range(id_prefix, field_name){
     let get_param = '';
 
@@ -344,8 +351,8 @@ function get_param_from_range(id_prefix, field_name){
     return get_param;
 }
 
+// Apply Filter: given a field name and an input value, format it GET-parameter-style with an "=" in between.
 function create_str_get_param(field_name, input_value){
-    //let input_for_url = format_str_for_url(input_value);
     let input_for_url = input_value;
     return `${field_name}=${input_for_url}`;
 }

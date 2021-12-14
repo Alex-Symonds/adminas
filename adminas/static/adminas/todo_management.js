@@ -1,3 +1,7 @@
+/*
+    Adjust which Jobs appear on the user's to-do list.
+*/
+
 const CLASS_REMOVE_JOB_BTN = 'todo-list-remove';
 const CLASS_ADD_JOB_BTN = 'todo-list-add';
 const ID_PREFIX_JOB_PANEL = 'todo_panel_job_';
@@ -15,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Records page has a [+] button for each <tr>, which adds a job to the to-do list
+    // Records page has a [+] button for each <tr> not on the to-do list, which adds that job to the to-do list
     document.querySelectorAll('.' + CLASS_ADD_JOB_BTN).forEach(btn => {
         btn.addEventListener('click', () => {
             add_to_todo_list(btn);
