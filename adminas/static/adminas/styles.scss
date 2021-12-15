@@ -1,10 +1,15 @@
+/*
+    All CSS for the Adminas webpages.
+*/
+
+// Constants
+$f_adminas: 'Questrial', sans-serif;
 $f_heading: 'Arial', sans-serif;
 $f_contents: 'Calibri', sans-serif;
 
 $c_bg_main: rgb(34, 35, 36);
-/*$g_bg_main: linear-gradient(45deg, rgb(24, 25, 26) 0%, rgb(30, 30, 31) 35%, rgb(46, 48, 48) 100%);*/
 $g_bg_main: linear-gradient(45deg, rgb(34, 35, 36) 0%, rgb(40, 40, 41) 35%, rgb(56, 58, 58) 100%);
-$c_txt_main: #F6F6F6;/* rgb(233, 247, 255); */
+$c_txt_main: #F6F6F6;
 $c_txt_main_highlight: white;
 $c_txt_alt: black;
 $c_txt_alt_highlight: #222;
@@ -19,9 +24,9 @@ $c_tone_06: #BBB;
 $c_tone_07: #F6F6F6;
 
 $c_accent: #00D4F5;
-$c_accent_04: #6bfaff; /* #6bfaff */
-$c_accent_03: #4ADFF7; /*#00E4F5;*/
-$c_accent_02: #00c2e0; /*#00A4C5;*/
+$c_accent_04: #6bfaff;
+$c_accent_03: #4ADFF7;
+$c_accent_02: #00c2e0;
 $c_accent_01: #006675;
 $c_txt_on_accent: black;
 $g_accent_main: linear-gradient(135deg, $c_accent_02 0%, $c_accent 75%, $c_accent_04 100%);
@@ -49,6 +54,8 @@ $panel_shadow_highlight: 0 0 10px 1px rgba($c_accent, 50%);
 
 $MAX_WIDTH: 700px;
 
+
+// HTML elements
 html, body{
     min-height: 100%;
 }
@@ -70,6 +77,14 @@ a{
     &:hover{
         color: $c_accent_04;
     }
+}
+
+h1{
+    font-family: $f_adminas;
+    margin: 0.1rem;
+    padding: 0;
+    font-size: 1.3rem;
+    color: $c_tone_05;
 }
 
 h2, h3, h4, h5, h6{
@@ -102,7 +117,7 @@ h3{
 input, select, textarea{
     max-width: 100%;
     margin-top: 3px;
-    background: $c_tone_00;/*$c_tone_01;*/
+    background: $c_tone_00;
     border: 1px solid $c_accent_02;
     border-radius: 3px;
     color: $c_txt_main;
@@ -118,13 +133,9 @@ input{
     padding: 0.2rem 0.5rem;
 }
 
+// On Chrome, the calendar icon on calendar picker inputs blends in with the background. This makes it light enough to stand out.
 ::-webkit-calendar-picker-indicator {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 24 24"><path fill="%23ffffff" d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/></svg>');
-}
-
-#id_qty{
-    height: 1rem;
-    max-width: 5rem;
 }
 
 select{
@@ -143,6 +154,8 @@ article{
     margin: 0;
 }
 
+
+// General purpose
 .page_container{
     margin: 0;
     width: 100%;
@@ -155,6 +168,10 @@ article{
     } 
 }
 
+#id_qty{
+    height: 1rem;
+    max-width: 5rem;
+}
 
 
 
@@ -197,7 +214,8 @@ nav {
     }
 }
 
-/* Layout stuff --------------------------------------------------------------- */
+
+/* Site-wide Buttons --------------------------------------------------------------- */
 .button-primary{
     font-weight: bold;
     border-radius: 0.6rem;
@@ -229,23 +247,6 @@ nav {
     }
 }
 
-// .button-secondary{
-//     font-weight: bold;
-//     border-radius: 0.6rem;
-
-//     background: $c_tone_02;
-//     background: $g_secondary_btn;
-//     border: 1px solid $c_accent_secondary;
-//     color: $c_accent_secondary;
-
-//     &:hover{
-//         color: $c_txt_alt;
-//         background: $c_accent_secondary;
-//         background: $g_button_secondary;
-//         box-shadow: 0 0 3px 1px $c_tone_02;
-//     }
-// }
-
 .button-warning{
     font-weight: bold;
     border-radius: 0.6rem;
@@ -261,86 +262,6 @@ nav {
     }
 }
 
-.temp-warning-msg{
-    margin-left: 0.6rem;
-    color: $c_txt_warning_g;
-    background: $g_warning_hover;
-    font-size: 0.9rem;
-    padding: 0 0.3rem;
-    border-radius: 0.45rem;
-    border: 1px solid $c_txt_warning_g;
-    width: fit-content;
-    max-width: 65%;
-    min-height: 1.2rem;
-    word-wrap: wrap;
-
-    &.user-management{
-        margin-top: 1rem;
-        padding: 0.5rem;
-    }
-}
-
-.credits{
-    border: 1px solid $c_tone_02;
-    border-radius: 0.3rem;
-    font-size: 0.8rem;
-    margin-top: 5rem;
-    padding: 4px 8px;
-
-    h6{
-        padding: 0;
-        margin: 0;
-        color: $c_tone_05;
-    }
-
-    ul{
-        list-style-type: none;
-        margin: 0;
-        padding: 0.1rem 0.3rem;
-    }
-
-    a{
-        color: $c_tone_03;
-        text-decoration: none;
-        &:hover{
-            color: $c_tone_05;
-            text-decoration: underline;
-        }
-    }
-}
-
-
-
-
-/* Home ------------------------------------------------------ */
-#id_todo_list_container{
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    flex-wrap: wrap;
-}
-
-
-
-
-
-@keyframes expand_comment_button {
-    from {
-        width: 26px;
-        text-indent: -9999px;
-    }
-
-    95%{
-        text-indent: -9999px;
-    }
-    
-    to {
-        width: 8rem;
-        text-indent: 0;
-    }
-}
-
-
 .add-button{
     border: 0;
     border-radius: 13px;
@@ -352,9 +273,7 @@ nav {
     &.comment{
         margin: 0;
     }
-    // &.comment-to-todolist{
-    //     margin: 3px 5px;
-    // }
+
     &.job-to-todolist{
         margin: 0.6rem 0 0 0;
     }
@@ -386,6 +305,22 @@ nav {
             animation-name: expand_module_button_add;
         }
     }   
+}
+
+@keyframes expand_comment_button {
+    from {
+        width: 26px;
+        text-indent: -9999px;
+    }
+
+    95%{
+        text-indent: -9999px;
+    }
+    
+    to {
+        width: 8rem;
+        text-indent: 0;
+    }
 }
 
 @keyframes expand_comment_button_add {
@@ -452,8 +387,476 @@ nav {
     }
 }
 
+.edit-icon{
+    float: right;
+    position: relative;
+
+    border: 0;
+    border-bottom: 2px solid transparent;
+
+    height: 26px;
+    width: 26px;
+
+    background-image: url(i-edit.svg);
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px 16px;
+
+    margin-left: 3px;
+    margin-right: 3px;
+    max-width: 26px;
+
+    span{
+        color: transparent;
+        text-align: center;
+    }
+
+    &:hover{
+        background-position: 5px 5px;
+        background-color: transparent;
+        border-bottom: 2px solid white;
+
+        span{
+            transition-delay: 0.05s;
+            color: white;
+            border-radius: 5px;
+            background: rgba($c_tone_00, 80%);
+            border: 1px solid $c_tone_00;
+
+            display: block;
+            width: 3rem;
+
+            position: absolute;
+            top:0;
+            right:26px;
+        }
+    }
+}
+
+.return-to-job{
+    display: block;
+    border: 1px solid $c_accent_02;
+    border-radius: 8px;
+    padding: 6px 8px;
+    width: fit-content;
+    margin: 0.5rem 0 0 0;
+    text-decoration: none;
+    
+
+    &:hover{
+        border: 1px solid $c_accent_02;
+        background: $g_button_main;
+        font-weight: bold;
+        color: $c_txt_on_accent;
+    }
+}
+
+/* Site-wide other --------------------------------------------------------------- */
+.panel{
+    display: inline-block;
+    position: relative;
+    box-sizing:border-box;
+
+    border: 1px solid $c_tone_04;
+    border-radius: 8px;
+
+    max-width: $MAX_WIDTH;
+    width: 93%;
+
+    margin: 1rem 0.5rem 0 0.5rem;
+
+    a{
+        text-decoration: none;
+    }
+
+    .panel-header{
+        font-size: 1rem;
+
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        margin: 0;
+        padding: 12px 8px;
+
+        color: $c_txt_main;
+        background: $c_tone_02;
+        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
+        border-bottom: 1px solid $c_tone_04;
+
+        h3{
+            margin: 0;
+        }
+
+        .desc{
+            &:before, &:after{
+                content: '"';
+            }
+
+            font-style: italic;
+            font-weight: normal;
+            font-size: 0.95rem;
+            color: $c_tone_06;
+        }
+    }
+
+    .close, .delete-panel{
+        position: relative;
+        float: right;
+        color: $c_tone_07;
+        margin-right: 3px;
+    
+        width: 30px;
+        height: 30px;
+        background-repeat: no-repeat;
+        background-position: right;
+        border: transparent;
+    
+        background-color: transparent;
+        padding: 3px 5px;
+        z-index: 2;
+    
+        span{
+            display: block;
+            position: absolute;
+            top:0;
+            right:26px;
+            z-index: 3;
+
+            font-size: 1rem;
+            width: 4rem;
+
+            color: transparent;
+            text-align: center;
+        }
+    
+        &:hover{
+            span{
+                color: $c_txt_main;
+                border-radius: 5px;
+                background: rgba($c_tone_00, 80%);
+                border: 1px solid $c_tone_00;
+            }
+        }    
+    }
+
+    .close{
+        background-image: url('i-x-hollow.svg');
+
+        &:hover{
+            background-image: url('i-x-filled.svg');
+        }
+    }
+
+    .delete-panel{
+        color: $c_tone_07;
+        background-image: url('i-minus-empty.svg');
+ 
+         &:hover{
+            background-image: url('i-minus-filled.svg');
+        }
+    }
+
+    &.job {
+        max-width: 400px;
+        box-shadow: $panel_shadow;
+    
+        .panel-header{
+            border-bottom: none;
+        }
+    
+        &:hover{
+            border: 1px solid $c_tone_06;
+            box-shadow: $panel_shadow_highlight;
+        }
+    
+        p{
+            color: $c_txt_main;
+            margin: 0;
+            padding: 12px 10px;
+            background: $c_tone_02;
+            
+        }
+    
+        ul{
+            margin-top: 0;
+            margin-bottom: 0;
+            background: $c_accent_01;
+            color: $c_txt_main;
+            padding: 8px 24px;
+            border-top: 1px solid $c_accent;
+            border-bottom: 1px solid $c_accent;
+        }
+    
+        .comments{
+            margin: 0;
+        }
+    
+        .add-button.comment{
+            margin: 3px 5px;
+        }
+    }
+
+    &.excluded-container ul{
+        .display, .none{
+            color: $c_tone_03;
+            font-style: italic;
+        }
+    }
+
+    &.status-controls{
+        .status-strip{
+            display: block;
+            text-align: center;
+            padding: 0.5rem;
+            width: calc(100% - 2 * 0.5rem);
+
+            &.final{
+                background: $c_tone_05;
+            }
+            &.draft{
+                background: $c_accent_secondary_02;
+            }
+        }
+    }
+}
 
 
+.form-like{
+
+    label, input, select, span, .button-container{
+        margin: 0;
+        margin-left: 0.7rem;
+    }
+    span.product_desc{
+        margin-left: 0;
+    }
+
+    label{
+        display: block;
+        margin-top: 1rem;
+        margin-bottom: 6px;
+        margin-right: 0.7rem;
+        padding-top:0.3rem;
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-top: 1px solid $c_tone_02;
+    }
+
+    #id_edit_item_selling_price{
+        // This has a span in front indicating the currency, so it doesn't want the full margin
+        margin-left: 0.5rem;
+    }
+
+    .issue-date{
+        margin-top: 1rem;
+    }
+
+    .form-row{
+        display: block;
+        position: relative;
+        padding: 0.3rem 0.4rem;
+        border-radius: 5px;
+        background: $c_tone_02;
+        margin: 1rem auto 0;
+        width: calc(97% - 1.8rem);
+
+        :first-child{
+            border-top: none;
+            margin-top: 0;
+        }
+
+        input, select{
+            max-width: 80%;
+        }
+
+        &.panel{
+            width: 260px;
+        }
+    }
+
+    .controls{
+        margin: 1.2rem 0.5rem 1rem 0.5rem;
+
+        width: calc(100% - 1rem);
+        height: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+
+        button, input[type=submit]{
+            float: left;
+            margin: 5px;
+            border-radius: 5px;
+            padding: 5px 10px;
+            width: 20%;
+            min-width: 4.5rem;
+        }
+
+        input[type=submit]{
+            height: auto;
+            padding: 5px 0.5rem;
+            //font-size: 1.2rem;
+            font-size: 1rem;
+            width: 20%;
+        }
+
+        .delete-btn, .delete-comment-btn{
+            float: right;
+        }
+    }
+
+    .full-width-button{
+        width: 100%;
+        margin: 1rem 0 0;
+        padding: 0.4rem 0;
+        height: 2.3rem;
+        font-size: 1.2rem;
+        border-radius: 0.5rem;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;        
+    }
+
+    div:last-child{
+        border-bottom: none;
+    }
+
+    &.hide{
+        display:none;
+    }
+
+    span.desc{
+        display: block;
+        font-size: 0.9rem;
+        font-style: italic;
+        margin: 0.2rem 0 0 1.2rem;
+        border-left: 3px solid $c_accent_secondary;
+        padding: 5px;
+    
+        &.hide{
+            display: none;
+        }
+    }
+
+}
+
+
+
+@media screen and (min-width: 445px){
+    // Something about the proliferation of %-based widths results in width issues (on narrow screens)
+    // on the Job page whenever the form to add multiple items is visible.
+    // Setting a pixel-based width above solved the problem for narrow screens, but causes a problem
+    // on wide screens (= weirdly skinny form sections). This widens them again.
+
+    .form-like{
+        .form-row.panel{
+            width: 95%;
+        }
+    }
+}
+
+.temp-warning-msg{
+    margin-left: 0.6rem;
+    color: $c_txt_warning_g;
+    background: $g_warning_hover;
+    font-size: 0.9rem;
+    padding: 0 0.3rem;
+    border-radius: 0.45rem;
+    border: 1px solid $c_txt_warning_g;
+    width: fit-content;
+    max-width: 65%;
+    min-height: 1.2rem;
+    word-wrap: wrap;
+
+    &.user-management{
+        margin-top: 1rem;
+        padding: 0.5rem;
+    }
+}
+
+.credits{
+    border: 1px solid $c_tone_02;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    margin-top: 5rem;
+    padding: 4px 8px;
+
+    h6{
+        padding: 0;
+        margin: 0;
+        color: $c_tone_05;
+    }
+
+    ul{
+        list-style-type: none;
+        margin: 0;
+        padding: 0.1rem 0.3rem;
+    }
+
+    a{
+        color: $c_tone_03;
+        text-decoration: none;
+        &:hover{
+            color: $c_tone_05;
+            text-decoration: underline;
+        }
+    }
+}
+
+.comments{
+    h5{
+        margin: 3px 4px;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+
+        border-radius: 6px;
+        border: 1px solid $c_tone_04;
+        color: $c_tone_06;
+
+        width: -moz-fit-content;
+        width: fit-content;
+    }
+
+    .add-job-comment-simplified{
+        margin: 5px;
+        padding: 0.5rem;
+    }
+}
+
+p.empty-section-notice{
+    padding: 0.2rem 0.5rem;
+}
+
+.extended-subheading{
+    display: block;
+    position: relative;
+    width: 100%;
+
+    a{
+        color: $c_txt_main;
+    }
+
+    .edit-icon{
+        position: absolute;
+        height: 1.5rem;
+        bottom: 0;
+        right: 0.8rem;
+        text-decoration: none;
+
+        &:hover{
+            background-position: 5px 4px;
+        }
+    }
+}
+
+
+
+
+/* Home ------------------------------------------------------ */
+#id_todo_list_container{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
 
 .todo-list-add-pinned-comment-container{
     display: block;
@@ -514,29 +917,7 @@ nav {
     }
 }
 
-.comments{
-    h5{
-        margin: 3px 4px;
-        padding: 3px 8px;
-        font-size: 0.75rem;
 
-        border-radius: 6px;
-        border: 1px solid $c_tone_04;
-        color: $c_tone_06;
-
-        width: -moz-fit-content;
-        width: fit-content;
-    }
-
-    .add-job-comment-simplified{
-        margin: 5px;
-        padding: 0.5rem;
-    }
-}
-
-p.empty-section-notice{
-    padding: 0.2rem 0.5rem;
-}
 
 /* Create New Job ------------------------------------------------------ */
 .form-row{
@@ -584,24 +965,6 @@ p.empty-section-notice{
 
 
 /* JobComments -------------------------------------------- */
-.return-to-job{
-    display: block;
-    border: 1px solid $c_accent_02;
-    border-radius: 8px;
-    padding: 6px 8px;
-    width: fit-content;
-    margin: 0.5rem 0 0 0;
-    text-decoration: none;
-    
-
-    &:hover{
-        border: 1px solid $c_accent_02;
-        background: $g_button_main;
-        font-weight: bold;
-        color: $c_txt_on_accent;
-    }
-}
-
 .comment-types-container{
     width: 100%;
     display: flex;
@@ -611,7 +974,7 @@ p.empty-section-notice{
     gap: 2rem;
 
     .comment-type-section{
-        margin: 0; //0.5rem;
+        margin: 0;
         padding: 0;
         flex:1;
 
@@ -630,7 +993,7 @@ p.empty-section-notice{
         margin: 1.5rem 0 0 0;
     }
 
-    @media screen and (min-width: 713px){//696px){
+    @media screen and (min-width: 713px){
         .filtered-comments{
             order:2;
         }
@@ -678,7 +1041,6 @@ p.empty-section-notice{
         border-top-right-radius: 1rem;
         border-bottom-right-radius: 1rem;
     }
-    //border-radius: 1rem;
 }
 
 
@@ -971,7 +1333,6 @@ p.empty-section-notice{
 
     h4, .subsection-heading{
         padding: 0.4rem 0 0.4rem 0.4rem;
-        //width: calc(100% - 0.4rem);
         background: $c_tone_02; 
         margin: 0;
         border-bottom: 0;
@@ -1047,7 +1408,13 @@ p.empty-section-notice{
         .add-button{
             margin: 0.3rem;
         }
-    
+
+        // Bit hacky: the add-button expands to 12rem wide on hover. This gives 
+        // the flexbox new ideas about the width of the parent element, which looks stupid.
+        // This container sets the width wider than the button needs to begin with.
+        .add-button-container{
+            width: 15rem;
+        }
 
         .add-new{
             border: 1px solid $c_tone_03;
@@ -1081,11 +1448,6 @@ p.empty-section-notice{
     }
 }
 
-
-
-
-
-
 #job_po_section{
     .warning{
         box-shadow: $warning_shadow;
@@ -1096,79 +1458,8 @@ p.empty-section-notice{
     margin-top: 0.4rem;
 }
 
-
-
 #job_details{
     max-width: $MAX_WIDTH;
-}
-
-.edit-icon{
-    float: right;
-    position: relative;
-
-    border: 0;
-    border-bottom: 2px solid transparent;
-
-    height: 26px;
-    width: 26px;
-
-    background-image: url(i-edit.svg);
-    background-color: transparent;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 16px 16px;
-
-    margin-left: 3px;
-    margin-right: 3px;
-    max-width: 26px;
-
-    span{
-        color: transparent;
-        text-align: center;
-    }
-
-    &:hover{
-        background-position: 5px 5px;
-        background-color: transparent;
-        border-bottom: 2px solid white;
-
-        span{
-            transition-delay: 0.05s;
-            color: white;
-            border-radius: 5px;
-            background: rgba($c_tone_00, 80%);
-            border: 1px solid $c_tone_00;
-
-            display: block;
-            width: 3rem;
-
-            position: absolute;
-            top:0;
-            right:26px;
-        }
-    }
-}
-
-.extended-subheading{
-    display: block;
-    position: relative;
-    width: 100%;
-
-    a{
-        color: $c_txt_main;
-    }
-
-    .edit-icon{
-        position: absolute;
-        height: 1.5rem;
-        bottom: 0;
-        right: 0.8rem;
-        text-decoration: none;
-
-        &:hover{
-            background-position: 5px 4px;
-        }
-    }
 }
 
 .ji-edit{
@@ -1239,8 +1530,6 @@ p.empty-section-notice{
     }
 }
 
-
-
 .existing-items-container{
     display: flex;
     flex-flow: row wrap;
@@ -1263,320 +1552,11 @@ p.empty-section-notice{
             color: $c_tone_07;
         }
     }
-}
 
-
-
-
-
-
-
-.panel{
-    display: inline-block;
-    position: relative;
-    box-sizing:border-box;
-
-    border: 1px solid $c_tone_04;
-    border-radius: 8px;
-
-    max-width: $MAX_WIDTH;
-    width: 93%;
-
-    margin: 1rem 0.5rem 0 0.5rem;
-
-    a{
-        text-decoration: none;
-    }
-
-    .panel-header{
-        font-size: 1rem;
-
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        margin: 0;
-        padding: 12px 8px;
-
-        color: $c_txt_main;
-        background: $c_tone_02;
-        background: linear-gradient(0deg, $c_tone_01 0%, $c_tone_02 100%);
-        border-bottom: 1px solid $c_tone_04;
-
-        h3{
-            margin: 0;
-        }
-
-        .desc{
-            &:before, &:after{
-                content: '"';
-            }
-
-            font-style: italic;
-            font-weight: normal;
-            font-size: 0.95rem;
-            color: $c_tone_06;
-        }
-    }
-
-    .close, .delete-panel{
-        position: relative;
-        float: right;
-        color: $c_tone_07;
-        margin-right: 3px;
-    
-        width: 30px;
-        height: 30px;
-        background-repeat: no-repeat;
-        background-position: right;
-        border: transparent;
-    
-        background-color: transparent;
-        padding: 3px 5px;
-        z-index: 2;
-    
-        span{
-            display: block;
-            position: absolute;
-            top:0;
-            right:26px;
-            z-index: 3;
-
-            font-size: 1rem;
-            width: 4rem;
-
-            color: transparent;
-            text-align: center;
-        }
-    
-        &:hover{
-            span{
-                color: $c_txt_main;
-                border-radius: 5px;
-                background: rgba($c_tone_00, 80%);
-                border: 1px solid $c_tone_00;
-            }
-        }    
-    }
-
-    .close{
-        background-image: url('i-x-hollow.svg');
-
-        &:hover{
-            background-image: url('i-x-filled.svg');
-        }
-    }
-
-    .delete-panel{
-        color: $c_tone_07;
-        background-image: url('i-minus-empty.svg');
- 
-         &:hover{
-            background-image: url('i-minus-filled.svg');
-        }
-    }
-
-    &.job {
-        max-width: 400px;
-        box-shadow: $panel_shadow;
-    
-        .panel-header{
-            border-bottom: none;
-        }
-    
-        &:hover{
-            border: 1px solid $c_tone_06;
-            box-shadow: $panel_shadow_highlight;
-        }
-    
-        p{
-            color: $c_txt_main;
-            margin: 0;
-            padding: 12px 10px;
-            background: $c_tone_02;
-            
-        }
-    
-        ul{
-            margin-top: 0;
-            margin-bottom: 0;
-            background: $c_accent_01;
-            color: $c_txt_main;
-            padding: 8px 24px;
-            border-top: 1px solid $c_accent;
-            border-bottom: 1px solid $c_accent;
-        }
-    
-        .comments{
-            margin: 0;
-        }
-    
-        .add-button.comment{
-            margin: 3px 5px;
-        }
-    }
-
-    &.excluded-container ul{
-        .display, .none{
-            color: $c_tone_03;
-            font-style: italic;
-        }
-    }
-
-    &.status-controls{
-        .status-strip{
-            display: block;
-            text-align: center;
-            padding: 0.5rem;
-            width: calc(100% - 2 * 0.5rem);
-
-            &.final{
-                background: $c_tone_05;
-            }
-            &.draft{
-                background: $c_accent_secondary_02;
-            }
-        }
+    span.desc{
+        margin: 0.2rem 0 0 0.75rem;
     }
 }
-
-
-
-
-
-
-
-
-
-.form-like{
-
-    label, input, select, span, .button-container{
-        margin: 0;
-        margin-left: 0.7rem;
-    }
-    span.product_desc{
-        margin-left: 0;
-    }
-
-    label{
-        display: block;
-        margin-top: 1rem;
-        margin-bottom: 6px;
-        margin-right: 0.7rem;
-        padding-top:0.3rem;
-        font-size: 1.1rem;
-        font-weight: bold;
-        border-top: 1px solid $c_tone_02;
-    }
-
-    #id_edit_item_selling_price{
-        // This has a span in front indicating the currency, so it doesn't want the full margin
-        margin-left: 0.5rem;
-    }
-
-    .issue-date{
-        margin-top: 1rem;
-    }
-
-    .form-row{
-        display: block;
-        position: relative;
-        padding: 0.3rem 0.4rem;
-        border-radius: 5px;
-        background: $c_tone_02;
-        margin: 1rem auto 0;
-        width: calc(97% - 1.8rem);
-
-        :first-child{
-            border-top: none;
-            margin-top: 0;
-        }
-
-        input, select{
-            max-width: 80%;
-        }
-
-        .desc{
-            display: block;
-            font-size: 0.9rem;
-            font-style: italic;
-            margin: 0.2rem 0 0 1.2rem;
-            border-left: 3px solid $c_accent_secondary;
-            padding: 5px;
-
-            &.hide{
-                display: none;
-            }
-        }
-
-        &.panel{
-            width: 260px;
-        }
-    }
-
-    .controls{
-        margin: 1.2rem 0.5rem 1rem 0.5rem;
-
-        width: calc(100% - 1rem);
-        height: 100%;
-        overflow-x: auto;
-        white-space: nowrap;
-
-        button, input[type=submit]{
-            float: left;
-            margin: 5px;
-            border-radius: 5px;
-            padding: 5px 10px;
-            width: 20%;
-            min-width: 4.5rem;
-        }
-
-        input[type=submit]{
-            height: auto;
-            padding: 5px 0.5rem;
-            //font-size: 1.2rem;
-            font-size: 1rem;
-            width: 20%;
-        }
-
-        .delete-btn, .delete-comment-btn{
-            float: right;
-        }
-    }
-
-    .full-width-button{
-        width: 100%;
-        margin: 1rem 0 0;
-        padding: 0.4rem 0;
-        height: 2.3rem;
-        font-size: 1.2rem;
-        border-radius: 0.5rem;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;        
-    }
-
-    div:last-child{
-        border-bottom: none;
-    }
-
-    &.hide{
-        display:none;
-    }
-
-}
-
-@media screen and (min-width: 445px){
-    // Something about the proliferation of %-based widths results in width issues (on narrow screens)
-    // on the Job page whenever the form to add multiple items is visible.
-    // Setting a pixel-based width above solved the problem for narrow screens, but causes a problem
-    // on wide screens (= weirdly skinny form sections). This widens them again.
-
-    .form-like{
-        .form-row.panel{
-            width: 95%;
-        }
-    }
-}
-
-
 
 
 #filter_controls{
@@ -1654,7 +1634,6 @@ p.empty-section-notice{
 }
 
 
-
 #new_items_container{
     width: 95%;
 
@@ -1694,11 +1673,6 @@ p.empty-section-notice{
     }
 
 }
-
-
-
-
-
 
 .combo-input-and-button{
     margin: 0;
@@ -1763,33 +1737,6 @@ p.empty-section-notice{
         margin: 1rem 0 1rem 0.5rem;
     }
 
-    // .manual-price-container{
-    //     margin: 1rem 0 1rem 0.5rem;
-    //     display: flex;
-    //     flex-flow: row wrap;
-    //     align-items: stretch;
-
-    //     span{
-    //         display: block;
-    //         margin: 0 0 0.2rem 0;
-    //         min-width: 100%;
-    //     }
-
-    //     input{
-    //         margin: 0;
-    //         width: 12rem;
-    //         border-top-right-radius: 0;
-    //         border-bottom-right-radius: 0;
-    //     }
-    //     button{
-    //         margin: 0;
-    //         font-size: 0.9rem;
-    //         width: 3.5rem;
-    //         border-top-left-radius: 0;
-    //         border-bottom-left-radius: 0;
-    //     } 
-    // }
-
     .button-primary-hollow{
         background: $c_tone_00;
 
@@ -1799,11 +1746,6 @@ p.empty-section-notice{
         }
     }
 }
-
-
-
-
-
 
 
 .job-item-container{
@@ -1962,10 +1904,6 @@ p.empty-section-notice{
 .warning.subsection{
     margin: 1rem 0;
 }
-
-
-
-
 
 table.price-comparison{
     margin: 0.5rem;
@@ -2414,10 +2352,6 @@ table.price-comparison{
     padding: 0;
     z-index: 2;
 
-    .panel-header{
-        //width: calc(400px - 16px);
-    }
-
     .bucket-options-container{
         display: flex;
         padding-bottom: 10px;
@@ -2590,6 +2524,10 @@ table.price-comparison{
 
     .button-warning{
         float: right;
+    }
+
+    .panel{
+        max-width: 11.75rem;
     }
 
     .return-to-job{
@@ -2785,13 +2723,13 @@ table.price-comparison{
 
 /* Visibility functionality ------------------------------------------------------ */
 .hide{
-    // position: absolute;
-    // width: 1px;
-    // height: 1px;
-    // top: -9999px;
-    // left: -9999px;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    top: -9999px;
+    left: -9999px;
 
-    display: none;
+    // display: none;
 }
 
 .hover-parent{

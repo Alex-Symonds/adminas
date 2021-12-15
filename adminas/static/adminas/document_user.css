@@ -1,0 +1,33 @@
+#acmevil_header img {
+  float: left;
+  width: 60px;
+  height: 60px;
+}
+#acmevil_header #company_name {
+  float: left;
+  font-size: 32px;
+  font-family: fantasy;
+  border-bottom: 1px solid black;
+  margin-left: 16px;
+  width: 800px;
+}
+#acmevil_header #motto {
+  font-size: 16px;
+  padding: 0 0 2px 0;
+  margin-left: 16px;
+  width: 800px;
+  font-family: Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
+  font-style: italic;
+}
+
+#acmevil_footer {
+  border-top: 1px solid black;
+  padding-top: 3px;
+}
+#acmevil_footer #address, #acmevil_footer #contact_details, #acmevil_footer #legal_details {
+  float: left;
+  width: 290px;
+  font-size: 11px;
+}
+
+/*# sourceMappingURL=document_user.css.map */

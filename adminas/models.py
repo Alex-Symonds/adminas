@@ -6,7 +6,7 @@ from django.db.models import Sum
 
 from django_countries.fields import CountryField
 
-from adminas.constants import DOCUMENT_TYPES, MAX_ROWS_WO, MAX_ROWS_OC, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, DOC_CODE_MAX_LENGTH
+from adminas.constants import DOCUMENT_TYPES, NUM_BODY_ROWS_ON_EMPTY_DOCUMENT, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, DOC_CODE_MAX_LENGTH
 from adminas.util import format_money, get_document_available_items, get_plus_prefix, copy_relations_to_new_document_version
 import datetime
 
@@ -1604,15 +1604,10 @@ class DocumentVersion(AdminAuditTrail):
         """
             Format JobItem data in a dict for display on a document.
         """
-        if self.document.doc_type == 'WO':
-            max_rows = MAX_ROWS_WO
-        elif self.document.doc_type == 'OC':
-            max_rows = MAX_ROWS_OC
-
         # List of items assigned to this particular document.
         if self.items.all().count() == 0:
             result = []
-            for x in range(0, max_rows):
+            for x in range(0, NUM_BODY_ROWS_ON_EMPTY_DOCUMENT):
                 result.append(self.get_empty_body_line())
 
             return result
