@@ -137,7 +137,7 @@ class DocumentVersionForm(ModelForm):
 class ProductionReqForm(ModelForm):
     class Meta():
         model = ProductionData
-        fields = ['date_requested']
+        fields = ['date_requested', 'date_scheduled']
  
 
 class JobCommentFullForm(ModelForm):

@@ -55,6 +55,11 @@
             <label class="row-label" for="id_req_prod_date">Requested Completion Date</label>
             <input type="date" id="id_req_prod_date" value="{{doc_specific.date_requested|date:'Y-m-d'}}">
         </div>
+
+        <div class="form-row">
+            <label class="row-label" for="id_sched_prod_date">Scheduled Completion Date</label>
+            <input type="date" id="id_sched_prod_date" value="{{doc_specific.date_scheduled|date:'Y-m-d'}}">
+        </div>
     {% endif %}
     </section>
 

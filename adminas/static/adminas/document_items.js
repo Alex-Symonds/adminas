@@ -525,6 +525,9 @@ function get_docitem_qty_from_li(docitem_ele){
 
 // Split DocItem Activity: main function to call to make the split happen
 function process_split_request(calling_ele){
+    // Update the split window, just in case the user didn't trigger an update
+    update_split_window(document.querySelector('#id_qty'));
+
     // Get the JobItem ID and the new incl and excl quantities
     const docitem_li = calling_ele.closest('li');
     const jobitem_id = docitem_li.dataset.jiid;

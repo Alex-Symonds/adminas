@@ -573,14 +573,14 @@ def items(request):
     
     if request.method == 'POST':
         if not request.GET.get('id'):
-            # Try processing the formset with a flexible number of items added at once
+            # Try processing the formset with a flexible number of items added at once (i.e. from the multi-item form on the Job page)
             formset = JobItemFormSet(request.POST)
             if formset.is_valid():
                 for form in formset:
                     add_jobitem(request.user, form)
                 return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
 
-            # Try processing as a non-formset
+            # Try processing as a non-formset (i.e. from the Module Management page)
             else:
                 try:
                     posted_data = json.loads(request.body)
@@ -613,12 +613,12 @@ def items(request):
       
 
         else:
-            # The presence of ID in the GET params means it's an update or delete of some description
+            # The presence of ID in the GET params means it's an update or delete
             ji_id = request.GET.get('id')
             ji = JobItem.objects.get(id=ji_id)
 
             if request.GET.get('delete'):
-                # Deleting an item can mess up JobModule assignments. First check for child-related problems
+                # Deleting an item can mess up JobModule assignments. Check for child-related problems
                 new_qty = 0
                 if not ji.quantity_is_ok_for_modular_as_child(new_qty):
                     return JsonResponse({
@@ -644,11 +644,11 @@ def items(request):
 
                         # Check that the proposed edit wouldn't leave any other items with empty slots
                         if previous_product != form.cleaned_data['product']:
-                            proposed_qty_for_previous_product = 0
+                            proposed_new_qty_for_previous_product = 0
                         else:
-                            proposed_qty_for_previous_product = form.cleaned_data['quantity']
+                            proposed_new_qty_for_previous_product = form.cleaned_data['quantity']
                         
-                        if not ji.quantity_is_ok_for_modular_as_child(proposed_qty_for_previous_product):
+                        if not ji.quantity_is_ok_for_modular_as_child(proposed_new_qty_for_previous_product):
                             return JsonResponse({
                                 'message': f"Update failed: conflicts with modular item assignments."
                             }, status=400)                             
@@ -1086,7 +1086,8 @@ def doc_builder(request):
             if 'req_prod_date' in posted_data:
                 doctype_specific_fields_exist = True
                 prod_data_form = ProductionReqForm({
-                    'date_requested': posted_data['req_prod_date']
+                    'date_requested': posted_data['req_prod_date'],
+                    'date_scheduled': posted_data['sched_prod_date']
                 })
                 doctype_specific_fields_are_ok = prod_data_form.is_valid()
 
@@ -1157,7 +1158,8 @@ def doc_builder(request):
 
                 # Update/delete document-specific fields. For now, that's only the WO requested date.
                 if 'req_prod_date' in posted_data:
-                    doc_obj.update_requested_production_date(prod_data_form)
+                    doc_obj.update_production_dates(prod_data_form)
+
 
                 if doc_obj.issue_date != None:
                     # The document has been issued, so no more working is permitted. Save and exit to doc main.
@@ -1298,7 +1300,7 @@ def document_main(request, doc_id):
 
             if previous_version == None:
                 return JsonResponse({
-                    'message': 'Cannot revert to previous version: some items have been assigned to other documents of the same type.'
+                    'message': 'Revert version has failed (some items have been assigned to other documents of the same type)'
                 }, status=405)
 
             else:

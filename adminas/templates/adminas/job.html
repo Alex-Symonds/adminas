@@ -45,7 +45,32 @@
             {% endif %}
             </button>
         </div>
+
+    {% if job.num_admin_warnings > 0 %}
+    <section id="admin_info">
+        <button class="admin-info-btn button-primary-hollow">
+            view {{ job.num_admin_warnings }} notifications
+        </button>
+        <div id="admin_info_container" class="panel hide popout">
+            <button class="close"><span>close</span></button>
+            <h3 class="panel-header">Notifications</h3>
+            <ul>        
+        {% for str_warning in job.admin_warnings.strings %}
+                <li>{{ str_warning }}</li>
+        {% endfor %}    
+        {% for tuple_warning in job.admin_warnings.tuples %}
+                <li>{{ tuple_warning.0 }} {{ tuple_warning.1 }}</li>
+        {% endfor %} 
+            </ul>
+        </div>
+
+    </section>
+
+    {% endif %}
     </div>
+
+
+
 
     <div class="job-page-sections-wrapper">
 
@@ -137,7 +162,7 @@
                         <a href="{% url 'doc_main' doc_version.id %}"
                             {% if doc_version.issue_date != None %}
                                 class="issued-document">
-                                <span class="issue-icon">I</span>
+                                <span class="issued-icon">I</span>
                             {% else %}
                                 class="saved-document">
                                 <span class="saved-icon">S</span>
@@ -238,8 +263,16 @@
                         <div class="module-status-section assignments">
                             <div class="intro-line">
                                 <span class="display-text">
-                                    &laquo; Assignments (job contains {{ it.module_data.product_total }}: {{ it.module_data.num_assigned }} in use; {{ it.module_data.num_unassigned }} available)
+                                    &laquo; Assignments
                                 </span>
+                                <div class="assignment-icon">
+                                    <span class="label">used</span>
+                                    <span class="status">{{ it.module_data.num_assigned }}/{{ it.module_data.product_total }}</span>
+                                </div>
+                                <div class="assignment-icon">
+                                    <span class="label">unused</span>
+                                    <span class="status">{{ it.module_data.num_unassigned }}/{{ it.module_data.product_total }}</span>
+                                </div>                                   
                             </div>
                             <ul>
                     {% for module in it.module_assignments %}

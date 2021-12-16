@@ -53,12 +53,12 @@ function next_or_previous_document_version(btn, taskname){
             window.location.href = data['redirect'];
         // If the server responds with a "message", display it.
         } else if ('message' in data) {
-            display_document_response_message(data, btn);
+            display_document_response_message(data, document.querySelector('.status-controls'));
         // If the server falls on its face, display a generic message.   
         } else {
             data = {}
             data['message'] = 'Something went wrong';
-            display_document_response_message(data, btn);
+            display_document_response_message(data, document.querySelector('.status-controls'));
         }
     })
     .catch(error => {

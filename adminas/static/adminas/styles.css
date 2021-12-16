@@ -25,11 +25,14 @@ a:hover {
 }
 
 h1 {
-  font-family: "Questrial", sans-serif;
-  margin: 0.1rem;
+  font-family: "Varela Round", sans-serif;
+  margin: 0;
   padding: 0;
   font-size: 1.3rem;
   color: #AAA;
+  border-left: 3px solid #666;
+  padding: 0.1rem 0.5rem 0.3rem;
+  margin-top: 0.1rem;
 }
 
 h2, h3, h4, h5, h6 {
@@ -125,6 +128,16 @@ nav ul {
   list-style: none;
   background: #222324;
   background: linear-gradient(45deg, #222324 0%, #282829 35%, #383a3a 100%);
+  position: relative;
+}
+nav ul:before {
+  position: absolute;
+  content: "";
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: -1;
   box-shadow: 0px 0px 15px 8px #0f0f0f;
 }
 nav li, nav li a {
@@ -345,17 +358,21 @@ nav li a:hover {
   display: inline-block;
   position: relative;
   box-sizing: border-box;
-  border: 1px solid #888;
+  border: 1px solid #666;
   border-radius: 8px;
   max-width: 700px;
   width: 93%;
   margin: 1rem 0.5rem 0 0.5rem;
+}
+.panel.popout {
+  box-shadow: 0 0 15px 15px rgba(0, 0, 0, 0.33);
 }
 .panel a {
   text-decoration: none;
 }
 .panel .panel-header {
   font-size: 1rem;
+  width: calc(100% - 16px);
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
   margin: 0;
@@ -363,7 +380,7 @@ nav li a:hover {
   color: #F6F6F6;
   background: #444;
   background: linear-gradient(0deg, #222 0%, #444 100%);
-  border-bottom: 1px solid #888;
+  border-bottom: 1px solid #666;
 }
 .panel .panel-header h3 {
   margin: 0;
@@ -999,6 +1016,28 @@ p.empty-section-notice {
   font-weight: bold;
 }
 
+#admin_info {
+  position: relative;
+}
+#admin_info .admin-info-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+}
+#admin_info .panel {
+  position: absolute;
+  z-index: 3;
+  background: #444;
+  color: #F6F6F6;
+  width: fit-content;
+}
+#admin_info .panel ul {
+  margin: 0;
+  padding: 8px 30px;
+}
+#admin_info .panel li {
+  padding: 0.2rem 0;
+}
+
 .job-page-sections-wrapper, .document-sections-wrapper {
   display: flex;
   flex-flow: row wrap;
@@ -1392,6 +1431,35 @@ p.empty-section-notice {
 }
 .job-item-container div:last-child {
   border-bottom: none;
+}
+.job-item-container .assignment-icon {
+  display: inline-block;
+  border: 1px solid #141414;
+  border-radius: 0.2rem;
+  font-size: 0.75rem;
+  margin: 0;
+  padding: 0;
+  margin: 0 0.1rem;
+}
+.job-item-container .assignment-icon span {
+  display: block;
+  float: left;
+  padding: 1px 6px;
+  margin: 0;
+}
+.job-item-container .assignment-icon .label {
+  border-top-left-radius: 0.15rem;
+  border-bottom-left-radius: 0.15rem;
+  border-right: 2px solid #00D4F5;
+  background: #222;
+  color: #BBB;
+}
+.job-item-container .assignment-icon .status {
+  background: #222;
+  font-weight: bold;
+}
+.job-item-container .assignment-icon:last-of-type {
+  border-bottom: 1px solid #141414;
 }
 .job-item-container .money {
   margin: 0 3px;
@@ -2078,6 +2146,14 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
   font-weight: bold;
   text-align: center;
   padding: 0.5rem;
+  margin-top: 3.5rem;
+}
+.status-controls .system-message-box {
+  width: 98.5%;
+  border: 1px solid #141414;
+  border-left: 3px solid #cf0000;
+  background: #222;
+  margin: 0.5rem;
 }
 
 .edit-document .document-fields-container {
@@ -2219,6 +2295,7 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
   height: 1px;
   top: -9999px;
   left: -9999px;
+  display: none;
 }
 
 .hover-parent {

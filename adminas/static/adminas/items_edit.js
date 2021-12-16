@@ -660,6 +660,7 @@ function create_ele_jobitem_editor_price_only(table_row_ele){
     div.classList.add(CLASS_PRICE_CHECKER_EDIT_WINDOW);
     div.classList.add(CSS_GENERIC_PANEL);
     div.classList.add(CSS_GENERIC_FORM_LIKE);
+    div.classList.add('popout');
 
     div.append(get_price_edit_close_btn());
 

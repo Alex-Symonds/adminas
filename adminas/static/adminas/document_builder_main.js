@@ -22,6 +22,7 @@ const CLASS_SPECIAL_INSTRUCTION_DELETE = 'delete-special-instruction-btn';
 const CLASS_LOCAL_NAV = 'status-controls';
 
 const CLASS_INSTRUCTIONS_SECTION = 'special-instructions';
+const CLASS_ONE_SPECIAL_INSTRUCTION = 'read_row';
 
 const CLASS_SHOW_ADD_INSTRUCTION_FORMLIKE = 'special-instruction';
 const CLASS_HIDE_ADD_INSTRUCTION_FORMLIKE = 'close-new-instr';
@@ -148,7 +149,7 @@ function save_document(){
 // Issue and Save: shared function to send the status of the current draft to the server.
 function update_document_on_server(issue_date){
     let dict = get_document_data_as_dict(issue_date);
-    console.log(dict);
+
     // DOC_ID 0 = creating a new document, so the server needs to know the Job ID and doc type
     if(DOC_ID == '0'){
         var URL = `${URL_DOCBUILDER}?job=${JOB_ID}&type=${DOC_CODE}`;
@@ -166,7 +167,7 @@ function update_document_on_server(issue_date){
     })
     .then(response => response.json())
     .then(data => {
-        console.log(data);
+
         // If the document was successfully issued, it can no longer be edited, so the server
         // will want to redirect the user back to the read-only document page.
         if ('redirect' in data){
@@ -193,7 +194,7 @@ function get_document_data_as_dict(issue_date){
     dict['assigned_items'] = get_assigned_items_as_list();
     dict['special_instructions'] = get_special_instructions_as_list();
 
-    // Document-type-specific fields. (There's only one at present, so handle it here instead of having a separate function)
+    // Document-type-specific fields. (There's only two at present, so handle it here instead of having a separate function)
     let req_prod_date_ele = document.querySelector('#id_req_prod_date');
     if(req_prod_date_ele){
         var req_prod_date = req_prod_date_ele.value;
@@ -202,6 +203,17 @@ function get_document_data_as_dict(issue_date){
         }
         else {
             dict['req_prod_date'] = req_prod_date;
+        }
+    }
+
+    let sched_prod_date_ele = document.querySelector('#id_sched_prod_date');
+    if(sched_prod_date_ele){
+        var sched_prod_date = sched_prod_date_ele.value;
+        if(sched_prod_date == ''){
+            dict['sched_prod_date'] = '';
+        }
+        else {
+            dict['sched_prod_date'] = sched_prod_date;
         }
     }
 
@@ -464,7 +476,7 @@ function update_special_instructions_contents(btn){
 
 // Delete Special Instruction: remove one special instruction ele from the page.
 function delete_special_instruction(btn){
-    btn.parentElement.remove();
+    btn.closest('.' + CLASS_ONE_SPECIAL_INSTRUCTION).remove();
     update_no_special_instructions_ele();
     show_save_warning_ele();
 }
@@ -477,7 +489,7 @@ function update_no_special_instructions_ele(){
     let section_div = document.querySelector('.special-instructions');
     let none_p = section_div.querySelector('.no-special-instructions');
 
-    let want_none_p = section_div.querySelector('.read_row') == null;
+    let want_none_p = section_div.querySelector('.' + CLASS_ONE_SPECIAL_INSTRUCTION) == null;
     let have_none_p = none_p != null;
 
     if(want_none_p && !have_none_p){

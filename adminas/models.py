@@ -7,7 +7,7 @@ from django.db.models import Sum
 from django_countries.fields import CountryField
 
 from adminas.constants import DOCUMENT_TYPES, NUM_BODY_ROWS_ON_EMPTY_DOCUMENT, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, DOC_CODE_MAX_LENGTH
-from adminas.util import format_money, get_document_available_items, get_plus_prefix, copy_relations_to_new_document_version
+from adminas.util import format_money, get_document_available_items, get_plus_prefix, copy_relations_to_new_document_version, debug
 import datetime
 
 from django.db.models import Q
@@ -391,8 +391,9 @@ class Job(AdminAuditTrail):
     def quantity_of_product(self, product):
         """
             Modular item support. Count how many of a given Product exists on the Job. (It could be split across multiple line items.)
+            Note: excludes standard accessories from the count because standard accessories are considered "part" of the parent item.
         """
-        instances_of_product = JobItem.objects.filter(job=self).filter(product=product)
+        instances_of_product = JobItem.objects.filter(job=self).filter(product=product).filter(included_with = None)
         if instances_of_product.count() == 0:
             return 0
         return instances_of_product.aggregate(Sum('quantity'))['quantity__sum']
@@ -467,6 +468,9 @@ class Job(AdminAuditTrail):
         """
         return self in user.todo_list_jobs.all()
 
+
+    def num_admin_warnings(self):
+        return len(self.admin_warnings())
 
     def admin_warnings(self):
         """
@@ -1368,7 +1372,7 @@ class DocumentVersion(AdminAuditTrail):
             new_static_fld = DocumentStaticOptionalFields(
                 doc_version = self,
                 h = opt_field['h'],
-                body = opt_field['body'],
+                body = opt_field['body'] if not opt_field['body'] == None else '?',
                 css_id = opt_field['css_id'] if 'css_id' in opt_field else None
             )
             new_static_fld.save()
@@ -1543,6 +1547,7 @@ class DocumentVersion(AdminAuditTrail):
         """
         for assignment in DocAssignment.objects.filter(version=self):
             if assignment.quantity > assignment.max_quantity_excl_self():
+                debug(f'DocAssignment clash on item {assignment.item.id}: needs {assignment.quantity} but {assignment.max_quantity_excl_self()} available')
                 return True
 
         return False
@@ -1562,7 +1567,7 @@ class DocumentVersion(AdminAuditTrail):
             for a in assignments:
                 this_dict = {}
                 this_dict['id'] = a.pk
-                this_dict['jiid'] = a.item.pk
+                this_dict['jiid'] = a.item.id
                 this_dict['total_quantity'] = a.item.quantity
                 this_dict['display'] = a.item.display_str().replace(str(a.item.quantity), str(a.quantity))
                 result.append(this_dict)
@@ -1694,7 +1699,7 @@ class DocumentVersion(AdminAuditTrail):
                     # Case = UPDATE: assignment already exists. Update the quantity, if necessary, then check this off the to-do list.
                     found = True
                     if int(req['quantity']) != ea.quantity:
-                        ea.quantity = min(int(req['quantity']), ea.max_quantity_incl_self())
+                        ea.quantity = min(int(req['quantity']), ea.max_quantity_excl_self())
                         ea.save()
                     required.remove(req)
                     break
@@ -1725,6 +1730,66 @@ class DocumentVersion(AdminAuditTrail):
             if not found:
                 ei.delete()
         return required
+
+
+    def update_production_dates(self, form):
+        """
+            Find the ProductionData associated with this document and update it.
+        """
+        # Skip if this document type doesn't have production data associated with it under any circumstances
+        if self.document.doc_type != 'WO':
+            return
+
+        else:
+            # Look for ProductionData records for this document.
+            proddata_qs = ProductionData.objects.filter(version=self)
+
+            # Found 0: Create a new ProductionData record for this document
+            if proddata_qs.count() == 0:              
+
+                # No dates = don't bother
+                if '' == form.cleaned_data['date_requested'] and '' == form.cleaned_data['date_scheduled']:
+                    return
+
+                if '' != form.cleaned_data['date_requested']:
+                    req = form.cleaned_data['date_requested']
+                else:
+                    req = None
+
+                if '' != form.cleaned_data['date_scheduled']:
+                    sched = form.cleaned_data['date_scheduled']
+                else:
+                    sched = None
+
+                this_pd = ProductionData(
+                    version = self,
+                    date_requested = req,
+                    date_scheduled = sched
+                )
+                this_pd.save()
+
+            # Found 1: Update/Delete it
+            elif proddata_qs.count() == 1:
+                this_pd = proddata_qs[0]
+
+                # No dates = no ProductionData, so delete it
+                if '' == form.cleaned_data['date_requested'] and '' == form.cleaned_data['date_scheduled']:
+                    this_pd.delete()
+
+                # Update the dates if they changed
+                else:
+                    something_changed = False
+
+                    if this_pd.date_requested != form.cleaned_data['date_requested']:
+                        this_pd.date_requested = form.cleaned_data['date_requested']
+                        something_changed = True
+
+                    if this_pd.date_scheduled != form.cleaned_data['date_scheduled']:
+                        this_pd.date_scheduled = form.cleaned_data['date_scheduled']
+                        something_changed = True
+                    
+                    if something_changed:
+                        this_pd.save()   
 
 
     def update_requested_production_date(self, prod_data_form):
@@ -1780,26 +1845,24 @@ class DocAssignment(models.Model):
     item = models.ForeignKey(JobItem, on_delete=models.CASCADE)
     quantity = models.IntegerField()
 
-    def max_quantity_incl_self(self):
+    def max_quantity_excl_self(self):
         """
-            Get the maximum quantity that can be assigned, including self.quantity.
+            Get the maximum quantity that could be assigned to self.
         """
-        qty_assigned = DocAssignment.objects\
+        assignment_qs = DocAssignment.objects\
                     .filter(item=self.item)\
                     .filter(version__document__doc_type=self.version.document.doc_type)\
                     .filter(version__active=True)\
-                    .aggregate(Sum('quantity'))['quantity__sum']
+                    .exclude(id=self.id)
 
-        if qty_assigned == None:
+        if assignment_qs.count() == 0:
             qty_assigned = 0
-        
-        return qty_assigned
+        else:
+            qty_assigned_dict = assignment_qs.aggregate(Sum('quantity'))
+            qty_assigned = qty_assigned_dict['quantity__sum']
 
-    def max_quantity_excl_self(self):
-        """
-            Get the maximum quantity that can be assigned, excluding self.quantity.
-        """
-        return self.max_quantity_incl_self() - self.item.quantity
+        return self.item.quantity - qty_assigned
+
 
     def __str__(self):
         return f'{self.quantity} x {self.item.product.name} assigned to {self.version.document.doc_type} {self.version.document.reference}'
@@ -1861,12 +1924,12 @@ class DocumentStaticOptionalFields(models.Model):
     def __str__(self):
         return f'Static optional field ({self.h}) for issued document {self.doc_version.document.reference}, version {self.doc_version.version_number} dated {self.doc_version.issue_date}'
 
+
 class DocumentStaticSpecialInstruction(models.Model):
     """
         For issued documents. Store a single special instruction as it was at the time the document was issued.
     """
     doc_version = models.ForeignKey(DocumentVersion, on_delete=models.CASCADE, related_name='static_instructions')
-
     instruction = models.TextField()
 
     def __str__(self):

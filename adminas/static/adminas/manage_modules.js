@@ -132,6 +132,7 @@ async function create_ele_module_slot_filler(slot_id, parent_id){
     div.classList.add(CLASS_MODULE_SLOT_FILLER_POPOUT_MENU);
     div.classList.add(CSS_GENERIC_PANEL);
     div.classList.add(CSS_GENERIC_FORM_LIKE);
+    div.classList.add('popout');
 
     // Fill with other elements
     let json_response = await get_list_for_module_slot(slot_id, parent_id, 'jobitems');
@@ -450,7 +451,7 @@ async function assign_jobitem_to_slot(e){
 
     let bucket_div = e.target.closest('.' + CLASS_MODULE_SLOT_FILLER_POPOUT_MENU);
     let empty_slot = bucket_div.previousSibling;
-    let parent_ele = e.target.cloest(`.${CLASS_PARENT_ITEM}`);
+    let parent_ele = e.target.closest(`.${CLASS_PARENT_ITEM}`);
 
     if(typeof jobmod_id !== 'undefined'){
         let description = `${parent_ele.dataset.quantity} x ${ele.querySelector(`.${CLASS_PRODUCT_DESC}`).innerHTML}`;

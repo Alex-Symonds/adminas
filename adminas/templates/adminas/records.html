@@ -81,7 +81,7 @@
                 <td>
         {% if job.num_po > 1 %}
                     <button class="list-show-btn button-primary-hollow">view</button>  
-                    <div class="po records-list panel hide">
+                    <div class="po records-list panel hide popout">
                         <button class="list-hide-btn close"><span>close</span></button>
                         <h4 class="panel-header">Purchase Orders</h4>
                         <ul>  
@@ -101,7 +101,7 @@
         {% for item in job.main_item_list %}
             {% if forloop.first %}
                         <button class="list-show-btn button-primary-hollow">view</button>
-                        <div class="product records-list panel hide">
+                        <div class="product records-list panel hide popout">
                             <button class="list-hide-btn close"><span>close</span></button>
                             <h4 class="panel-header">Products</h4>
                             <ul>

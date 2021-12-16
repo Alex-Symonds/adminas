@@ -17,6 +17,14 @@ document.addEventListener('DOMContentLoaded', function() {
         })
     });
 
+    document.querySelector('.admin-info-btn').addEventListener('click', () => {
+        show_ele(document.getElementById('admin_info_container'));
+    });  
+
+    document.getElementById('admin_info_container').querySelector('.' + 'close').addEventListener('click', () => {
+        hide_ele(document.getElementById('admin_info_container'));
+    });
+
 
     document.getElementById('open_item_form_btn').addEventListener('click', () => {
         show_ele(document.getElementById('new_items_container'));
