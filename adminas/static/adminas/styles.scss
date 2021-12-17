@@ -91,8 +91,13 @@ h1{
     margin-top: 0.1rem;
 }
 
+
 h2, h3, h4, h5, h6{
     font-family: $f_heading;
+}
+
+.adminas-name{
+    font-family: $f_adminas;
 }
 
 h2 {
@@ -542,7 +547,7 @@ nav {
             position: absolute;
             top:0;
             right:26px;
-            z-index: 3;
+            z-index: 5;
 
             font-size: 1rem;
             width: 4rem;
@@ -916,7 +921,8 @@ p.empty-section-notice{
         border: 1px solid $c_tone_00;
         border-radius: 3px;
         
-        width: calc(100% - 0px);
+        padding: 3px 0 0;
+        width: calc(100% - 3px);
         height: 1.5rem;
 
         display: flex;
@@ -934,7 +940,7 @@ p.empty-section-notice{
             margin: 1px 0 0 7px;
         }
         #id_private_checkbox, #id_pinned_checkbox{
-            margin-right: 2.5rem;
+            margin-right: 1.9rem;
         }
 
     }
@@ -1323,6 +1329,8 @@ p.empty-section-notice{
 
     .panel{
         position: absolute;
+        top: 2rem;
+        left: 0;
         z-index: 3;
         background: $c_tone_02;
         color: $c_txt_main;
@@ -2010,6 +2018,15 @@ table.price-comparison{
         border-top: 1px solid $c_tone_02;
     }
 
+    .diff-perc{
+        &:before{
+            content: "(";
+        }
+        &:after{
+            content: "%)";
+        }
+    }
+
     .number{
         text-align: right;
     }
@@ -2430,6 +2447,18 @@ table.price-comparison{
     }
 }
 
+@media screen and (max-width: 500px){
+    .modular-item-container .modular-slot-container .contents .module-slot{
+        &.editing,
+        &.new-slot-filler-inputs{
+            position: absolute;
+            top: 2rem;
+            left: 0.1rem;
+            max-width: 100%;
+            z-index: 2;
+        }
+    } 
+}
 
 
 .module-bucket-container{

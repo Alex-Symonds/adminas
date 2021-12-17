@@ -16,31 +16,38 @@
 {% endblock %}
 
 {% block body %}
+    
+    {% if not user.is_authenticated %}
+    <h2>Welcome to <span class="adminas-name">Adminas</span>!</h2>
+    <p>Please <a href="{% url 'login' %}">log in</a> or <a href="{% url 'register' %}">register</a> to begin.</p>
+
+
+    {% else %}
     <h2>Home</h2>
     <h3>To-do List</h3>
     <div id="id_todo_list_container">
-    {% for job in data %}
+        {% for job in data %}
         <article id="todo_panel_job_{{ job.id }}" class="panel job">
             <section class="job-details">
                 <button class="todo-list-remove delete-panel" data-job_id="{{ job.id }}"><span>remove</span></button>
                 <a href="{% url 'job' job.id %}">
                     <h4 class="panel-header">{{ job.name }} <img src="{{ job.flag_url }}" alt="{{ job.flag_alt }}"></h4>
                     <p>
-        {% if job.customer != None %}
+            {% if job.customer != None %}
                         {{ job.customer }}{% if job.agent != None %} (via {% endif %}
-        {% endif %}
-        {% if job.agent != None %}
+            {% endif %}
+            {% if job.agent != None %}
                 {{ job.agent }}{% if job.customer != None %}){% endif %}
-        {% endif %}
+            {% endif %}
          @ {{ job.currency }}&nbsp;{{ job.value }}
                     </p>
                     <ul>        
-        {% for str_warning in job.admin_warnings.strings %}
+            {% for str_warning in job.admin_warnings.strings %}
                         <li>{{ str_warning }}</li>
-        {% endfor %}    
-        {% for tuple_warning in job.admin_warnings.tuples %}
+            {% endfor %}    
+            {% for tuple_warning in job.admin_warnings.tuples %}
                         <li>{{ tuple_warning.0 }} {{ tuple_warning.1 }}</li>
-        {% endfor %} 
+            {% endfor %} 
                     </ul>
                 </a>
             </section>
@@ -60,8 +67,9 @@
             </section>
 
         </article>
-    {% endfor %}
+        {% endfor %}
     </div>
+    {% endif %}
 {% endblock %}
 
 

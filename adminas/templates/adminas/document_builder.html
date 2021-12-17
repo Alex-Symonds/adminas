@@ -130,12 +130,7 @@
                     </div>
             {% else %}
                         <span><a href="{% url 'doc_builder' %}?id={{excl.doc_id}}">
-                            (on  
-                {% if excl.used_by %}
-                                {{ excl.used_by }})
-                {% else %}
-                            unnamed)
-                {% endif %}
+                            (on&nbsp;{% if excl.used_by %}{{ excl.used_by }}{% else %}unnamed{% endif %})
                         </a></span>
                     </span>
             {% endif %}

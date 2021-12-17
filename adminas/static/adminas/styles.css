@@ -39,6 +39,10 @@ h2, h3, h4, h5, h6 {
   font-family: "Arial", sans-serif;
 }
 
+.adminas-name {
+  font-family: "Varela Round", sans-serif;
+}
+
 h2 {
   color: #F6F6F6;
   margin-top: 2rem;
@@ -413,7 +417,7 @@ nav li a:hover {
   position: absolute;
   top: 0;
   right: 26px;
-  z-index: 3;
+  z-index: 5;
   font-size: 1rem;
   width: 4rem;
   color: transparent;
@@ -707,7 +711,8 @@ p.empty-section-notice {
   background: #222;
   border: 1px solid #141414;
   border-radius: 3px;
-  width: calc(100% - 0px);
+  padding: 3px 0 0;
+  width: calc(100% - 3px);
   height: 1.5rem;
   display: flex;
   flex: row;
@@ -724,7 +729,7 @@ p.empty-section-notice {
   margin: 1px 0 0 7px;
 }
 .job-comment-cu-container .checkbox-container #id_private_checkbox, .job-comment-cu-container .checkbox-container #id_pinned_checkbox {
-  margin-right: 2.5rem;
+  margin-right: 1.9rem;
 }
 
 /* Create New Job ------------------------------------------------------ */
@@ -1025,6 +1030,8 @@ p.empty-section-notice {
 }
 #admin_info .panel {
   position: absolute;
+  top: 2rem;
+  left: 0;
   z-index: 3;
   background: #444;
   color: #F6F6F6;
@@ -1588,6 +1595,12 @@ table.price-comparison td {
 table.price-comparison th, table.price-comparison td {
   border-top: 1px solid #444;
 }
+table.price-comparison .diff-perc:before {
+  content: "(";
+}
+table.price-comparison .diff-perc:after {
+  content: "%)";
+}
 table.price-comparison .number {
   text-align: right;
 }
@@ -1978,6 +1991,15 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
   background-position: 5px 4px;
 }
 
+@media screen and (max-width: 500px) {
+  .modular-item-container .modular-slot-container .contents .module-slot.editing, .modular-item-container .modular-slot-container .contents .module-slot.new-slot-filler-inputs {
+    position: absolute;
+    top: 2rem;
+    left: 0.1rem;
+    max-width: 100%;
+    z-index: 2;
+  }
+}
 .module-bucket-container {
   position: absolute;
   left: 0;

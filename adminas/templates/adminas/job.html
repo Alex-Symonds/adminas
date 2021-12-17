@@ -136,7 +136,7 @@
             <a href="{% url 'job_comments' job.id %}?page=1">See all {{ num_comments }} comments</a>
             {% for section in comment_data %}
             <section class="subsection">
-                <h4>{{ section.title }}</h3>
+                <h4>{{ section.title }} by {{ user.username }}</h3>
                 <div class="comment-container {{ section.class_suffix }} empty-paragraph">
                 {% for comment in section.comments %}
                     {% include "adminas/components/comment_collapse.html" with comment=comment %}
@@ -333,7 +333,7 @@
                     <table id="po-discrepancy" class="price-comparison">
                         <tr><th>PO Sum</th><td>{{ job.currency }}</td><td class="po-total-price-f number">{{ job.total_po_value_f }}</td><td></td></tr>
                         <tr><th>Line Items Sum</th><td>{{ job.currency }}</td><td class="selling-price number">{{ job.total_line_value_f }}</td><td></td></tr>
-                        <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td>(<span class="diff-perc">{{ job.total_po_difference_perc }}</span>%)</td></tr>
+                        <tr class="conclusion"><th>Difference</th><td>{{ job.currency }}</td><td class="diff-val number">{{ job.total_po_difference_value_f }}</td><td><span class="diff-perc">{{ job.total_po_difference_perc }}</span></td></tr>
                     </table>
                 </div>
             </div>
@@ -412,9 +412,8 @@
                         <th>Difference</th>
                         <td>{{ job.currency }}</td>
                         <td class="diff-val">{{ job.total_list_difference_value_f }}</td>
-                        <td>(
+                        <td>
                             <span class="diff-perc">{{ job.total_list_difference_perc }}</span>
-                            %)
                         </td>
                     </tr>
                 </table>

@@ -83,7 +83,7 @@ def index(request):
         Index page, containing to-do list.
     """
     if not request.user.is_authenticated:
-        return anonymous_user(request)
+        return render(request, 'adminas/index.html')
 
     user = request.user
     jobs = user.todo_list_jobs.all().order_by('-created_on')
@@ -637,13 +637,22 @@ def items(request):
                 if request.GET.get('edit') == 'all':
                     form = JobItemEditForm(posted_data)
                     if form.is_valid():
-                        # Editing a product has the potential to royally mess up module assignments
-                        # Quantity and product are the danger areas, so store those to allow identification of changes later
+                        # Store the original values for the product and quantity so that we can check if they've changed
                         previous_product = ji.product
                         previous_qty = ji.quantity
 
+                        # Prepare the updated JobItem in accordance with the proposed edit, but don't save it yet
+                        ji.quantity = form.cleaned_data['quantity']
+                        ji.product = form.cleaned_data['product']
+                        ji.selling_price = form.cleaned_data['selling_price']
+                        ji.price_list = form.cleaned_data['price_list']
+
+                        # Identify if the proposed edit touches on anything that requires a special response
+                        product_has_changed = previous_product != ji.product
+                        quantity_has_changed = previous_qty != ji.quantity
+
                         # Check that the proposed edit wouldn't leave any other items with empty slots
-                        if previous_product != form.cleaned_data['product']:
+                        if product_has_changed:
                             proposed_new_qty_for_previous_product = 0
                         else:
                             proposed_new_qty_for_previous_product = form.cleaned_data['quantity']
@@ -653,15 +662,6 @@ def items(request):
                                 'message': f"Update failed: conflicts with modular item assignments."
                             }, status=400)                             
 
-                        # Prepare the updated JobItem
-                        ji.quantity = form.cleaned_data['quantity']
-                        ji.product = form.cleaned_data['product']
-                        ji.selling_price = form.cleaned_data['selling_price']
-                        ji.price_list = form.cleaned_data['price_list']
-
-                        # Identify if the edit touched on anything that requires a special response
-                        product_has_changed = previous_product != ji.product
-                        quantity_has_changed = previous_qty != ji.quantity
 
                         # Check that the proposed edit wouldn't leave itself with empty slots
                         if ji.product.is_modular() and not product_has_changed and ji.quantity > previous_qty:
@@ -680,19 +680,24 @@ def items(request):
                             ji.update_standard_accessories_quantities()
 
                         ji.job.price_changed()
-                        response_data = ji.get_post_edit_dictionary()
+                        # Commented out while I experiment with "editing a JobItem reloads the page"
+                        #response_data = ji.get_post_edit_dictionary()
 
                         # Frontend module assignments! The Job page wants to know if this edit affected the module
                         # assignments: if so, it'll need to update all its little subsections listing incoming/outgoing assignments.
                         # Don't care about price/list changes, only product and quantity.
-                        if quantity_has_changed or product_has_changed:
-                            is_parent = JobModule.objects.filter(parent=ji).count() > 0
-                            is_child = ji.has_module_assignments()
-                            response_data['edit_affected_module_assignments'] = is_child or is_parent
-                        else:
-                            response_data['edit_affected_module_assignments'] = False
+                        # if quantity_has_changed or product_has_changed:
+                        #     is_parent = JobModule.objects.filter(parent=ji).count() > 0
+                        #     is_child = ji.has_module_assignments()
+                        #     response_data['edit_affected_module_assignments'] = is_child or is_parent
+                        # else:
+                        #     response_data['edit_affected_module_assignments'] = False
 
-                        return JsonResponse(response_data, status=200)
+                        #return JsonResponse(response_data, status=200)
+
+                        return JsonResponse({
+                            'reload': 'true'
+                        }, status=200)                        
                 
 
                 elif request.GET.get('edit') == 'price_only':
@@ -703,7 +708,9 @@ def items(request):
                         ji.selling_price = form.cleaned_data['selling_price']
                         ji.save()
                         ji.job.price_changed()
-                        return JsonResponse(ji.get_post_edit_dictionary(), status=200)
+                        return JsonResponse({
+                            'reload': 'true'
+                        }, status=200)  
                     else:
                         return JsonResponse({
                             'message': f"Update failed"
@@ -1196,7 +1203,6 @@ def doc_builder(request):
                 pass
 
     else:
-        # Make a temporary doc_obj to pass data to render and obtain access to useful methods.
         included_list = this_job.get_default_included_items(doc_code)
         excluded_list = this_job.get_default_excluded_items(doc_code)
         special_instructions = None

@@ -41,7 +41,7 @@
         <div class="comment-type-section filtered-comments">
             
             <section>
-                <h3>Pinned</h3>
+                <h3>Pinned by {{ user.username }}</h3>
                 <div class="comment-container pinned streamlined empty-paragraph">
     {% for p in pinned %}
                     {% include "adminas/components/comment_collapse.html" with comment=p %}
@@ -52,7 +52,7 @@
             </section>
 
             <section>
-                <h3>Highlighted</h3>
+                <h3>Highlighted by {{ user.username }}</h3>
                 <div class="comment-container highlighted empty-paragraph">
     {% for h in highlighted %}
                     {% include "adminas/components/comment_full.html" with comment=h %}

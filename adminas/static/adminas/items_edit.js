@@ -315,14 +315,12 @@ function update_job_item(e){
             display_error_message_in_job_item(result_div, data['message']);
             read_mode_job_item(result_ele, edit_ele);
         }
-        // Updating all the module assignments is handled via reloading the page
-        else if(data['edit_affected_module_assignments'] == true){
+        else if (data['reload'] == true){
             location.reload();
         }
-        // If there's no message and the modular items are unaffected, update the page without reloading
         else{
-            update_job_item_in_dom(result_div, edit_ele, data, e.target.dataset.jiid);
-        } 
+            read_mode_job_item(result_ele, edit_ele);
+        }
     })
     .catch(error =>{
         console.log('Error: ', error);
@@ -362,48 +360,6 @@ function create_ele_error_message(message_str){
     return ele;
 }
 
-// Edit JobItem (response): Update one JobItem element in DOM to reflect any/all edits
-function update_job_item_in_dom(result_div, edit_div, response_data, jobitem_id){
-    // Check if the product changed and, if so, update the standard accessories
-    // Note: Ensure this is called before the bit that updates the product field in the display area to match the edit form
-    if(product_has_changed(result_div, edit_div)){
-        update_standard_accessories_in_dom(result_div, response_data);
-    }
-
-    // Update the display area to contain the values from the form
-    for(let i = 0; i < JOB_ITEM_INPUT_FIELDS.length; i++){
-        update_one_field_in_jobitem_panel_from_edit_all_form(result_div, edit_div, JOB_ITEM_INPUT_FIELDS[i]);
-    }
-
-    // Update the auto-description, unless it's blank
-    let desc = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
-    if (desc != ''){
-        result_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML = edit_div.querySelector('.' + AUTO_DESC_CLASS).innerHTML;
-    }
-
-    // Activate read-mode and update price checks
-    read_mode_job_item(result_div, edit_div);
-    update_po_check_presence_in_dom(response_data);
-    update_price_checks_in_dom(response_data, jobitem_id);
-}
-
-// Edit JobItem (response): Update a single piece of display text with the contents of an edit form field
-function update_one_field_in_jobitem_panel_from_edit_all_form(read_div, edit_div, field_name){
-    let result_ele = read_div.querySelector(`.${field_name}`);
-    let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, field_name)}`);
-
-    if(input_ele.tagName === 'INPUT'){
-        if(input_ele.type === 'number' && input_ele.step === '0.01'){
-            result_ele.innerHTML = numberWithCommas(parseFloat(input_ele.value.trim()).toFixed(2));
-
-        } else{
-            result_ele.innerHTML = input_ele.value.trim();
-        }
-
-    } else if(input_ele.tagName === 'SELECT'){
-        result_ele.innerHTML = input_ele.options[input_ele.selectedIndex].text.trim();
-    }
-}
 
 // Edit JobItem (response): Remove the edit form. Called by cancel button and during the post-edit process
 function read_mode_job_item(result_div, edit_form){
@@ -419,223 +375,12 @@ function read_mode_job_item(result_div, edit_form){
     edit_form.remove();
 }
 
-// Edit JobItem (after): check if the edit changed the product
-function product_has_changed(read_div, edit_div){
-    let result_ele = read_div.querySelector('.product');
-    let input_ele = edit_div.querySelector(`#${edit_item_field_id(EDIT_ITEM_ID_PREFIX, 'product')}`);
-    return result_ele.innerHTML != input_ele.options[input_ele.selectedIndex].text;
-}
-
-// Edit JobItem (after): update the list of standard accessories in the DOM
-function update_standard_accessories_in_dom(target_div, response_data){
-
-    // Ascertain the standard accessories status before making any changes to the DOM
-    let old_stdAccs_div = target_div.querySelector('.' + STD_ACC_CLASS);
-    let old_had_stdAccs = old_stdAccs_div != null;
-    let stdAccs_list = response_data.stdAccs;
-    let new_wants_stdAccs = stdAccs_list.length > 0;
-
-    // If the new item has stdAccs, create a div displaying those stdAccs and add it to the DOM
-    if(new_wants_stdAccs){
-        let new_stdAccs_div = get_standard_accessories_div(stdAccs_list);
-        let anchor_div = target_div.querySelector('.' + STD_ACC_CONTAINER_CLASS);
-        anchor_div.append(new_stdAccs_div);
-    }
-
-    // If an old div exists, it's out of date, so remove it
-    if(old_had_stdAccs){
-        old_stdAccs_div.remove();
-    }
-
-    return;
-}
-
-// Edit JobItem (response): create a standard accessories div and populate it with a ul of stdAccs
-function get_standard_accessories_div(stdAccs_list){
-    let div = document.createElement('div');
-    div.classList.add(STD_ACC_CLASS);
-
-    let new_p = document.createElement('p');
-    new_p.innerHTML = 'includes:';
-    div.append(new_p);
-
-    let new_ul = get_ul_with_qty_name(stdAccs_list);        
-    div.append(new_ul);
-
-    return div;
-}
-
-// Edit JobItem (response): create a ul where each li shows the quantity and the name
-function get_ul_with_qty_name(item_list){
-    let new_ul = document.createElement('ul');
-    for(let i = 0; i < item_list.length; i++){
-        var li = document.createElement('li');
-        li.innerHTML = `${item_list[i]['quantity']} x ${item_list[i]['name']}`;
-        new_ul.append(li);
-    }
-    return new_ul;
-}
-
-
-
 
 // Edit JobItem (response), Delete: Get a row in the table for a particular item
 function find_price_check_tr(jobitem_id){
     // Note: used for editing AND deleting, so don't get ideas about removing this one liner and incorporating it into the edit function
     return document.querySelector('#' + ID_PREFIX_PRICE_CHECK_ROW + jobitem_id);
 }
-
-// Edit JobItem (response): Update the price check section in the DOM
-function update_price_checks_in_dom(server_data, jobitem_id){
-
-    // Update the Price Check summary
-    let summary_div = document.querySelector('#price_summary');
-    if(summary_div != null){
-        summary_div.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
-        summary_div.querySelector('.list-price').innerHTML = server_data['total_list_f'];
-        summary_div.querySelector('.diff-val').innerHTML = server_data['total_list_difference_value_f'];
-        summary_div.querySelector('.diff-perc').innerHTML = server_data['total_list_difference_perc'];
-    }
-
-    // Update the PO discrepancy panel, aka "PO Check"
-    let po_discrepancy_ele = document.querySelector('.' + CLASS_PO_CHECK_DIV);
-    if(po_discrepancy_ele != null){
-        po_discrepancy_ele.querySelector('.selling-price').innerHTML = server_data['total_sold_f'];
-        po_discrepancy_ele.querySelector('.diff-val').innerHTML = server_data['total_po_difference_value_f'];
-        po_discrepancy_ele.querySelector('.diff-perc').innerHTML = server_data['total_po_difference_perc'];
-    }
-
-    // Update the Price Check table
-    let item_row = find_price_check_tr(jobitem_id);
-    item_row.querySelector('.edit-btn').dataset.jiid = jobitem_id;
-
-    let desc_td = item_row.querySelector('.description');
-    desc_td.querySelector('.details-toggle').innerHTML = server_data['part_number'];
-    desc_td.querySelector('.details').innerHTML = server_data['name'];
-    
-    item_row.querySelector('.selling-price').innerHTML = server_data['selling_price_f'];
-    item_row.querySelector('.qty').innerHTML = server_data['quantity'];
-    item_row.querySelector('.list-price').innerHTML = server_data['list_price_f'];
-    item_row.querySelector('.version').innerHTML = server_data['price_list'];
-    item_row.querySelector('.list-diff-val').innerHTML = server_data['list_difference_value_f'];
-    item_row.querySelector('.list-diff-perc').innerHTML = `${server_data['list_difference_perc_f']}%`;
-    item_row.querySelector('.resale-percentage').innerHTML = `${server_data['resale_percentage']}%`;
-    item_row.querySelector('.resale-price').innerHTML = server_data['resale_price_f'];
-    item_row.querySelector('.resale-diff-val').innerHTML = server_data['resale_difference_value_f'];
-    item_row.querySelector('.resale-diff-perc').innerHTML = `${server_data['resale_difference_perc_f']}%`;
-
-    return;
-}
-
-
-// Edit JobItem (response): adjust the presence of the PO discrepancy panel according to the response_data.
-function update_po_check_presence_in_dom(response_data){
-
-    let want_po_check = 0 != response_data['total_po_difference_value'];
-    let have_po_check = null != document.querySelector('.' + CLASS_PO_CHECK_DIV);
-
-    if(have_po_check && !want_po_check){
-        remove_po_check_div();
-    }
-
-    if(!have_po_check && want_po_check){
-        document.querySelector('#job_po_section').querySelector('h3').after(create_po_check_div(response_data));
-    }
-
-    return;
-}
-
-
-
-// Edit JobItem (response): display ele for PO check discrepancy. Create the ele warning of a price difference.
-function create_po_check_div(response_data){
-    const div = document.createElement('div');
-    div.classList.add(CLASS_PO_CHECK_DIV);
-    div.classList.add('warning');
-    div.classList.add('subsection');
-
-    const heading = document.createElement('h4');
-    heading.append(document.createTextNode('Discrepancy'));
-    div.append(heading);
-
-    const p = document.createElement('p');
-    p.innerHTML = 'Sum of PO values does not match sum of line item selling prices.';
-    div.append(p);
-
-    div.append(get_po_check_table(response_data));
-
-    return div;
-}
-
-// Edit JobItem (response): display component ele for PO check discrepancy panel. This is the little mini-table.
-function get_po_check_table(response_data){
-    currency = response_data['currency'];
-    po_total_value = response_data['total_po_f'];
-    selling_total_value = response_data['selling_price'];
-    difference_value_f = response_data['total_po_difference_value_f'];
-    difference_perc = response_data['total_po_difference_perc'];
-
-    const table = document.createElement('table');
-    table.append(get_po_check_table_row('PO Total', currency, 'po-total-price-f', po_total_value, '', ''));
-    table.append(get_po_check_table_row('Line Items Sum', currency, 'selling-price', selling_total_value, '', ''));
-    table.append(get_po_check_table_row('Difference', currency, 'diff-val', difference_value_f, 'diff-perc', difference_perc));
-    return table;
-}
-
-// Edit JobItem (response): display component ele for PO check discrepancy panel. This is one row in the mini-table.
-function get_po_check_table_row(str_th, str_currency, class_main_value_td, main_value, class_perc_span, str_perc){
-    const tr = document.createElement('tr');
-
-    const th = document.createElement('th');
-    th.innerHTML = str_th;
-    tr.append(th);
-
-    const td_currency = document.createElement('td');
-    td_currency.innerHTML = str_currency;
-    tr.append(td_currency);
-
-    const td_main_value = document.createElement('td');
-    td_main_value.classList.add(class_main_value_td);
-    td_main_value.innerHTML = main_value;
-    tr.append(td_main_value);
-
-    const td_percent = get_po_check_difference_td(str_perc, class_perc_span);
-    tr.append(td_percent);
-
-    return tr;
-}
-
-// Edit JobItem (response): display component ele for PO check discrepancy panel. This is the <td> with the % change.
-function get_po_check_difference_td(str_perc, class_perc_span){
-    const td_percent = document.createElement('td');
-    if(str_perc != ''){
-        let pre_txt = document.createTextNode('(');
-        td_percent.append(pre_txt);
-
-        let span = document.createElement('span');
-        span.classList.add(class_perc_span);
-        span.innerHTML = str_perc;
-        td_percent.append(span);
-
-        let post_txt = document.createTextNode('%)');
-        td_percent.append(post_txt);
-    }
-    return td_percent; 
-}
-
-// Edit JobItem (response): remove the PO discrepancy check ele.
-function remove_po_check_div(){
-    document.querySelector('.' + CLASS_PO_CHECK_DIV).remove();
-    return;
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -802,7 +547,12 @@ function edit_price_on_server(jiid, new_price){
     })
     .then(response => response.json())
     .then(data => {
-        update_price_on_page(jiid, data);
+        if(data['message']){
+            console.log(message);
+        }
+        else{
+            location.reload();
+        }
     })
     .catch(error => {
         console.log('Error: ', error);
@@ -810,30 +560,3 @@ function edit_price_on_server(jiid, new_price){
 
 }
 
-
-
-
-// Price check edit (after): called by the fetch, after the response has been received. Updates the DOM
-function update_price_on_page(jiid, data){
-    // Update the price check section
-    update_po_check_presence_in_dom(data);
-    update_price_checks_in_dom(data, jiid);
-    
-    // Update the JobItem pane
-    let jobitem_panel = find_jobitem_panel(jiid);
-    jobitem_panel.querySelector('.selling_price').innerHTML = data['selling_price_f'];
-
-    // Close the edit window
-    cancel_price_edit_mode();
-}
-
-// Price check edit (after): find the ele corresponding to a particular JobItem ID
-function find_jobitem_panel(jiid){
-    let buttons = document.querySelectorAll('.' + CLASS_JOBITEM_EDIT_BTN);
-    for(i=0; i < buttons.length; i++){
-        var btn = buttons[i];
-        if(btn.dataset.jiid == jiid){
-            return btn.closest('.job-item-container');
-        }
-    }
-}

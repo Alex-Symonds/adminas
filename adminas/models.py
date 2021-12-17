@@ -470,7 +470,7 @@ class Job(AdminAuditTrail):
 
 
     def num_admin_warnings(self):
-        return len(self.admin_warnings())
+        return len(self.admin_warnings()['strings']) + len(self.admin_warnings()['tuples'])
 
     def admin_warnings(self):
         """
@@ -848,44 +848,44 @@ class JobItem(AdminAuditTrail):
 
 
 
-    def get_post_edit_dictionary(self):
-        """
-            Everything on the Job page that could possibly change as a result of a JobItem edit.
-        """
-        return {
-            'part_number': self.product.part_number,
-            'name': self.product.name,
-            'quantity': self.quantity,
-            'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()],
-            'currency': self.job.currency,
-            'selling_price': self.selling_price,
-            'selling_price_f': self.selling_price_f(),
-            'price_list': self.price_list.name,
-            'list_price_f': self.list_price_f(),
-            'list_difference_value_f': self.list_difference_value_f(),
-            'list_difference_perc_f': self.list_difference_perc_f(),
-            'resale_price_f': self.resale_price_f(),
-            'resale_percentage': str(self.resale_percentage()),
-            'resale_difference_value_f': self.resale_difference_value_f(),
-            'resale_difference_perc_f': self.resale_difference_perc_f(),
-            'total_sold_f': self.job.total_value_f(),
-            'total_list_f': self.job.total_list_price_f(),
-            'total_list_difference_value_f': self.job.total_list_difference_value_f(),
-            'total_list_difference_perc': str(self.job.total_list_difference_perc()),
-            'total_po_f': self.job.total_po_value_f(),
-            'total_po_difference_value': self.job.total_difference_value_po_vs_line(),
-            'total_po_difference_value_f': self.job.total_po_difference_value_f(),
-            'total_po_difference_perc': self.job.total_po_difference_perc(),
-        }
+    # def get_post_edit_dictionary(self):
+    #     """
+    #         Everything on the Job page that could possibly change as a result of a JobItem edit.
+    #     """
+    #     return {
+    #         'part_number': self.product.part_number,
+    #         'name': self.product.name,
+    #         'quantity': self.quantity,
+    #         'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()],
+    #         'currency': self.job.currency,
+    #         'selling_price': self.selling_price,
+    #         'selling_price_f': self.selling_price_f(),
+    #         'price_list': self.price_list.name,
+    #         'list_price_f': self.list_price_f(),
+    #         'list_difference_value_f': self.list_difference_value_f(),
+    #         'list_difference_perc_f': self.list_difference_perc_f(),
+    #         'resale_price_f': self.resale_price_f(),
+    #         'resale_percentage': str(self.resale_percentage()),
+    #         'resale_difference_value_f': self.resale_difference_value_f(),
+    #         'resale_difference_perc_f': self.resale_difference_perc_f(),
+    #         'total_sold_f': self.job.total_value_f(),
+    #         'total_list_f': self.job.total_list_price_f(),
+    #         'total_list_difference_value_f': self.job.total_list_difference_value_f(),
+    #         'total_list_difference_perc': str(self.job.total_list_difference_perc()),
+    #         'total_po_f': self.job.total_po_value_f(),
+    #         'total_po_difference_value': self.job.total_difference_value_po_vs_line(),
+    #         'total_po_difference_value_f': self.job.total_po_difference_value_f(),
+    #         'total_po_difference_perc': self.job.total_po_difference_perc(),
+    #     }
 
-    def serialise_stdAcc(self):
-        """
-            JSON-friendly dict for one standard accessory 
-        """
-        return {
-            'quantity': self.quantity,
-            'name': str(self.product)
-        }
+    # def serialise_stdAcc(self):
+    #     """
+    #         JSON-friendly dict for one standard accessory 
+    #     """
+    #     return {
+    #         'quantity': self.quantity,
+    #         'name': str(self.product)
+    #     }
 
 
     def selling_price_f(self):
@@ -1568,7 +1568,7 @@ class DocumentVersion(AdminAuditTrail):
                 this_dict = {}
                 this_dict['id'] = a.pk
                 this_dict['jiid'] = a.item.id
-                this_dict['total_quantity'] = a.item.quantity
+                this_dict['total_quantity'] = a.max_quantity_excl_self() #a.item.quantity
                 this_dict['display'] = a.item.display_str().replace(str(a.item.quantity), str(a.quantity))
                 result.append(this_dict)
             return result
