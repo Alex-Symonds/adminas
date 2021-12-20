@@ -632,8 +632,8 @@ function create_docitem_li(jobitem_id, description, ul_id){
     split_btn.addEventListener('click', (e) => {
         split_doc_item(e);
     });
-    button_container.append(split_btn);
-
+    
+    
     const toggle_btn = document.createElement('button');
     toggle_btn.classList.add(CLASS_TOGGLE_BTN);
     toggle_btn.classList.add('button-primary');
@@ -649,6 +649,8 @@ function create_docitem_li(jobitem_id, description, ul_id){
         toggle_doc_item(e);
     });
     button_container.append(toggle_btn);
+    button_container.append(split_btn);
+    
 
     li.append(button_container);
 

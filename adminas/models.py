@@ -387,6 +387,24 @@ class Job(AdminAuditTrail):
     price_is_ok = models.BooleanField(default=False)
 
 
+    def can_be_deleted(self):
+        """
+            Determines if this Job can be safely deleted or if it's passed the point of no return from an administrative perspective.
+        """
+        # Condition #1: Job must not have any issued documents (since we want to keep a record of all documents that have been issued)
+        docs = DocumentVersion.objects.filter(document__job=self)
+        for d in docs:
+            if d.issue_date != None and d.issue_date != '':
+                return False
+
+        # Condition #2: Job must not have any active POs (POs have accounting implications, so they must be "deactivated" first)
+        porders = PurchaseOrder.objects.filter(job=self).filter(active=True)
+        if porders.count() > 0:
+            return False
+
+        return True
+
+        
 
     def quantity_of_product(self, product):
         """
@@ -494,7 +512,7 @@ class Job(AdminAuditTrail):
         result['tuples'] = []
         qs = self.related_po()
         if qs.count() == 0:
-            result['tuples'].append(('PO', 'none'))
+            result['tuples'].append(('PO', 'none entered'))
 
 
         result['tuples'] += self.get_document_warnings()
@@ -776,7 +794,7 @@ class JobComment(AdminAuditTrail):
         "Highlighted" is intended as an intermediate step, allowing the user to separate the comment-wheat from 
         the comment-chaff without spamming up the to-do list (e.g. "The order confirmation must be sent to email1 
         and email2" might be highlight-worthy: you don't want that buried under back-and-forth comments, but you're 
-        probably only interested in reading it when you're looking at the Job page). Analogue folks might think 
+        probably only interested in reading it when you're already looking at the Job page). Analogue folks might think 
         of this as taking a yellow highlighter pen to some written instructions.
     """
 

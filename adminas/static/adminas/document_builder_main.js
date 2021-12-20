@@ -224,14 +224,18 @@ function get_document_data_as_dict(issue_date){
 function get_assigned_items_as_list(){
     let assigned_items = [];
     let assigned_ul = document.querySelector('#' + ID_INCLUDES_UL);
-    Array.from(assigned_ul.children).forEach(ele => {
-        if(ele.tagName == 'LI'){
-            let d = {}
-            d['quantity'] = ele.querySelector('.display').innerHTML.match(QTY_RE)[0];
-            d['id'] = ele.dataset.jiid;
-            assigned_items.push(d);
-        }
-    });
+
+    if(null == assigned_ul.querySelector('.' + CLASS_NONE_LI)){
+        Array.from(assigned_ul.children).forEach(ele => {
+            if(ele.tagName == 'LI'){
+                let d = {}
+                d['quantity'] = ele.querySelector('.display').innerHTML.match(QTY_RE)[0];
+                d['id'] = ele.dataset.jiid;
+                assigned_items.push(d);
+            }
+        });
+    }
+    console.log(assigned_items.length);
     return assigned_items;
 }
 

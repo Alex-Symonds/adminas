@@ -3,9 +3,12 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    document.getElementById('price_confirmation_button').addEventListener('click', (e) => {
-        toggle_price_check(e);
-    });
+    let price_confirmation_btn = document.getElementById('price_confirmation_button');
+    if(price_confirmation_btn != null){
+        price_confirmation_btn.addEventListener('click', (e) => {
+            toggle_price_check(e);
+        });
+    }
 
 });
 

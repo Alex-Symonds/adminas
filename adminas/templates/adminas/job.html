@@ -59,7 +59,7 @@
                 <li>{{ str_warning }}</li>
         {% endfor %}    
         {% for tuple_warning in job.admin_warnings.tuples %}
-                <li>{{ tuple_warning.0 }} {{ tuple_warning.1 }}</li>
+                <li>{{ tuple_warning.0 }}: {{ tuple_warning.1 }}</li>
         {% endfor %} 
             </ul>
         </div>
@@ -74,7 +74,7 @@
 
     <div class="job-page-sections-wrapper">
 
-        <section id="job_details">
+        <section id="job_details" class="job-section">
             <h3>General Details</h3>
             <div class="extended-subheading">
                 <a href="{% url 'edit_job' %}?job={{job.id}}" class="edit-icon"><span>edit</span></a>
@@ -129,78 +129,78 @@
 
 
 
+        <section class="job-section pair-related">
 
-
-        <section id="job_comments">
-            <h3>Comments</h3>
-            <a href="{% url 'job_comments' job.id %}?page=1">See all {{ num_comments }} comments</a>
-            {% for section in comment_data %}
-            <section class="subsection">
-                <h4>{{ section.title }} by {{ user.username }}</h3>
-                <div class="comment-container {{ section.class_suffix }} empty-paragraph">
-                {% for comment in section.comments %}
-                    {% include "adminas/components/comment_collapse.html" with comment=comment %}
-                {% empty %}
-                    <p class="empty-section-notice">No comments have been {{ section.class_suffix }}</p>
+            <section id="job_comments" class="item">
+                <h3>Comments</h3>
+                <a href="{% url 'job_comments' job.id %}?page=1">See all {{ num_comments }} comments</a>
+                {% for section in comment_data %}
+                <section class="subsection">
+                    <h4>{{ section.title }} by {{ user.username }}</h3>
+                    <div class="comment-container {{ section.class_suffix }} empty-paragraph">
+                    {% for comment in section.comments %}
+                        {% include "adminas/components/comment_collapse.html" with comment=comment %}
+                    {% empty %}
+                        <p class="empty-section-notice">No comments have been {{ section.class_suffix }}</p>
+                    {% endfor %}
+                    </div>
+                </section>
                 {% endfor %}
+            </section>
+
+
+
+
+            <section class="job-doc-section item">
+                <h3>Documents</h3>
+                <div class="subsection">
+                    <h4>Works Order</h4>
+                    <ul>
+            {% for doc_version in job.related_documents %}
+                {% if doc_version.document.doc_type == 'WO' %}
+                        <li>
+                            <a href="{% url 'doc_main' doc_version.id %}"
+                                {% if doc_version.issue_date != None %}
+                                    class="issued-document">
+                                    <span class="issued-icon">I</span>
+                                {% else %}
+                                    class="saved-document">
+                                    <span class="saved-icon">S</span>
+                                {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
+                            </a>
+                        </li>
+                {% endif %}
+            {% endfor %}
+                    </ul>
+                    <a href="{% url 'doc_builder' %}?job={{job.id}}&type=WO" class="add-button">New WO</a>
+                </div>
+
+                <div class="subsection">
+                    <h4>Order Confirmation</h4>
+                    <ul>
+            {% for doc_version in job.related_documents %}
+                {% if doc_version.document.doc_type == 'OC' %}
+                        <li>
+                            <a href="{% url 'doc_main' doc_version.id %}"
+                            {% if doc_version.issue_date != None %}
+                                    class="issued-document">
+                                    <span class="issued-icon">I</span>
+                            {% else %}
+                                    class="saved-document">
+                                    <span class="saved-icon">S</span>
+                            {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
+                            </a>
+                        </li>
+                {% endif %}
+            {% endfor %}
+                    </ul>
+                    <a href="{% url 'doc_builder' %}?job={{job.id}}&type=OC" class="add-button">New OC</a>
                 </div>
             </section>
-            {% endfor %}
         </section>
 
 
-
-
-        <section class="job-doc-section">
-            <h3>Documents</h3>
-            <div class="subsection">
-                <h4>Works Order</h4>
-                <ul>
-        {% for doc_version in job.related_documents %}
-            {% if doc_version.document.doc_type == 'WO' %}
-                    <li>
-                        <a href="{% url 'doc_main' doc_version.id %}"
-                            {% if doc_version.issue_date != None %}
-                                class="issued-document">
-                                <span class="issued-icon">I</span>
-                            {% else %}
-                                class="saved-document">
-                                <span class="saved-icon">S</span>
-                            {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
-                        </a>
-                    </li>
-            {% endif %}
-        {% endfor %}
-                </ul>
-                <a href="{% url 'doc_builder' %}?job={{job.id}}&type=WO" class="add-button">New WO</a>
-            </div>
-
-            <div class="subsection">
-                <h4>Order Confirmation</h4>
-                <ul>
-        {% for doc_version in job.related_documents %}
-            {% if doc_version.document.doc_type == 'OC' %}
-                    <li>
-                        <a href="{% url 'doc_main' doc_version.id %}"
-                        {% if doc_version.issue_date != None %}
-                                class="issued-document">
-                                <span class="issued-icon">I</span>
-                        {% else %}
-                                class="saved-document">
-                                <span class="saved-icon">S</span>
-                        {% endif %}{{ doc_version.document.doc_type }} {{ doc_version.document.reference }} dtd {% if doc_version.issue_date != None %} {{ doc_version.issue_date|date:'Y-m-d' }} {% else %} {{ doc_version.created_on|date:'Y-m-d' }} {% endif %}
-                        </a>
-                    </li>
-            {% endif %}
-        {% endfor %}
-                </ul>
-                <a href="{% url 'doc_builder' %}?job={{job.id}}&type=OC" class="add-button">New OC</a>
-            </div>
-        </section>
-
-
-
-        <section id="job_items_section">
+        <section id="job_items_section" class="job-section">
             <h3>Items</h3>
             <div class="job-items-container">
 
@@ -238,9 +238,10 @@
                         </div>
 
                 {% if it.product.is_modular == True %}
-                        <div class="module-status-section subsection modules-{% if it.all_required_modules_assigned == True %}ok{% else %}incomplete{% endif %}">
+                        <div class="module-status-section subsection modules-{% if it.excess_modules_assigned %}excess{% elif it.all_required_modules_assigned == True %}ok{% else %}incomplete{% endif %}">
                             <div class="intro-line">
                                 <span class="display-text">&raquo; 
+                                {% if it.excess_modules_assigned %}Custom {% endif %}
                                 Specification
                     {% if it.quantity > 1 %} 
                                 (per item)
@@ -322,7 +323,9 @@
         </section>
 
 
-        <section id="job_po_section">
+        <section class="job-section pair-related">
+
+        <section id="job_po_section" class="item">
             <h3>Purchase Orders</h3>
             {% if job.total_difference_value_po_vs_line != 0 %}
             <div class="po-discrepancy warning subsection">
@@ -369,7 +372,7 @@
 
 
 
-        <section id="price_check_section">
+        <section id="price_check_section" class="item">
             <h3>Prices</h3>
 
         {% if job.main_item_list == None %}
@@ -462,6 +465,7 @@
                 </table>
             </div>
         {% endif %}
+        </section>
         </section>
     </div>
 

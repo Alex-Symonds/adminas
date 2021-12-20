@@ -145,7 +145,7 @@ nav ul:before {
   box-shadow: 0px 0px 15px 8px #0f0f0f;
 }
 nav li, nav li a {
-  font-size: 1rem;
+  font-size: 0.95rem;
   height: 1.2rem;
   padding: 0.5rem;
   text-decoration: none;
@@ -733,6 +733,13 @@ p.empty-section-notice {
 }
 
 /* Create New Job ------------------------------------------------------ */
+#delete_job_btn {
+  float: right;
+  font-size: 1rem;
+  margin-top: 0.3rem;
+  padding: 0.3rem 1.5rem;
+}
+
 .form-row {
   margin-left: 0.5rem;
 }
@@ -1070,6 +1077,10 @@ p.empty-section-notice {
   background-position: 5px 4px;
 }
 
+#job_items_section {
+  width: 100%;
+}
+
 .document-sections-wrapper {
   align-items: flex-start;
 }
@@ -1172,6 +1183,22 @@ p.empty-section-notice {
   height: 1rem;
   font-size: 0.9rem;
 }
+.subsection .one-comment:last-of-type details {
+  border-bottom: none;
+}
+
+.pair-related {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 2rem;
+  min-width: 40%;
+  max-width: 100%;
+  flex-grow: 2;
+}
+.pair-related .item {
+  flex-grow: 2;
+  min-width: 275px;
+}
 
 #job_po_section .warning {
   box-shadow: 0 0 2px 2px rgba(255, 255, 255, 0.8);
@@ -1192,6 +1219,9 @@ p.empty-section-notice {
   background-position: 5px 4px;
 }
 
+.job-doc-section {
+  min-width: 280px;
+}
 .job-doc-section a {
   display: flex;
   align-items: center;
@@ -1331,6 +1361,7 @@ p.empty-section-notice {
 
 #new_items_container {
   width: 95%;
+  max-width: 500px;
 }
 #new_items_container .add-button {
   position: absolute;
@@ -1527,6 +1558,17 @@ p.empty-section-notice {
 }
 .job-item-container .modules-incomplete .intro-line {
   background: #cf0000;
+}
+.job-item-container .modules-excess {
+  border-left: 3px solid #cf0000;
+}
+.job-item-container .modules-excess .intro-line {
+  background: #141414;
+  border: 1px solid #444;
+  border-left: none;
+}
+.job-item-container .modules-excess li {
+  color: #F6F6F6;
 }
 
 .secondary-icon {
@@ -2213,6 +2255,7 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
 }
 .edit-document .existing-items-container .split-docitem-window .panel-header {
   padding: 0;
+  width: 100%;
 }
 .edit-document .existing-items-container .split-docitem-window h5 {
   font-size: 1rem;

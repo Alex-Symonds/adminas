@@ -106,7 +106,7 @@ class JobItemEditForm(ModelForm):
 class JobModuleForm(ModelForm):
     class Meta():
         model = JobModule
-        exclude = ['quantity']
+        fields = ['quantity', 'parent', 'child', 'slot',]
 
 
 class POForm(ModelForm):

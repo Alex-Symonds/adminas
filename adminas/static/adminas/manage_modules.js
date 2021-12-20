@@ -377,7 +377,7 @@ async function add_new_jobitem_and_jobmodule(e){
 
     // Add a new JobModule on the server. This will return the ID of the JobModule and data about the slot status.
     let slot_id = e.target.dataset.slot;
-    json_resp = await create_jobmodule_on_server(child_id, parent_id, slot_id);
+    json_resp = await create_jobmodule_on_server(child_id, parent_id, slot_id, assignment_qty);
     let jobmod_id = json_resp['id'];
 
     // Create a "filled slot" div.
@@ -469,14 +469,15 @@ async function assign_jobitem_to_slot(e){
 
 
 // Assignment: create a new JobModule on the server, storing the relationship between the parent, slot, and child
-async function create_jobmodule_on_server(child_id, parent_id, slot_id){ 
+async function create_jobmodule_on_server(child_id, parent_id, slot_id, quantity=1){ 
     let response = await fetch(`${URL_ASSIGNMENTS}`, {
         method: 'POST',
         body: JSON.stringify({
             'action': 'create',
             'parent': parent_id,
             'child': child_id,
-            'slot': slot_id
+            'slot': slot_id,
+            'quantity': quantity
         }),
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
@@ -759,6 +760,10 @@ function update_module_qty(qty_field){
         console.log('Error: ', error)
     });
 }
+
+
+
+
 
 
 // Edit Mode: Update the qty in the filled div, then get rid of the edit "form"

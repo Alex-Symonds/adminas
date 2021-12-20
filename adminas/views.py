@@ -166,7 +166,7 @@ def todo_list_management(request):
 
 def edit_job(request):
     """
-        Create/Edit Job page.
+        Create/Edit/Delete Job page.
     """
     if not request.user.is_authenticated:
         return anonymous_user(request)
@@ -198,6 +198,24 @@ def edit_job(request):
         })
 
     elif request.method == 'POST':
+
+        if request.GET.get('delete_id'):
+            try:
+                job_to_delete = Job.objects.get(id=request.GET.get('delete_id'))
+            except Job.DoesNotExist:
+                return JsonResponse({
+                    'error': 'Job ID is invalid.'
+                }, 400)
+
+            if job_to_delete.can_be_deleted():
+                job_to_delete.delete()
+                return HttpResponse(status=200)
+
+            else:
+                return JsonResponse({
+                    'error': "This Job can't be deleted."
+                }, 400)
+
         job_id = request.POST['job_id']
         posted_form = JobForm(request.POST)
 
@@ -831,10 +849,10 @@ def module_assignments(request):
                     parent = posted_form.cleaned_data['parent'],
                     child = posted_form.cleaned_data['child'],
                     slot = posted_form.cleaned_data['slot'],
-                    quantity = 1
+                    quantity = posted_form.cleaned_data['quantity']
                 )
 
-                if jm.parent.job.num_unassigned(jm.child) >= jm.parent.quantity:
+                if jm.parent.job.num_unassigned(jm.child) >= jm.parent.quantity * jm.quantity:
                     jm.save()
                     data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
                     data_dict['id'] = jm.id
@@ -863,6 +881,7 @@ def module_assignments(request):
             parent = jm.parent
             slot = jm.slot
             jm.delete()
+
             return JsonResponse(parent.get_slot_status_dictionary(slot), status=200)
         
 

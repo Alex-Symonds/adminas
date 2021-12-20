@@ -40,11 +40,14 @@ document.addEventListener('DOMContentLoaded', function(e) {
         });
     });
 
-    document.querySelector('#price_check_table').querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', function(e){
-            edit_mode_price_check(e);
-        })
-    });
+    let price_check_table = document.querySelector('#price_check_table');
+    if (price_check_table != null){
+        document.querySelector('#price_check_table').querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', function(e){
+                edit_mode_price_check(e);
+            })
+        });
+    }
 
 });
 
@@ -291,7 +294,6 @@ function update_job_item(e){
 
     // Find the div with the "form" and the div where the results should be displayed
     let edit_ele = document.querySelector('#' + EDIT_ITEM_CONTAINER_ID);
-    let result_div = edit_ele.previousElementSibling;
 
     let prefix = '#id_' + EDIT_ITEM_ID_PREFIX;
     let prl_sel = edit_ele.querySelector(prefix + 'price_list')
@@ -310,12 +312,13 @@ function update_job_item(e){
     })
     .then(response => response.json())
     .then(data => {
+        let result_ele = edit_ele.previousElementSibling;
         // If there's a message, display it
         if('message' in data){
             display_error_message_in_job_item(result_div, data['message']);
             read_mode_job_item(result_ele, edit_ele);
         }
-        else if (data['reload'] == true){
+        else if (data['reload'] == 'true'){
             location.reload();
         }
         else{

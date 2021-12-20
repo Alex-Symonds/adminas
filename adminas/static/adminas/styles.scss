@@ -218,7 +218,7 @@ nav {
         }
     }
     li, li a{
-        font-size: 1rem;
+        font-size: 0.95rem;
         height: 1.2rem;
         padding: 0.5rem;
 
@@ -949,6 +949,13 @@ p.empty-section-notice{
 
 
 /* Create New Job ------------------------------------------------------ */
+#delete_job_btn{
+    float: right;
+    font-size: 1rem;
+    margin-top: 0.3rem;
+    padding: 0.3rem 1.5rem;
+}
+
 .form-row{
     margin-left: 0.5rem;
 
@@ -1349,6 +1356,7 @@ p.empty-section-notice{
 
 
 
+
 .job-page-sections-wrapper, .document-sections-wrapper{
     display: flex;
     flex-flow: row wrap;
@@ -1377,6 +1385,10 @@ p.empty-section-notice{
             background-position: 5px 4px;
         }
     }
+}
+
+#job_items_section{
+    width: 100%;
 }
 
 .document-sections-wrapper{
@@ -1472,9 +1484,11 @@ p.empty-section-notice{
             margin: 0.3rem;
         }
 
-        // Bit hacky: the add-button expands to 12rem wide on hover. This gives 
-        // the flexbox new ideas about the width of the parent element, which looks stupid.
-        // This container sets the width wider than the button needs to begin with.
+        // Bit hacky: the add-button expands to 12rem wide on hover. While visually this 
+        // fits inside the parent element ok, it somehow gives the flexbox new ideas about 
+        // the ideal width of the parent element, so the width "twitches" when you 
+        // hover over the button, which looks stupid.
+        // This container is used to set the width wider than the button needs to begin with.
         .add-button-container{
             width: 15rem;
         }
@@ -1509,6 +1523,26 @@ p.empty-section-notice{
         height: 1rem;
         font-size: 0.9rem;
     }
+
+    .one-comment:last-of-type details{
+        border-bottom: none;
+    }
+}
+
+.pair-related{
+    display: flex;
+    flex-flow: row wrap;
+    gap: 2rem;
+    min-width: 40%;
+    max-width: 100%;
+
+    flex-grow: 2;
+
+    .item{
+        flex-grow: 2;
+        min-width: 275px;
+    }
+
 }
 
 #job_po_section{
@@ -1534,6 +1568,7 @@ p.empty-section-notice{
 }
 
 .job-doc-section{
+    min-width: 280px;
     a{
         display: flex;
         align-items: center;
@@ -1699,6 +1734,7 @@ p.empty-section-notice{
 
 #new_items_container{
     width: 95%;
+    max-width: 500px;
 
     .add-button{
         // On a narrow screen, make it so the expansion occurs /over/ the "Add [_] more" box, 
@@ -1935,6 +1971,18 @@ p.empty-section-notice{
         border-left: 3px solid red;
         .intro-line{
             background: $c_warning;
+        }
+    }
+
+    .modules-excess{
+        border-left: 3px solid $c_warning;
+        .intro-line{
+            background: $c_tone_00;
+            border: 1px solid $c_tone_02;
+            border-left: none;
+        }
+        li{
+            color: $c_txt_main;
         }
     }  
 }
@@ -2717,6 +2765,7 @@ table.price-comparison{
 
             .panel-header{
                 padding: 0;
+                width: 100%;
             }
 
             h5{
