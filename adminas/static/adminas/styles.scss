@@ -124,7 +124,7 @@ h3{
 }
 
 input, select, textarea{
-    max-width: 100%;
+    max-width: 92%;
     margin-top: 3px;
     background: $c_tone_00;
     border: 1px solid $c_accent_02;
@@ -721,7 +721,6 @@ nav {
         input[type=submit]{
             height: auto;
             padding: 5px 0.5rem;
-            //font-size: 1.2rem;
             font-size: 1rem;
             width: 20%;
         }
@@ -1082,7 +1081,7 @@ p.empty-section-notice{
 
 .one-comment{
     width: calc(100% - 10px);
-    min-width: 280px;
+    min-width: 250px;
     max-width: $MAX_WIDTH;
 
     padding: 2px 5px 0;
@@ -2032,7 +2031,6 @@ p.empty-section-notice{
     border-bottom-right-radius: 3px;
     background: $c_tone_01;
     border: 1px solid $c_tone_00;
-    //border-left: 2px solid $c_accent_secondary_02;
     color: $c_txt_main;
 
     white-space: nowrap;
@@ -2504,6 +2502,13 @@ table.price-comparison{
             left: 0.1rem;
             max-width: 100%;
             z-index: 2;
+            box-shadow: 0px 0px 15px 8px rgb(15,15,15);
+        }
+
+        .delete-panel{
+            position: absolute;
+            top: 5px;
+            right: 35px;
         }
     } 
 }

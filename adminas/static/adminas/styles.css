@@ -67,7 +67,7 @@ h3 {
 }
 
 input, select, textarea {
-  max-width: 100%;
+  max-width: 92%;
   margin-top: 3px;
   background: #141414;
   border: 1px solid #00c2e0;
@@ -850,7 +850,7 @@ p.empty-section-notice {
 
 .one-comment {
   width: calc(100% - 10px);
-  min-width: 280px;
+  min-width: 250px;
   max-width: 700px;
   padding: 2px 5px 0;
   /* --- full version ---- */
@@ -2040,6 +2040,12 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
     left: 0.1rem;
     max-width: 100%;
     z-index: 2;
+    box-shadow: 0px 0px 15px 8px #0f0f0f;
+  }
+  .modular-item-container .modular-slot-container .contents .module-slot .delete-panel {
+    position: absolute;
+    top: 5px;
+    right: 35px;
   }
 }
 .module-bucket-container {

@@ -17,7 +17,7 @@ from django.db.models import Q
 # Size fields
 JOB_NAME_LENGTH = 8 # YYMM-NNN
 PART_NUM_LENGTH = 10
-DOCS_ONE_LINER = 300 # <- placeholder value until I check how many 'M's and how many 'i's fit on a single line, then pick something sorta in the middle
+DOCS_ONE_LINER = 300 
 SYSTEM_NAME_LENGTH = 50
 LENGTH_SERIAL_NUMBER = 6
 MAX_DIGITS_PRICE = 20
@@ -863,48 +863,7 @@ class JobItem(AdminAuditTrail):
             Adds money information at the end.
         """
         return f'{self.display_str()} @ {self.job.currency}&nbsp;{self.selling_price_f()}'
-
-
-
-    # def get_post_edit_dictionary(self):
-    #     """
-    #         Everything on the Job page that could possibly change as a result of a JobItem edit.
-    #     """
-    #     return {
-    #         'part_number': self.product.part_number,
-    #         'name': self.product.name,
-    #         'quantity': self.quantity,
-    #         'stdAccs': [stdAcc.serialise_stdAcc() for stdAcc in self.includes.all()],
-    #         'currency': self.job.currency,
-    #         'selling_price': self.selling_price,
-    #         'selling_price_f': self.selling_price_f(),
-    #         'price_list': self.price_list.name,
-    #         'list_price_f': self.list_price_f(),
-    #         'list_difference_value_f': self.list_difference_value_f(),
-    #         'list_difference_perc_f': self.list_difference_perc_f(),
-    #         'resale_price_f': self.resale_price_f(),
-    #         'resale_percentage': str(self.resale_percentage()),
-    #         'resale_difference_value_f': self.resale_difference_value_f(),
-    #         'resale_difference_perc_f': self.resale_difference_perc_f(),
-    #         'total_sold_f': self.job.total_value_f(),
-    #         'total_list_f': self.job.total_list_price_f(),
-    #         'total_list_difference_value_f': self.job.total_list_difference_value_f(),
-    #         'total_list_difference_perc': str(self.job.total_list_difference_perc()),
-    #         'total_po_f': self.job.total_po_value_f(),
-    #         'total_po_difference_value': self.job.total_difference_value_po_vs_line(),
-    #         'total_po_difference_value_f': self.job.total_po_difference_value_f(),
-    #         'total_po_difference_perc': self.job.total_po_difference_perc(),
-    #     }
-
-    # def serialise_stdAcc(self):
-    #     """
-    #         JSON-friendly dict for one standard accessory 
-    #     """
-    #     return {
-    #         'quantity': self.quantity,
-    #         'name': str(self.product)
-    #     }
-
+ 
 
     def selling_price_f(self):
         """
@@ -1007,8 +966,6 @@ class JobItem(AdminAuditTrail):
         return get_plus_prefix(self.resale_difference_perc()) + format_money(self.resale_difference_perc())
 
 
-
-
     def add_standard_accessories(self):
         """
             Consult the product and quantity, then create additional JobItems to reflect the set of standard accessories supplied with this product.
@@ -1055,9 +1012,6 @@ class JobItem(AdminAuditTrail):
             stdAcc.save()
 
  
-
-
-
     def quantity_is_ok_for_modular_as_child(self, new_qty):
         """
             Modular: Child. When editing the qty, check the new qty is compatible with JobModule assignments
@@ -1148,6 +1102,7 @@ class JobItem(AdminAuditTrail):
                     return True          
         return False   
 
+
     def num_assigned(self, slot):
         """
             Modular: Parent. Use to find out number of children *per parent* for this slot.
@@ -1173,6 +1128,7 @@ class JobItem(AdminAuditTrail):
             return f'{result}/{slot.quantity_required}'
         return ''
 
+
     def get_slot_details_string_optional(self, slot):
         """
             Modular: Parent. Slot status string for optional, e.g. "1/3" = 1 filled, 3 available (as standard).
@@ -1188,6 +1144,7 @@ class JobItem(AdminAuditTrail):
                 result = slot.quantity_optional
             return f'{result}/{slot.quantity_optional}'
         return ''
+    
     
     def get_num_excess(self, slot):
         """

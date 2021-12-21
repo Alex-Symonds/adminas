@@ -2,13 +2,13 @@
 # Capstone Project: Adminas by Alex Symonds
 
 ## Purpose
-Adminas is a tool for office employees to enter purchase orders, check the prices and contents are ok, then produce one or more order confirmation PDFs (for the customer) and one or more work order PDFs (for whoever prepares the orders).
+Adminas is a tool for office employees to enter purchase orders, check the prices and specifications, then produce one or more order confirmation PDFs (for the customer) and one or more work order PDFs (for whoever prepares the orders).
 
 
 ## Distinctiveness and Complexity
 While Adminas utilises comments, as does Project 4, the comments on Jobs are a small feature rather than the primary focus: Adminas is not a social media site.
 
-While Adminas involves products on sale, as does Project 2, Adminas is designed to be used in-house tool by employees to process and check incoming orders, not as an e-commerce site.
+While Adminas involves products on sale, as does Project 2, Adminas is designed to be used as an in-house tool by employees to process and check incoming orders, not as an e-commerce site.
 
 Adminas utilises Django on the backend, using several models; uses Javascript on the frontend; and it's mobile responsive, allowing hypothetical office workers to process orders wherever they may be.
 
@@ -16,7 +16,7 @@ Adminas utilises Django on the backend, using several models; uses Javascript on
 ## How to run the application
 1. Install modules as per requirements.txt
 2. ```python manage.py runserver``` (or the equivalent for your OS)
-3. Check if the settings in constants.py are to your liking (supported languages, currencies and INCOTERMs will affect the database)
+3. Check if the settings in constants.py are to your liking
 4. ```python manage.py makemigrations```
 5. ```python manage.py migrate```
 6. Open your preferred web browser and go to http://127.0.0.1:8000/
@@ -64,13 +64,13 @@ query_transform.py is used by the pagination navigation. The records page uses G
 ### Subfolder adminas/templates/adminas/
 #### Subfolder components/
 * comment_base.html, comment_collapse.html and comment_full.html contain the HTML for a single comment. comment_base.html has the parts common to all comments; comment_collapse.html and comment_full.html extend it in different ways to create the "slimline" version (where you click to expand the section with the buttons) and the full version (where you don't).
-* pagination_nav.html is the pagination navigation strip
+* pagination_nav.html is the pagination navigation strip, used on the job_comments and records pages.
 
 #### Subfolder pdf/
-Contains the HTML files used for generating PDFs. The PDF module paginates the main/body HTML file; it also allows users to pass in two other HTML files to serve as a static header and footer across every page of the PDF. For Adminas PDFs, the header and footer will each require two parts: a "company" header/footer (with logos, addresses, contact details etc.) and a "document" header/footer (with any document-specific content that should be repeated on each page).
+Contains the HTML files used for generating PDFs. wkhtmltopdf paginates the main/body HTML file; it also allows users to pass in two other HTML files to serve as a static header and footer across every page of the PDF. For Adminas PDFs, the header and footer will each require two parts: a "company" header/footer (with logos, addresses, contact details etc.) and a "document" header/footer (with any document-specific content that should be repeated on each page).
 
-* pdf_doc_0_layout.html contains HTML common to all three of the "final" HTML files used by the PDF module (that is, the body, the header and the footer).
-* pdf_doc_1_*.html extends the layout for each of the three HTML files to be sent to the PDF module. It brings together the company and document components (plus anything else needed by all headers, all footers or all bodies).
+* pdf_doc_0_layout.html contains HTML common to all three of the "final" HTML files used by wkhtmltopdf (that is, the body, the header and the footer).
+* pdf_doc_1_*.html extends the layout for each of the three "final" HTML files. It brings together the company and document components (plus anything else needed by all headers, all footers or all bodies).
 * pdf_doc_2_user_*.html files contain the company header/footer (aka their letterhead).
 * pdf_doc_2_{ doc_type }_*.html files are for the actual document contents ( title, fields, line items, etc.).
 
@@ -79,12 +79,12 @@ Contains the HTML files used for generating PDFs. The PDF module paginates the m
 ### Subfolder adminas/static/adminas/
 #### Images
 * Everything named "i_*.svg" is an icon.
-* logo.png is the fake company logo used in the PDF company header.
+* logo.png is the company logo used in the PDF company header.
 
 #### CSS
 ##### styles.css
 Used by: all webpages.
-"Main" CSS file.
+"Main" CSS file containing all CSS except for that used on/by the PDFs.
 
 ##### doc_preview.css
 Used by: PDFs
@@ -93,12 +93,12 @@ Formatting to clearly distinguish a "preview" (aka draft) copy of a document fro
 ##### doc_default_oc.css, doc_default_wo.css
 Used by: PDFs.
 Formatting for the main contents of each PDF.
-Note: the PDF module doesn't support some CSS features (e.g. flexbox and grid).
+Note: wkhtmltopdf doesn't support some CSS features (e.g. flexbox and grid).
 
 ##### doc_user.css
 Used by: PDFs.
 Formatting for user-specific page content, i.e. the company header and footer. In principle, a user could also use this to override the colours on the documents in order to better reflect their corporate branding (though I haven't utilised this in the example).
-Note: the PDF module doesn't support some CSS features (e.g. flexbox and grid).
+Note: wkhtmltopdf doesn't support some CSS features (e.g. flexbox and grid).
 
 
 
@@ -136,6 +136,10 @@ Allows the user to hide/unhide the entire "add new JobItems" form and modify the
 Used by: job, job_comments, index.
 Comment functionality: create, edit, delete and toggling statuses.
 
+##### job_delete.js
+Used by: edit.
+Enables the "delete" button when editing an existing Job.
+
 ##### job_price_check_btn.js
 Used by: job.
 Functionality for the "selling price is {NOT }CONFIRMED" indicator/button on the Job page. Toggles the price_confirmed status on the server and updates the page.
@@ -150,11 +154,11 @@ Allows users to edit an existing slot filler; add space for an additional slot f
 
 ##### po_edit.js
 Used by: job.
-Job page's PO section. Enables editing and deleting of an existing PO. (New POs are handled via a form.)
+Job page's PO section. Enables updating and deleting of an existing PO. (Creating a new PO is handled via a form.)
 
 ##### records_filter.js
 Used by: records.
-Enables the filter: opens the "form", turns the inputs into appropriate GET parameters, then reloads the page with the parameters.
+Enables the filter: opens the "form-like", turns the inputs into appropriate GET parameters, then reloads the page with the parameters.
 
 ##### records_list_toggle.js
 Used by: records.
@@ -167,8 +171,3 @@ Allows users to adjust which Jobs appear on the to-do list in three ways: add vi
 ##### util.js
 Used by: any/all pages.
 A selection of general-purpose functions available to all pages. Includes: formatting numbers with thousand separator commas; obtaining the date; obtaining a select index based on the display text; finding the last element of a type on the page; a couple of functions from the Django documentation regarding CSRF authentication; functions to hide/show elements based on CSS class; wipe data from a "form row"; several generic DOM elements (message boxes, buttons, panels).
-
-
-
-
-

@@ -1,3 +1,7 @@
+/*
+    Delete Job button on the edit Job page.
+*/
+
 document.addEventListener('DOMContentLoaded', () => {
     let delete_btn = document.getElementById('delete_job_btn');
     if(delete_btn != null){
@@ -6,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
 
 
 function delete_job(){

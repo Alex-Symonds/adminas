@@ -1,8 +1,8 @@
 /*
-    Job page has two forms added via the Django templates and set with the "hide" class on-load.
-    here:
-        > Associated "add" buttons gain the ability to unhide the forms
-        > Associated "close" buttons gain the ability to re-hide the forms
+    Job page has two forms and a popout added via the Django templates and set with the "hide" class on-load.
+    Here:
+        > Associated "add" buttons gain the ability to unhide the forms/popout
+        > Associated "close" buttons gain the ability to re-hide the forms/popout
 */
 const CLASS_HIDE = 'hide';
 
@@ -17,14 +17,19 @@ document.addEventListener('DOMContentLoaded', function() {
         })
     });
 
-    document.querySelector('.admin-info-btn').addEventListener('click', () => {
-        show_ele(document.getElementById('admin_info_container'));
-    });  
+    let admin_notifications_btn = document.querySelector('.admin-info-btn');
+    if(admin_notifications_btn != null){
+        admin_notifications_btn.addEventListener('click', () => {
+            show_ele(document.getElementById('admin_info_container'));
+        });  
+    }
 
-    document.getElementById('admin_info_container').querySelector('.' + 'close').addEventListener('click', () => {
-        hide_ele(document.getElementById('admin_info_container'));
-    });
-
+    let admin_notifications_close = document.getElementById('admin_info_container').querySelector('.' + 'close');
+    if(admin_notifications_close != null){
+        admin_notifications_close.addEventListener('click', () => {
+            hide_ele(document.getElementById('admin_info_container'));
+        });
+    }
 
     document.getElementById('open_item_form_btn').addEventListener('click', () => {
         show_ele(document.getElementById('new_items_container'));
