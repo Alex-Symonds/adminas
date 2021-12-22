@@ -21,9 +21,10 @@ Adminas utilises Django on the backend, using several models; uses Javascript on
 5. ```python manage.py migrate```
 6. Open your preferred web browser and go to http://127.0.0.1:8000/
 
-Optional:
-* ```python dummy_data.py``` to populate the database with some customers, agents, prices and products (with a "super-villain supplies" theme).
-* ```python manage.py createsuperuser``` for access to Django admin
+Optional, but recommended (populate the database with dummy data for customers, agents, prices and products):
+1. ```python manage.py createsuperuser``` for access to Django admin
+2. ```python dummy_data.py``` to populate the database (with a "super-villain supplies" theme).
+
 
 User Configuration:
 * Adjusting the company letterhead (colours/arrangement): ```doc_user.css``` is intended for the user to add their own CSS formatting. It's the only way to apply formatting to the header and footer, but it can also be used to override the CSS settings applied to the "default" documents. The user can choose to rename this file so long as they update ```CSS_FORMATTING_FILENAME``` in ```adminas/constants.py```.

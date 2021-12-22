@@ -19,14 +19,29 @@ NEED_JOBS = True
 
 ADMIN = User.objects.all()[0]
 
+task_total = 6
+
 def main():
+    task_num = 1
+    task_num = print_progress('addresses', task_num)
     populate_addresses()
+    task_num = print_progress('products, descriptions and price lists (this is a big one)', task_num)
     populate_products()
+    task_num = print_progress('slot options', task_num)
     populate_choice_lists()
+    task_num = print_progress('slot settings', task_num)
     populate_slots()
+    task_num = print_progress('standard accessories', task_num)
     populate_std_accs()
-    if NEED_DESCS_ONLY: populate_descs_only()
+    task_num = print_progress('demo job', task_num)
     populate_jobs()
+    print('All dummy data is loaded.')
+
+
+def print_progress(thing_loading, task_num):
+    print(f'{task_num}/{task_total}: Loading {thing_loading}...')
+    task_num += 1
+    return task_num
 
 
 def populate_jobs():
@@ -40,14 +55,18 @@ def populate_jobs():
     if delivery_addr == None:
         delivery_addr = Address.objects.filter(site__company=customer)[0]
 
+    invoice_addr = Address.objects.filter(site__company=agent).filter(site__default_invoice=True)[0]
+    if invoice_addr == None:
+        invoice_addr = Address.objects.filter(site__company=agent)[0]
+    
     job = Job(
         created_by = ADMIN,
         name = '2108-001',
         agent = agent,
         customer = customer,
-        country = 'UK',
+        country = 'GB',
         language = 'EN',
-        invoice_to = agent.invoice_address(),
+        invoice_to = invoice_addr,
         delivery_to = delivery_addr,
         currency = 'GBP',
         quote_ref = 'Q210712KP-1',
@@ -215,7 +234,7 @@ def populate_products():
     countries = ['GB', 'US', 'NZ', 'AU', 'CA', 'DE', 'FR', 'CN']
     max_part_no = int('9' * 8)
 
-
+#products.append(['CT', 'Trapdoor (BYO)', '76109010', 'Trapdoor mechanism', 100000.00, 'Standard'])
     for e in products:
         part_no = f'{e[0]}{random.randint(0, max_part_no):08}'
         origin = countries[random.randint(0, len(countries)-1)]
@@ -225,15 +244,13 @@ def populate_products():
             available = True,
             name = e[1],
             part_number = part_no,
-            id_type = e[2],
-            hs_code = e[3],
             origin_country = origin,
-            resale_category = ResaleCategory.objects.get(name=e[6])
+            resale_category = ResaleCategory.objects.get(name=e[4])
          )
         p.save()
 
-        add_set_of_desc(p, e[4])
-        add_set_of_prices(p, prl, oldprl, e[5])
+        add_set_of_desc(p, e[2])
+        add_set_of_prices(p, prl, oldprl, e[3])
     return
     
 
@@ -316,52 +333,52 @@ def populate_resale_categories():
 
 def products_data():
     products = []
-    products.append(['CT', 'Trapdoor (BYO)', '76109010', 'Trapdoor mechanism', 100000.00, 'Standard'])
-    products.append(['CT', 'Lava pit',  '', 'Deep pit (d = 9 metres), supplied with lava (d = 3 metres)', 500000.00, 'Standard'])
-    products.append(['CT', 'Shark tank', '70200019', 'Open-topped aquarium, suitable for up to 7 sharks (sharks not included)', 300000.00, 'Standard'])
-    products.append(['CT', 'Crush room', '94038900', 'Rectangular basement with mechanised adjustable walls', 200000.00, 'Standard'])
-    products.append(['CT', 'Plain pit', '', 'Basement, 9 metre depth', 55000.00, 'Standard'])
-    products.append(['CT', 'Animal pit', '73269070', 'Basement animal enclosure with LED ceiling to simulate daylight and full ventilation', 155000.00, 'Standard'])
-    products.append(['CT', 'Furnace pit', '84162010', 'Underground furnace, gas connection and ventilation included', 250000.00, 'Standard'])
-    products.append(['DR', 'Plain hatch', '', 'Plain metal covering', 250.00, 'Standard'])
-    products.append(['DR', 'Match hatch', '', 'Match floor surface (a gap around the edges will be clearly visible)', 1000.00, 'Standard'])
-    products.append(['DR', 'Invisible hatch', '', 'Match floor surface (gap around the edge is imperceptible to the human eye', 50000.00, 'Standard'])
-    products.append(['AT', 'Activation button', '', 'Activation button installed in your desk (wired connection)', 500.00, 'Standard'])
-    products.append(['AT', 'Activation app', '', 'Smartphone app (iOS, Android)', 1000.00, 'Standard'])
-    products.append(['AT', 'Activation cord', '', 'Activation pull cord', 500.00, 'Standard'])
-    products.append(['AT', 'Activation remote', '', 'Remote control', 2000.00, 'Standard'])
-    products.append(['AT', 'Activation within system', '', 'Full integration with your existing system (labour not included, hourly rate)', 200000.00, 'Standard'])
-    products.append(['ES', 'Basic escape', '', 'Escape tunnel (minimum to meet legal requirements)', 50000.00, 'Standard'])
-    products.append(['ES', 'Puzzle escape (runes)', '', 'Escape tunnel unlocked by a puzzle involving runes on large stone slabs', 150000.00, 'Standard'])
-    products.append(['ES', 'Puzzle escape (arithmetic)', '', 'Escape tunnel unlocked by a puzzle involving arthithmetic', 115000.00, 'Standard'])
-    products.append(['ES', 'Puzzle escape (s/w)', '', 'Escape tunnel unlocked by supplying a key word of your choice', 130000.00, 'Standard'])
-    products.append(['SP', 'Spiked walls', '', 'Spikes, angled upwards, along all internal walls (note: victims may climb these to escape)', 100000.00, 'Standard'])
-    products.append(['SP', 'Chair trapdoor', '', 'Integration with conference table: one trapdoor under each seat', 300000.00, 'Standard'])
-    products.append(['TC', 'LCD Screens', '', 'Wall-mounted LCD screens', 150000.00, 'Standard'])
-    products.append(['TR', 'Golf cart', '', 'Golf cart, for rapid transit of employees', 10000.00, 'Standard'])
-    products.append(['CL', 'Uniform (Volcano)', '', 'Uniform, inspired by the might of a volcano', 300.00, 'Apparel'])
-    products.append(['CL', 'Uniform (Island)', '', 'Uniform, suitable for a tropical island', 180.00, 'Apparel'])
-    products.append(['CL', 'Uniform (Business)', '', 'Uniform, blends in with the Western business world', 300.00, 'Apparel'])
-    products.append(['CL', 'Uniform (Armoured)', '', 'Full body armour, including face-obscuring helmet', 1000.00, 'Apparel'])
-    products.append(['TR', 'Magnet train system', '', 'Magnet train transport system for your base', 2000000.00, 'Standard'])
-    products.append(['WP', 'Doom Ray (1)', '', 'Hand-held doom ray', 15000000.00, 'Weapons'])
-    products.append(['WP', 'Doom Ray (150)', '', 'Doom ray capable of destroying a village', 10000000.00, 'Weapons'])
-    products.append(['WP', 'Doom Ray (10K)', '', 'Doom ray capable of destroying a town', 50000000.00, 'Weapons'])
-    products.append(['WP', 'Doom Ray (300K)', '', 'Doom ray capable of destroying a small city', 300000000.00, 'Weapons'])
-    products.append(['WP', 'Doom Ray (1M+)', '', 'Doom ray capable of destroying a large city', 1000000000.00, 'Weapons'])
-    products.append(['WP', 'Doomsday Device (1B+)', '', 'Doom ray capable of destroying a country', 30000000000.00, 'Weapons'])
-    products.append(['LB', 'Treasure tester', '', 'Laboratory device capable of testing treasure', 150000.00, 'Standard'])
-    products.append(['AC', 'Dust cover (treasure tester)', '', 'Dust cover to fit treasure tester', 100.00, 'Standard'])
-    products.append(['AC', 'Dust cover (doomsday)', '', 'Dust cover to fit doomsday device', 500.00, 'Standard'])
-    products.append(['AC', 'Power cord and adaptor', '', 'Power cord and international adaptor', 20.00, 'Standard'])
-    products.append(['LB', 'Gold test unit', '', 'Test module to check purity of gold', 3000.00, 'Standard'])
-    products.append(['LB', 'Sacrifice test unit', '', 'Test module to check moral purity of sacrifices', 10000.00, 'Standard'])
-    products.append(['LB', 'Currency test unit', '', 'Count currency and check for conterfeits and tracking', 7500.00, 'Standard'])
-    products.append(['CT', 'Trap door (volcano pack)', '76109010', 'Trapdoor mechanism (volcano pack)', 952495.00, 'Standard'])
-    products.append(['FN', 'Conference table', '', 'Conference table, seats 20, with holographic display', 12500.00, 'Standard'])
-    products.append(['FN', 'Overlord desk', '', 'Desk with built-in control panels', 8000.00, 'Standard'])
-    products.append(['FN', 'Wall control panel', '', 'Control panel mounted against a wall', 15000.00, 'Standard'])
-    products.append(['PK', 'Control room package', '', 'Package: Basic volcano-themed control room, including conference table trapdoor integration', 1150000.00, 'Standard'])
+    products.append(['CT', 'Trapdoor (BYO)', 'Trapdoor mechanism', 100000.00, 'Standard'])
+    products.append(['CT', 'Lava pit',  'Deep pit (d = 9 metres), supplied with lava (d = 3 metres)', 500000.00, 'Standard'])
+    products.append(['CT', 'Shark tank', 'Open-topped aquarium, suitable for up to 7 sharks (sharks not included)', 300000.00, 'Standard'])
+    products.append(['CT', 'Crush room', 'Rectangular basement with mechanised adjustable walls', 200000.00, 'Standard'])
+    products.append(['CT', 'Plain pit', 'Basement, 9 metre depth', 55000.00, 'Standard'])
+    products.append(['CT', 'Animal pit', 'Basement animal enclosure with LED ceiling to simulate daylight and full ventilation', 155000.00, 'Standard'])
+    products.append(['CT', 'Furnace pit', 'Underground furnace, gas connection and ventilation included', 250000.00, 'Standard'])
+    products.append(['DR', 'Plain hatch', 'Plain metal covering', 250.00, 'Standard'])
+    products.append(['DR', 'Match hatch', 'Match floor surface (a gap around the edges will be clearly visible)', 1000.00, 'Standard'])
+    products.append(['DR', 'Invisible hatch', 'Match floor surface (gap around the edge is imperceptible to the human eye', 50000.00, 'Standard'])
+    products.append(['AT', 'Activation button', 'Activation button installed in your desk (wired connection)', 500.00, 'Standard'])
+    products.append(['AT', 'Activation app', 'Smartphone app (iOS, Android)', 1000.00, 'Standard'])
+    products.append(['AT', 'Activation cord', 'Activation pull cord', 500.00, 'Standard'])
+    products.append(['AT', 'Activation remote', 'Remote control', 2000.00, 'Standard'])
+    products.append(['AT', 'Activation within system', 'Full integration with your existing system (labour not included, hourly rate)', 200000.00, 'Standard'])
+    products.append(['ES', 'Basic escape', 'Escape tunnel (minimum to meet legal requirements)', 50000.00, 'Standard'])
+    products.append(['ES', 'Puzzle escape (runes)', 'Escape tunnel unlocked by a puzzle involving runes on large stone slabs', 150000.00, 'Standard'])
+    products.append(['ES', 'Puzzle escape (arithmetic)', 'Escape tunnel unlocked by a puzzle involving arthithmetic', 115000.00, 'Standard'])
+    products.append(['ES', 'Puzzle escape (s/w)', 'Escape tunnel unlocked by supplying a key word of your choice', 130000.00, 'Standard'])
+    products.append(['SP', 'Spiked walls', 'Spikes, angled upwards, along all internal walls (note: victims may climb these to escape)', 100000.00, 'Standard'])
+    products.append(['SP', 'Chair trapdoor', 'Integration with conference table: one trapdoor under each seat', 300000.00, 'Standard'])
+    products.append(['TC', 'LCD Screens', 'Wall-mounted LCD screens', 150000.00, 'Standard'])
+    products.append(['TR', 'Golf cart', 'Golf cart, for rapid transit of employees', 10000.00, 'Standard'])
+    products.append(['CL', 'Uniform (Volcano)', 'Uniform, inspired by the might of a volcano', 300.00, 'Apparel'])
+    products.append(['CL', 'Uniform (Island)', 'Uniform, suitable for a tropical island', 180.00, 'Apparel'])
+    products.append(['CL', 'Uniform (Business)', 'Uniform, blends in with the Western business world', 300.00, 'Apparel'])
+    products.append(['CL', 'Uniform (Armoured)', 'Full body armour, including face-obscuring helmet', 1000.00, 'Apparel'])
+    products.append(['TR', 'Magnet train system', 'Magnet train transport system for your base', 2000000.00, 'Standard'])
+    products.append(['WP', 'Doom Ray (1)', 'Hand-held doom ray', 15000000.00, 'Weapons'])
+    products.append(['WP', 'Doom Ray (150)', 'Doom ray capable of destroying a village', 10000000.00, 'Weapons'])
+    products.append(['WP', 'Doom Ray (10K)', 'Doom ray capable of destroying a town', 50000000.00, 'Weapons'])
+    products.append(['WP', 'Doom Ray (300K)', 'Doom ray capable of destroying a small city', 300000000.00, 'Weapons'])
+    products.append(['WP', 'Doom Ray (1M+)', 'Doom ray capable of destroying a large city', 1000000000.00, 'Weapons'])
+    products.append(['WP', 'Doomsday Device (1B+)', 'Doom ray capable of destroying a country', 30000000000.00, 'Weapons'])
+    products.append(['LB', 'Treasure tester', 'Laboratory device capable of testing treasure', 150000.00, 'Standard'])
+    products.append(['AC', 'Dust cover (treasure tester)', 'Dust cover to fit treasure tester', 100.00, 'Standard'])
+    products.append(['AC', 'Dust cover (doomsday)', 'Dust cover to fit doomsday device', 500.00, 'Standard'])
+    products.append(['AC', 'Power cord and adaptor', 'Power cord and international adaptor', 20.00, 'Standard'])
+    products.append(['LB', 'Gold test unit', 'Test module to check purity of gold', 3000.00, 'Standard'])
+    products.append(['LB', 'Sacrifice test unit', 'Test module to check moral purity of sacrifices', 10000.00, 'Standard'])
+    products.append(['LB', 'Currency test unit', 'Count currency and check for conterfeits and tracking', 7500.00, 'Standard'])
+    products.append(['CT', 'Trap door (volcano pack)', 'Trapdoor mechanism (volcano pack)', 952495.00, 'Standard'])
+    products.append(['FN', 'Conference table', 'Conference table, seats 20, with holographic display', 12500.00, 'Standard'])
+    products.append(['FN', 'Overlord desk', 'Desk with built-in control panels', 8000.00, 'Standard'])
+    products.append(['FN', 'Wall control panel', 'Control panel mounted against a wall', 15000.00, 'Standard'])
+    products.append(['PK', 'Control room package', 'Package: Basic volcano-themed control room, including conference table trapdoor integration', 1150000.00, 'Standard'])
 
     return products
 
@@ -392,25 +409,25 @@ def populate_addresses():
 
     site_and_address = [
         [companies[0], 'Accounts Office', True, False,
-            ['GB', 'West Midlands', 'B1 1BB', 'Aardvark Tunneling Company Limited,\nFloor 3, 11 Swanky Street,\nBirmingham', '', None]
+            ['GB', 'West Midlands', 'B1 1BB', 'Aardvark Tunneling Company Limited,\nFloor 3, 11 Swanky Street,\nBirmingham', '']
         ],
         [companies[0], 'Warehouse (In)', False, True,
-            ['GB', 'West Midlands', 'B11 1AA', 'Aardvark Tunneling Co. Ltd,\nUnit 1, Some Industrial Estate,\n Forest Road, Bingleton', '', None]
+            ['GB', 'West Midlands', 'B11 1AA', 'Aardvark Tunneling Co. Ltd,\nUnit 1, Some Industrial Estate,\n Forest Road, Bingleton', '']
         ],
         [companies[0], 'Warehouse (Out)', False, False,
-            ['GB', 'West Midlands', 'B11 1AA', 'Aardvark Tunneling Co. Ltd.,\nUnit 2, Some Industrial Estate,\n Forest Road, Bingleton', '', None]
+            ['GB', 'West Midlands', 'B11 1AA', 'Aardvark Tunneling Co. Ltd.,\nUnit 2, Some Industrial Estate,\n Forest Road, Bingleton', '']
         ],
         [companies[1], 'Accounts', True, False,
-            ['GB', 'East Sussex', 'BN12 7XF', 'Baracudax Ltd.,\n7 Fortesque Road,\nLittle Blithering, New Fangleton', '', None]
+            ['GB', 'East Sussex', 'BN12 7XF', 'Baracudax Ltd.,\n7 Fortesque Road,\nLittle Blithering, New Fangleton', '']
         ],
         [companies[1], 'Goods In', False, True,
-            ['GB', 'East Sussex', 'BN14 4DD', 'Baracudax Ltd.,\nUnit 9, Fancy Industrial Estate,\n New Road, Old Fangleton', '', None]
+            ['GB', 'East Sussex', 'BN14 4DD', 'Baracudax Ltd.,\nUnit 9, Fancy Industrial Estate,\n New Road, Old Fangleton', '']
         ],
         [companies[2], 'Main', True, True,
-            ['GB', 'Oxford', 'OX32 9JS', 'Corvex Inc. (UK), Unit 43, Grotty Industrial Estate,\n Swan Pond Road, Tadfield', '', None]
+            ['GB', 'Oxford', 'OX32 9JS', 'Corvex Inc. (UK), Unit 43, Grotty Industrial Estate,\n Swan Pond Road, Tadfield', '']
          ],
         [companies[3], 'Main', True, True,
-            ['US', 'California', '90210', 'DBF, 345 Acadia Place,\nMartin Luther King Bld.,\nMHZ, AFK, WTF', '', None]
+            ['US', 'California', '90210', 'DBF, 345 Acadia Place,\nMartin Luther King Bld.,\nMHZ, AFK, WTF', '']
         ]
     ]
 
@@ -432,8 +449,7 @@ def populate_addresses():
             region = addr[1],
             postcode = addr[2],
             address = addr[3],
-            contact = addr[4],
-            valid_until = addr[5]
+            contact = addr[4]
         )
         a.save()
 
