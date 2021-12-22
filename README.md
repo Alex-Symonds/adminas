@@ -30,7 +30,7 @@ User Configuration:
 * Adjusting the company letterhead (colours/arrangement): ```doc_user.css``` is intended for the user to add their own CSS formatting. It's the only way to apply formatting to the header and footer, but it can also be used to override the CSS settings applied to the "default" documents. The user can choose to rename this file so long as they update ```CSS_FORMATTING_FILENAME``` in ```adminas/constants.py```.
 * Adjusting the company letterhead (contents): replacing ```adminas/static/adminas/logo.png``` with a different PNG with the same name will change the logo. The rest of the letterhead contents are in ```adminas/templates/adminas/pdf/``` in two files named "pdf_doc_2_user_*.html" where the * is "h" for the header and "f" for the footer. The user can choose to rename these files so long as they update ```HTML_HEADER_FILENAME``` and ```HTML_FOOTER_FILENAME``` in ```adminas/constants.py```.
 * constants.py allows the user to adjust which currencies, languages and INCOTERMS are acceptable to them, while also allowing them to rename the user CSS and HTML files.
-
+* "Business data" (i.e. the sort loaded by dummy_data.py) can be added / amended via Django admin.
 
 
 
