@@ -232,7 +232,7 @@ class AgentResaleGroup(AdminAuditTrail):
     percentage = models.FloatField()
 
     def __str__(self):
-        return f'{self.agent}, {self.name}'
+        return f'{self.agent}, {self.percentage} on {self.name}%'
 
 
 class PriceList(AdminAuditTrail):

@@ -106,6 +106,8 @@ def populate_descs_only():
 
 
 def populate_std_accs():
+
+    # Avoid adding StandardAccessories twice.
     if StandardAccessory.objects.all().count() > 0:
         return
 

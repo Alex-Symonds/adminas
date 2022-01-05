@@ -173,6 +173,7 @@ def edit_job(request):
 
     default_get = '-'
 
+    # Open the edit job page, either blank (creating a new job) or with preset inputs (updating an existing job)
     if request.method == 'GET':
         job_id = request.GET.get('job', default_get)
 
@@ -197,6 +198,7 @@ def edit_job(request):
             'job_id': job_id
         })
 
+    # Create, update or delete the job
     elif request.method == 'POST':
 
         if request.GET.get('delete_id'):
