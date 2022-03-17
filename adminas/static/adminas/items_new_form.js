@@ -62,7 +62,7 @@ function clone_item_form(original_ele, prefix){
     let new_item = original_ele.cloneNode(true);
 
     // Update the Django form manager with the new total number of forms
-    let num_forms = document.querySelector(`#id_${prefix}-TOTAL_FORMS`).value;
+    let num_forms = parseInt(document.querySelector(`#id_${prefix}-TOTAL_FORMS`).value);
     document.querySelector(`#id_${prefix}-TOTAL_FORMS`).value = num_forms + 1;
 
     // Make the new row an individual: give it its own IDs and wipe the copied inputs, if any

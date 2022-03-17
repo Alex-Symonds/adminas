@@ -700,20 +700,6 @@ def items(request):
                             ji.update_standard_accessories_quantities()
 
                         ji.job.price_changed()
-                        # Commented out while I experiment with "editing a JobItem reloads the page"
-                        #response_data = ji.get_post_edit_dictionary()
-
-                        # Frontend module assignments! The Job page wants to know if this edit affected the module
-                        # assignments: if so, it'll need to update all its little subsections listing incoming/outgoing assignments.
-                        # Don't care about price/list changes, only product and quantity.
-                        # if quantity_has_changed or product_has_changed:
-                        #     is_parent = JobModule.objects.filter(parent=ji).count() > 0
-                        #     is_child = ji.has_module_assignments()
-                        #     response_data['edit_affected_module_assignments'] = is_child or is_parent
-                        # else:
-                        #     response_data['edit_affected_module_assignments'] = False
-
-                        #return JsonResponse(response_data, status=200)
 
                         return JsonResponse({
                             'reload': 'true'
@@ -810,7 +796,7 @@ def module_assignments(request):
                 prd_f = {}
                 prd_f['id'] = product.id
                 prd_f['quantity_total'] = parent.job.quantity_of_product(product)
-                prd_f['quantity_available'] = parent.job.num_unassigned(product)
+                prd_f['quantity_available'] = parent.job.num_unassigned_to_slot(product)
                 prd_f['name'] = product.part_number + ': ' + product.name
                 prd_list.append(prd_f)
 
@@ -854,7 +840,7 @@ def module_assignments(request):
                     quantity = posted_form.cleaned_data['quantity']
                 )
 
-                if jm.parent.job.num_unassigned(jm.child) >= jm.parent.quantity * jm.quantity:
+                if jm.parent.job.num_unassigned_to_slot(jm.child) >= jm.parent.quantity * jm.quantity:
                     jm.save()
                     data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
                     data_dict['id'] = jm.id
@@ -921,7 +907,7 @@ def module_assignments(request):
                 }, status=400)            
 
             # Maybe the user entered a qty which exceeds the number of unassigned job items on the order
-            num_unassigned = jm.parent.job.num_unassigned(jm.child)
+            num_unassigned = jm.parent.job.num_unassigned_to_slot(jm.child)
             old_qty_total = jm.quantity * jm.parent.quantity
             new_qty_total = new_qty * jm.parent.quantity
 
@@ -1224,8 +1210,8 @@ def doc_builder(request):
                 pass
 
     else:
-        included_list = this_job.get_default_included_items(doc_code)
-        excluded_list = this_job.get_default_excluded_items(doc_code)
+        included_list = this_job.get_items_unassigned_to_doc(doc_code)
+        excluded_list = this_job.get_items_assigned_to_doc(doc_code)
         special_instructions = None
         version_num = 1
 

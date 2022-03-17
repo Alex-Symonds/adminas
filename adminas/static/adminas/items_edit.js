@@ -313,15 +313,14 @@ function update_job_item(e){
     .then(response => response.json())
     .then(data => {
         let result_ele = edit_ele.previousElementSibling;
-        // If there's a message, display it
-        if('message' in data){
-            display_error_message_in_job_item(result_div, data['message']);
-            read_mode_job_item(result_ele, edit_ele);
-        }
-        else if (data['reload'] == 'true'){
+        // If the edit caused big enough changes to require a reload, reload the page
+        if (data['reload'] == 'true'){
             location.reload();
         }
         else{
+            if('message' in data){
+                display_error_message_in_job_item(result_div, data['message']);
+            }
             read_mode_job_item(result_ele, edit_ele);
         }
     })

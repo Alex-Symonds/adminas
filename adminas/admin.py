@@ -4,10 +4,6 @@ from django import forms
 # Register your models here.
 from .models import JobItem, SpecialInstruction, User, Job, Company, Site, Address, Product, Description, Price, PriceList, SlotChoiceList, Slot, ResaleCategory, AgentResaleGroup, PurchaseOrder, DocumentData, ProductionData, DocumentVersion, DocAssignment, JobComment, JobModule, DocumentStaticMainFields, DocumentStaticOptionalFields, DocumentStaticSpecialInstruction, DocumentStaticLineItem
 
-# Register your models here.
-
-
-
 
 # Job admin page (include PO, JobItem, DocumentData)
 class POInline(admin.TabularInline):
@@ -35,12 +31,6 @@ class JobAdmin(admin.ModelAdmin):
 
 
 
-
-
-
-
-
-
 # Company admin (include Site, AgentResaleGroups)
 class CompanyDealsInline(admin.TabularInline):
     model = AgentResaleGroup
@@ -62,11 +52,6 @@ class CompanyAdmin(admin.ModelAdmin):
 
 
 
-
-
-
-
-
 # Site admin (include Address)
 class AddressInline(admin.StackedInline):
     model = Address
@@ -78,12 +63,6 @@ class SiteAdmin(admin.ModelAdmin):
     inlines = [
         AddressInline,
     ]
-
-
-
-
-
-
 
 
 
@@ -124,11 +103,6 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 
-
-
-
-
-
 # PriceList admin (include Price)
 class PriceInline(admin.TabularInline):
     model = Price
@@ -140,8 +114,6 @@ class PriceListAdmin(admin.ModelAdmin):
     inlines = [
         PriceInline,
     ]
-
-
 
 
 
@@ -169,8 +141,6 @@ class ResaleCategoryAdmin(admin.ModelAdmin):
 
 
 
-
-
 # Agent Resale
 class ProductResaleAgentInline(admin.TabularInline):
     model = Product.special_resale.through
@@ -181,9 +151,6 @@ class AgentResaleAdmin(admin.ModelAdmin):
     inlines = [
         ProductResaleAgentInline,
     ]
-
-
-
  
 
 

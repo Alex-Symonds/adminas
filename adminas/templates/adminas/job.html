@@ -23,7 +23,7 @@
     <script src="{% static 'adminas/items_edit.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/po_edit.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/auto_item_desc.js' %}" type="text/javascript"></script>
-    <script src="{% static 'adminas/job_price_check_btn.js' %}" type="text/javascript"></script>
+    <script src="{% static 'adminas/job_price_check.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/todo_management.js' %}" type="text/javascript"></script>
     <script src="{% static 'adminas/job_comments.js' %}" type="text/javascript"></script>
 {% endblock %}
@@ -238,7 +238,7 @@
                         </div>
 
                 {% if it.product.is_modular == True %}
-                        <div class="module-status-section subsection modules-{% if it.excess_modules_assigned %}excess{% elif it.all_required_modules_assigned == True %}ok{% else %}incomplete{% endif %}">
+                        <div class="module-status-section subsection modules-{% if it.excess_modules_assigned %}excess{% elif it.item_is_complete == True %}ok{% else %}incomplete{% endif %}">
                             <div class="intro-line">
                                 <span class="display-text">&raquo; 
                                 {% if it.excess_modules_assigned %}Custom {% endif %}
@@ -246,7 +246,7 @@
                     {% if it.quantity > 1 %} 
                                 (per item)
                     {% endif %}
-                    {% if it.all_required_modules_assigned == False %}
+                    {% if it.item_is_complete == False %}
                                 ---&nbsp;WARNING:&nbsp;INCOMPLETE&nbsp;---
                     {% endif %}
                                 </span>
@@ -260,7 +260,7 @@
                         </div>
                 {% endif %}
         
-                {% if it.has_module_assignments %}
+                {% if it.is_slot_filler %}
                         <div class="module-status-section assignments">
                             <div class="intro-line">
                                 <span class="display-text">
@@ -276,7 +276,7 @@
                                 </div>                                   
                             </div>
                             <ul>
-                    {% for module in it.module_assignments %}
+                    {% for module in it.jobmodules_as_child %}
                                 <li>{{ module.quantity }} {% if module.parent.quantity > 1 %}each {% endif %}to {{ module.parent.quantity }} x [{{ module.parent.product.part_number }}] {{ module.parent.product.name }} <span class="id-number">{{ module.parent.id }}</span></li>
                     {% endfor %}
                             </ul>

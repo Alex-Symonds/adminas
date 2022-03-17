@@ -1,9 +1,12 @@
 from django.shortcuts import render
 import adminas.models
+from adminas.constants import ERROR_NO_DATA
 
 
 
 def format_money(value):
+    if value == None:
+        return ERROR_NO_DATA
     try:
         return f'{value:,.2f}'
     except:

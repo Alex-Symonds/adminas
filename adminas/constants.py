@@ -48,4 +48,7 @@ INCOTERMS = [
 ]
 
 
+# Reused error text
+ERROR_NO_DATA = "[ERR]"
+
 

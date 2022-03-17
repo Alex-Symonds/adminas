@@ -6,7 +6,7 @@ from django.db.models import Sum
 
 from django_countries.fields import CountryField
 
-from adminas.constants import DOCUMENT_TYPES, NUM_BODY_ROWS_ON_EMPTY_DOCUMENT, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, DOC_CODE_MAX_LENGTH
+from adminas.constants import DOCUMENT_TYPES, NUM_BODY_ROWS_ON_EMPTY_DOCUMENT, SUPPORTED_CURRENCIES, SUPPORTED_LANGUAGES, DEFAULT_LANG, INCOTERMS, DOC_CODE_MAX_LENGTH, ERROR_NO_DATA
 from adminas.util import format_money, get_document_available_items, get_plus_prefix, copy_relations_to_new_document_version, debug
 import datetime
 
@@ -21,7 +21,7 @@ DOCS_ONE_LINER = 300
 SYSTEM_NAME_LENGTH = 50
 LENGTH_SERIAL_NUMBER = 6
 MAX_DIGITS_PRICE = 20
-F_PRICE_LENGTH = MAX_DIGITS_PRICE + 1 + (MAX_DIGITS_PRICE / 3) # <- + 1 for the decimal symbol; MAX/3 as a rough approximation for the thousands separator
+F_PRICE_LENGTH = MAX_DIGITS_PRICE + 1 + (MAX_DIGITS_PRICE / 3) # <- + 1 for the decimal symbol; MAX/3 as a lazy approximation for the thousands separator
 
 COMPANY_NAME_LENGTH = 100
 REGION_NAME_LENGTH = 100
@@ -343,7 +343,7 @@ class Slot(models.Model):
 # PO
 class PurchaseOrder(AdminAuditTrail):
     """
-        Enter data as it appears on a customer's PO.
+        Data as it appeared on the customer's PO.
     """
     job = models.ForeignKey('Job', on_delete=models.CASCADE, related_name='po')
     reference = models.CharField(max_length=PO_NAME_LENGTH)
@@ -387,9 +387,9 @@ class Job(AdminAuditTrail):
     price_is_ok = models.BooleanField(default=False)
 
 
-    def can_be_deleted(self):
+    def is_safe_to_delete(self):
         """
-            Determines if this Job can be safely deleted or if it's passed the point of no return from an administrative perspective.
+            Determines if this Job can be safely deleted or if it's passed the point of no return (from an administrative perspective).
         """
         # Condition #1: Job must not have any issued documents (since we want to keep a record of all documents that have been issued)
         docs = DocumentVersion.objects.filter(document__job=self)
@@ -417,7 +417,7 @@ class Job(AdminAuditTrail):
         return instances_of_product.aggregate(Sum('quantity'))['quantity__sum']
 
 
-    def num_unassigned(self, product):
+    def num_unassigned_to_slot(self, product):
         """
             Modular item support (children). How many are still available to be assigned to other slots?
         """
@@ -431,6 +431,19 @@ class Job(AdminAuditTrail):
             a_qty += assignment.quantity * assignment.parent.quantity
 
         return job_qty - a_qty
+
+    def modular_items_incomplete(self):
+        """
+            Check if modular items on the Job have any empty "required" slots
+        """
+        main_items = self.main_item_list()
+        if main_items == None:
+            return False
+    
+        for ji in main_items:
+            if not ji.item_is_complete():
+                return True
+        return False
 
 
     def get_all_comments(self, user, setting_for_order_by):
@@ -479,7 +492,6 @@ class Job(AdminAuditTrail):
         return result        
 
 
-
     def on_todo_list(self, user):
         """
             To-do list. Check if this Job is on the todo list for the specified User
@@ -506,7 +518,7 @@ class Job(AdminAuditTrail):
         if self.items.count() == 0:
             result['strings'].append('No items added')
 
-        if self.modules_are_missing():
+        if self.modular_items_incomplete():
             result['strings'].append('Modular items incomplete')
         
         result['tuples'] = []
@@ -514,24 +526,9 @@ class Job(AdminAuditTrail):
         if qs.count() == 0:
             result['tuples'].append(('PO', 'none entered'))
 
-
         result['tuples'] += self.get_document_warnings()
 
         return result
-
-    def modules_are_missing(self):
-        """
-            Check if modular items on the Job have any empty "required" slots
-        """
-        main_items = self.main_item_list()
-        if main_items == None:
-            return False
-    
-        for ji in main_items:
-            if not ji.all_required_modules_assigned():
-                return True
-        return False
-
 
     def get_document_warnings(self):
         """
@@ -541,7 +538,7 @@ class Job(AdminAuditTrail):
         for loop_tuple in DOCUMENT_TYPES:
             doc_type = loop_tuple[0]
 
-            default_incl_items = self.get_default_included_items(doc_type)
+            default_incl_items = self.get_items_unassigned_to_doc(doc_type)
             if len(default_incl_items) > 0 if default_incl_items != None else False:
                 result.append((doc_type, 'items unassigned'))
 
@@ -549,7 +546,6 @@ class Job(AdminAuditTrail):
                 result.append((doc_type, 'documents unissued'))
 
         return result
-
 
     def unissued_documents_exist(self, doc_type):
         """
@@ -722,18 +718,18 @@ class Job(AdminAuditTrail):
 
 
 
-    def get_default_included_items(self, doc_type):
+    def get_items_unassigned_to_doc(self, doc_type):
         """
             Get a list of JobItems which have not yet been assigned to a document of this type.
             
             On a new document, this is used to pre-populate "Included" <ul>.
-            On existing documents, (ab)used to get "excluded, but available" to populate the top of the "Excluded" <ul>.
+            On existing documents, used to get "excluded, but available" to populate the top of the "Excluded" <ul>.
         """
         result = get_document_available_items(self.main_item_list(), doc_type)
         return result
 
 
-    def get_default_excluded_items(self, doc_type):
+    def get_items_assigned_to_doc(self, doc_type):
         """
             Get a list of JobItems which have already been assigned to a document of this type.
 
@@ -779,7 +775,7 @@ class JobComment(AdminAuditTrail):
         "Private", as you'd expect, determines whether the comment can be seen by anyone or just the author.
         
         "Pinned" and "highlighted" are used to emphasise chosen comments. In some ways they have similar effects:
-        the main Job page and on the Job comments page have a special panel for each, listing all comments
+        the main Job page and the Job comments page have a special panel for each, listing all comments
         with the relevant status.
         
         In addition to this:
@@ -791,10 +787,10 @@ class JobComment(AdminAuditTrail):
         (e.g. "Alice is chasing this one"; "Bob is chasing this one"). Analogue folks might think of it as a post-it
         stuck to the front of a cardboard folder.
 
-        "Highlighted" is intended as an intermediate step, allowing the user to separate the comment-wheat from 
-        the comment-chaff without spamming up the to-do list (e.g. "The order confirmation must be sent to email1 
-        and email2" might be highlight-worthy: you don't want that buried under back-and-forth comments, but you're 
-        probably only interested in reading it when you're already looking at the Job page). Analogue folks might think 
+        "Highlighted" is intended to allow the user to separate the comment-wheat from the comment-chaff without 
+        spamming up the to-do list (e.g. "The order confirmation must be sent to email1 and email2" might be 
+        highlight-worthy: you don't want that buried under back-and-forth comments, but you're probably only 
+        interested in reading it when you're already looking at the Job page). Analogue folks might think 
         of this as taking a yellow highlighter pen to some written instructions.
     """
 
@@ -859,7 +855,7 @@ class JobItem(AdminAuditTrail):
 
     def display_str_with_money(self):
         """
-            Variaton on the "main" description to appear on documents and the webpage.
+            Variation on the "main" description to appear on documents and the webpage.
             Adds money information at the end.
         """
         return f'{self.display_str()} @ {self.job.currency}&nbsp;{self.selling_price_f()}'
@@ -892,8 +888,12 @@ class JobItem(AdminAuditTrail):
         """ 
             Get current list price, in the Job currency, less resale discount (value)
         """
+        list_price = self.list_price()
+        if list_price == None:
+            return None
+
         resale_multiplier = 1 - (self.resale_percentage() / 100)
-        value = float(self.list_price()) * float(resale_multiplier)
+        value = float(list_price) * float(resale_multiplier)
         return round(value, 2)
 
     def resale_price_f(self):
@@ -911,10 +911,8 @@ class JobItem(AdminAuditTrail):
             return 0
 
         else:
-            # Check if the agent has their own special deal
+            # If the agent has their own special deal, handle it
             deal = self.product.special_resale.filter(agent=self.job.invoice_to.site.company)
-
-            # Handle an agent with their own special deal
             if len(deal) != 0:
                 return deal[0].percentage
             
@@ -927,14 +925,20 @@ class JobItem(AdminAuditTrail):
         """
             Difference between sum of JobItem selling price and list price (formatted string)
         """
-        diff = self.selling_price - self.list_price()
+        lp = self.list_price()
+        if lp == None:
+            return ERROR_NO_DATA
+        diff = self.selling_price - lp
         return get_plus_prefix(diff) + format_money(diff)
 
     def resale_difference_value_f(self):
         """
             Difference between sum of JobItem selling price and resale price (formatted string)
         """
-        diff = float(self.selling_price) - self.resale_price()
+        rp = self.resale_price()
+        if rp == None:
+            return ERROR_NO_DATA
+        diff = float(self.selling_price) - rp
         return get_plus_prefix(diff) + format_money(diff)
 
     def list_difference_perc(self):
@@ -1017,7 +1021,7 @@ class JobItem(AdminAuditTrail):
             Modular: Child. When editing the qty, check the new qty is compatible with JobModule assignments
             (i.e. user hasn't subtracted so many that there aren't enough to fulfill all existing slot assignments)
         """        
-        module_assignments = self.module_assignments()
+        module_assignments = self.jobmodules_as_child()
         num_needed_for_assignments = 0
         if module_assignments.count() > 0:
             for ma in module_assignments:
@@ -1047,45 +1051,45 @@ class JobItem(AdminAuditTrail):
         """
         result = {}
         result['product_total'] = self.job.quantity_of_product(self.product)
-        result['num_unassigned'] = self.job.num_unassigned(self.product)
+        result['num_unassigned'] = self.job.num_unassigned_to_slot(self.product)
         result['num_assigned'] = result['product_total'] - result['num_unassigned']
         return result
 
 
-    def has_module_assignments(self):
+    def is_slot_filler(self):
         """
             Modular: Child. Check if this product has any assignments
         """
-        return self.module_assignments().count() > 0
+        return self.jobmodules_as_child().count() > 0
 
 
-    def module_assignments(self):
+    def jobmodules_as_child(self):
         """
             Modular: Child. Get a list of relevant JobModules
         """
         return JobModule.objects.filter(parent__job=self.job).filter(child=self.product)
 
 
-    def all_required_modules_assigned(self):
+    def item_is_complete(self):
         """
             Modular: Parent. Is this a functional spec, with all required filled?
         """
         if self.product.is_modular():
             for slot in self.product.slots.all():
-                if self.num_assigned(slot) < slot.quantity_required:
+                if self.num_slot_children(slot) < slot.quantity_required:
                     return False
         return True
 
 
-    def all_optional_modules_assigned(self):
-        """
-            Modular: Parent. Are the optional slots all filled as well?
-        """
-        if self.product.is_modular():
-            for slot in self.product.slots.all():
-                if self.num_assigned(slot) < slot.quantity_required + slot.quantity_optional:
-                    return False                
-        return True
+    # def all_optional_modules_assigned(self):
+    #     """
+    #         Modular: Parent. Are the optional slots all filled as well?
+    #     """
+    #     if self.product.is_modular():
+    #         for slot in self.product.slots.all():
+    #             if self.num_assigned(slot) < slot.quantity_required + slot.quantity_optional:
+    #                 return False                
+    #     return True
 
 
     def excess_modules_assigned(self):
@@ -1103,7 +1107,7 @@ class JobItem(AdminAuditTrail):
         return False   
 
 
-    def num_assigned(self, slot):
+    def num_slot_children(self, slot):
         """
             Modular: Parent. Use to find out number of children *per parent* for this slot.
         """
@@ -1120,7 +1124,7 @@ class JobItem(AdminAuditTrail):
             Modular: Parent. Slot status string for required, e.g. "1/3" = 1 filled, 3 required.
         """
         if self.product.is_modular():
-            num_assignments = self.num_assigned(slot)
+            num_assignments = self.num_slot_children(slot)
             if num_assignments <= slot.quantity_required:
                 result = num_assignments
             else:
@@ -1134,7 +1138,7 @@ class JobItem(AdminAuditTrail):
             Modular: Parent. Slot status string for optional, e.g. "1/3" = 1 filled, 3 available (as standard).
         """
         if self.product.is_modular():
-            num_assignments = self.num_assigned(slot)    
+            num_assignments = self.num_slot_children(slot)    
 
             if num_assignments <= slot.quantity_required:
                 result = 0
@@ -1151,10 +1155,8 @@ class JobItem(AdminAuditTrail):
             Modular: Parent. Get the number of excess assignments to this specific slot
         """
         if self.product.is_modular():
-            num_assignments = self.num_assigned(slot)  
-            if num_assignments <= slot.quantity_required + slot.quantity_optional:
-                return 0
-            else:
+            num_assignments = self.num_slot_children(slot)  
+            if num_assignments > slot.quantity_required + slot.quantity_optional:
                 return num_assignments - slot.quantity_required - slot.quantity_optional
         return 0
 
