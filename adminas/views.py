@@ -198,25 +198,31 @@ def edit_job(request):
             'job_id': job_id
         })
 
-    # Create, update or delete the job
-    elif request.method == 'POST':
-
+    elif request.method == 'DELETE':
         if request.GET.get('delete_id'):
             try:
                 job_to_delete = Job.objects.get(id=request.GET.get('delete_id'))
             except Job.DoesNotExist:
                 return JsonResponse({
-                    'error': 'Job ID is invalid.'
-                }, 400)
+                    'message': 'Job ID is invalid.'
+                }, status=400)
 
             if job_to_delete.is_safe_to_delete():
                 job_to_delete.delete()
-                return HttpResponse(status=200)
+                return HttpResponse(status=204)
 
             else:
                 return JsonResponse({
-                    'error': "This Job can't be deleted."
-                }, 400)
+                    'message': "This Job can't be deleted."
+                }, status=400)
+
+        return JsonResponse({
+            'message': "This Job can't be deleted."
+        }, status=400)
+        
+
+    # Create, update or delete the job
+    elif request.method == 'POST':
 
         job_id = request.POST['job_id']
         posted_form = JobForm(request.POST)

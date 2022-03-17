@@ -2415,4 +2415,14 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
   display: block;
 }
 
+.error-message {
+  clear: both;
+  float: right;
+  border: 1px solid #141414;
+  border-right: 3px solid #cf0000;
+  background: #222;
+  margin: 0.5rem;
+  padding: 4px 8px;
+}
+
 /*# sourceMappingURL=styles.css.map */
