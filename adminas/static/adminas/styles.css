@@ -1679,6 +1679,14 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
 #price_check_table td {
   text-align: right;
 }
+#price_check_table .description {
+  position: relative;
+}
+#price_check_table .details {
+  display: block;
+  font-style: italic;
+  color: #BBB;
+}
 
 .responsive-table {
   margin: 0.3rem;
@@ -1825,6 +1833,23 @@ table.price-comparison .conclusion th, table.price-comparison .conclusion td {
   }
   #price_check_section #price_check_table td:nth-of-type(11):before {
     content: "Resale vs. Sold (%)";
+  }
+  #price_check_section .details {
+    position: absolute;
+    bottom: -1rem;
+    right: 5px;
+    z-index: 2;
+    width: 15rem;
+    color: #F6F6F6;
+    background: #444;
+    border: 1px solid #222;
+    padding: 3px;
+    box-shadow: 0 0 10px 1px rgba(0, 0, 0, 0.85);
+    border-right: 3px solid #0DFA96;
+    padding-right: 10px;
+    text-align: right;
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
   }
 
   #id_records button.todo-list-add {
