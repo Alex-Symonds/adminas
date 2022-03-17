@@ -209,7 +209,7 @@ def edit_job(request):
                     'error': 'Job ID is invalid.'
                 }, 400)
 
-            if job_to_delete.can_be_deleted():
+            if job_to_delete.is_safe_to_delete():
                 job_to_delete.delete()
                 return HttpResponse(status=200)
 
