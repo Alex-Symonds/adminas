@@ -118,50 +118,46 @@ def todo_list_management(request):
             'message': "You must be logged in to update the to-do list."
         },status=400)   
 
-    if request.method == 'POST':
-        posted_data = json.loads(request.body)
 
-        if 'job_id' in posted_data and 'task' in posted_data:
-            try:
-                user = User.objects.get(username=request.user.username)
-            except User.DoesNotExist:
-                return JsonResponse({
-                    'message': "Failed to update to-do list: can't find user."
-                }, status=400)
+    posted_data = json.loads(request.body)
+    if 'job_id' in posted_data:
+        try:
+            user = User.objects.get(username=request.user.username)
+        except User.DoesNotExist:
+            return JsonResponse({
+                'message': "Failed to update to-do list: can't find user."
+            }, status=400)
 
-            try:
-                job = Job.objects.get(id=posted_data['job_id'])
-            except Job.DoesNotExist:
-                return JsonResponse({
-                    'message': "Failed to update to-do list: can't find job."
-                }, status=400)
+        try:
+            job = Job.objects.get(id=posted_data['job_id'])
+        except Job.DoesNotExist:
+            return JsonResponse({
+                'message': "Failed to update to-do list: can't find job."
+            }, status=400)
 
-            # Get the task and perform it
-            if 'remove' == posted_data['task']:
-                if job in user.todo_list_jobs.all():
-                    user.todo_list_jobs.remove(job)
-                    user.save()
-                    return JsonResponse({
-                        'id': posted_data['job_id']
-                    }, status=200)
 
-            elif 'add' == posted_data['task']:
-                if not job in user.todo_list_jobs.all():
-                    user.todo_list_jobs.add(job)
-                    user.save()
-                    return JsonResponse({
-                        'status': 'ok'
-                    }, status=200)
+    if request.method == 'DELETE':
+        if job in user.todo_list_jobs.all():
+            user.todo_list_jobs.remove(job)
+            user.save()
+            return JsonResponse({
+                'id': posted_data['job_id']
+            }, status=200)
 
-            else:
-                return JsonResponse({
-                    'message': "Failed to update to-do list: invalid task."
-                }, status=400)
+    elif request.method == 'POST':
+        if not job in user.todo_list_jobs.all():
+            user.todo_list_jobs.add(job)
+            user.save()
+            return JsonResponse({
+                'status': 'ok'
+            }, status=200)
 
         else:
             return JsonResponse({
-                'message': "Failed to update to-do list: incomplete instructions."
+                'message': "Failed to update to-do list: invalid task."
             }, status=400)
+
+
 
 
 def edit_job(request):
