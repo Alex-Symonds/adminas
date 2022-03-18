@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', function(e) {
 -------------------------------------------------------------------------------------------------------------- */
 // Delete a job item from the server, then call functions to update DOM
 function delete_job_item(e){
-    fetch(`/items?id=${e.target.dataset.jiid}&delete=True`, {
-        method: 'POST',
+    fetch(`/items?id=${e.target.dataset.jiid}`, {
+        method: 'DELETE',
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })

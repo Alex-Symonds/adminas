@@ -545,23 +545,24 @@ def purchase_order(request):
         return anonymous_user(request)
 
     if request.method == 'DELETE':
-        data = json.loads(request.body)
-
-        if 'id' in data:
-            try:
-                po_to_delete = PurchaseOrder.objects.get(id=data['id'])
-
-                # Deactivate POs rather than deleting them, in case someone needs it as an audit trail
-                po_to_delete.active = False
-                po_to_delete.save()
-                job = po_to_delete.job
-                job.price_changed()
-                return HttpResponseRedirect(reverse('job', kwargs={'job_id': job.pk }))
-
-            except PurchaseOrder.DoesNotExist:
-                return error_page(request, "Can't find PO.", 400)
+        if 'id' in request.GET:
+            po_id = request.GET.get('id')
         else:
             return error_page(request, "Invalid request", 400)
+
+        try:
+            po_to_delete = PurchaseOrder.objects.get(id=po_id)
+
+            # Deactivate POs rather than deleting them, in case someone needs it as an audit trail
+            po_to_delete.active = False
+            po_to_delete.save()
+            job = po_to_delete.job
+            job.price_changed()
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': job.pk }))
+
+        except PurchaseOrder.DoesNotExist:
+            return error_page(request, "Can't find PO.", 400)
+
 
     elif request.method == 'POST':
         # Create and Update should both submit a JSONed POForm, so handle/check that
@@ -609,7 +610,24 @@ def items(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
     
-    if request.method == 'POST':
+    if request.method == 'DELETE':
+        ji_id = request.GET.get('id')
+        ji = JobItem.objects.get(id=ji_id)
+
+        # Check that this item is not presently assigned as a slot-filler to a modular item.
+        new_qty = 0
+        if not ji.quantity_is_ok_for_modular_as_child(new_qty):
+            return JsonResponse({
+                'message': f"Delete failed: conflicts with modular item assignments."
+            }, status=400)
+
+        ji.job.price_changed()
+        ji.delete()
+        return JsonResponse({
+            'reload': 'true'
+        }, status=200)
+
+    elif request.method == 'POST':
         if not request.GET.get('id'):
             # Try processing the formset with a flexible number of items added at once (i.e. from the multi-item form on the Job page)
             formset = JobItemFormSet(request.POST)
@@ -655,19 +673,19 @@ def items(request):
             ji_id = request.GET.get('id')
             ji = JobItem.objects.get(id=ji_id)
 
-            if request.GET.get('delete'):
-                # Deleting an item can mess up JobModule assignments. Check for child-related problems
-                new_qty = 0
-                if not ji.quantity_is_ok_for_modular_as_child(new_qty):
-                    return JsonResponse({
-                        'message': f"Delete failed: conflicts with modular item assignments."
-                    }, status=400)
+            # if request.GET.get('delete'):
+            #     # Deleting an item can mess up JobModule assignments. Check for child-related problems
+            #     new_qty = 0
+            #     if not ji.quantity_is_ok_for_modular_as_child(new_qty):
+            #         return JsonResponse({
+            #             'message': f"Delete failed: conflicts with modular item assignments."
+            #         }, status=400)
 
-                ji.job.price_changed()
-                ji.delete()
-                return JsonResponse({
-                    'reload': 'true'
-                }, status=200)
+            #     ji.job.price_changed()
+            #     ji.delete()
+            #     return JsonResponse({
+            #         'reload': 'true'
+            #     }, status=200)
 
             if request.GET.get('edit'):
                 posted_data = json.loads(request.body)
