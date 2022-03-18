@@ -627,6 +627,7 @@ def items(request):
             'reload': 'true'
         }, status=200)
 
+
     elif request.method == 'POST':
         if not request.GET.get('id'):
             # Try processing the formset with a flexible number of items added at once (i.e. from the multi-item form on the Job page)
