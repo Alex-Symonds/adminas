@@ -10,6 +10,12 @@ const CSS_GENERIC_PANEL_HEADING = 'panel-header';
 const CSS_GENERIC_FORM_LIKE = 'form-like';
 
 
+// When deleting something, check for 204 before attempting to JSON anything.
+async function jsonOr204(response){
+    if(response.status === 204) return '204';
+    return await response.json();
+}
+
 // Add comma for thousands separator
 function numberWithCommas(num) {
     // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript

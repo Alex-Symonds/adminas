@@ -171,10 +171,9 @@ def edit_job(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
-    default_get = '-'
-
     # Open the edit job page, either blank (creating a new job) or with preset inputs (updating an existing job)
     if request.method == 'GET':
+        default_get = '-'
         job_id = request.GET.get('job', default_get)
 
         if job_id == default_get:
@@ -198,6 +197,8 @@ def edit_job(request):
             'job_id': job_id
         })
 
+
+    # Delete the Job
     elif request.method == 'DELETE':
         if request.GET.get('delete_id'):
             try:
@@ -211,24 +212,21 @@ def edit_job(request):
                 job_to_delete.delete()
                 return HttpResponse(status=204)
 
-            else:
-                return JsonResponse({
-                    'message': "This Job can't be deleted."
-                }, status=400)
-
         return JsonResponse({
             'message': "This Job can't be deleted."
         }, status=400)
+
         
 
-    # Create, update or delete the job
+    # POST = form submission = create or edit a Job
     elif request.method == 'POST':
-
-        job_id = request.POST['job_id']
         posted_form = JobForm(request.POST)
 
         if posted_form.is_valid():
+            job_id = request.POST['job_id']
+
             if job_id == '0':
+                # Create a new job, add it to the creator's todo list and set the ID for the redirect
                 new_job = Job(
                     created_by = request.user,
                     name = posted_form.cleaned_data['name'],
@@ -244,13 +242,18 @@ def edit_job(request):
                     invoice_to = posted_form.cleaned_data['invoice_to'],
                     delivery_to = posted_form.cleaned_data['delivery_to']
                 )
+
                 new_job.save()
-                redirect_id = new_job.id
+
                 user = User.objects.get(username=request.user.username)
                 user.todo_list_jobs.add(new_job)
 
+                redirect_id = new_job.id
+
             else:
+                # Update the job and set the ID for the redirect
                 job = Job.objects.get(id=job_id)
+
                 job.created_by = request.user
                 job.name = posted_form.cleaned_data['name']
                 job.agent = posted_form.cleaned_data['agent']
@@ -264,10 +267,13 @@ def edit_job(request):
                 job.incoterm_location = posted_form.cleaned_data['incoterm_location']
                 job.invoice_to = posted_form.cleaned_data['invoice_to']
                 job.delivery_to = posted_form.cleaned_data['delivery_to']
+
                 job.save()
                 redirect_id = job_id
 
             return HttpResponseRedirect(reverse('job', kwargs={'job_id': redirect_id}))
+        else:
+            return error_page(request, 'Invalid form.', 400)
 
     return render(request, 'adminas/edit.html')
 
@@ -317,33 +323,36 @@ def job_comments(request, job_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
     
-    # User wants to create, update or delete a JobComment
-    if request.method == 'POST':
-
-        # Check if this comment ID is valid and the user is allowed to change it.
-        # Note: comment_id == 0 means it's a new comment, so skip this bit. (We already know ID = 0 is no good; any logged-in user is 
-        # allowed to create a comment; we also can't assign "comment" because we need to create it.
+    # If the request involves modifying an existing comment, check for non-existence and lack of permission.
+    # Note: comment_id == '0' indicates creation of a new comment. All authenticated users have permission
+    # to create a comment and it's not /supposed/ to exist yet, so skip the checks in tht case.
+    if request.method == 'POST' or request.method == 'DELETE':
         comment_id = request.GET.get('id')
-        if comment_id != '0': 
+        if comment_id != '0':
+
             try:
                 comment = JobComment.objects.get(id=comment_id)
             except JobComment.DoesNotExist:
                 return JsonResponse({
-                    'error': "Can't find comment."
+                    'message': "Can't find comment."
                 }, status=400)
 
             if(comment.created_by != request.user):
                 return JsonResponse({
-                    'denied': "You are not the owner of this comment."
+                    'message': "You are not the owner of this comment."
                 }, status=403) 
 
+    if request.method == 'DELETE':
         # If the user wants to delete comment, we have all the info we need, so delete it and done.
-        posted_data = json.loads(request.body)
-        if 'task' in posted_data and posted_data['task'] == 'delete':
-            comment.delete()
-            return JsonResponse({'ok': 'ok'}, status=200)                     
+        comment.delete()
+        return HttpResponse(status=204)   
 
-        # If it's create or update, stick the data into the form for cleaning and check it's all ok.
+
+    # User wants to create OR update or delete a JobComment
+    elif request.method == 'POST':
+        posted_data = json.loads(request.body)
+
+        # Stick the data into the form for cleaning and check it's all ok.
         comment_form = JobCommentFullForm({
             'private': posted_data['private'],
             'contents': posted_data['contents'],

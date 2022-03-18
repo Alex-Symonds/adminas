@@ -516,10 +516,13 @@ async function backend_save_job_comment(btn, data){
 async function delete_job_comment(btn){
     let comment_ele = btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_ELE);
     let response = await delete_job_comment_on_server(btn, comment_ele.dataset.comment_id);
-    if('denied' in response){
-        update_job_page_comments_after_denied(response['denied'], comment_ele);
-    } else {
+    //if('denied' in response){
+    if(response.status == 204){
         update_job_page_comments_after_delete(comment_ele.dataset.comment_id);
+    } else {
+        let dict = await response.json();
+        console.log(dict['denied']);
+        update_job_page_comments_after_denied(dict['denied'], comment_ele);       
     }
 }
 
@@ -527,7 +530,7 @@ async function delete_job_comment(btn){
 async function delete_job_comment_on_server(btn, comment_id){
     let url = get_jobcomments_url(btn);
     let response = await fetch(`${url}?id=${comment_id}`, {
-        method: 'POST',
+        method: 'DELETE',
         body: JSON.stringify({
             'task': 'delete'
         }),
@@ -538,7 +541,8 @@ async function delete_job_comment_on_server(btn, comment_id){
         console.log('Error: ', error);
     })
 
-    return await response.json();
+    //return await response.json();
+    return response
 }
 
 
