@@ -552,12 +552,8 @@ async function remove_jobmodule(e){
 
 // Delete Assignment: Backend removal of the JobItem from the slot
 async function unfill_slot_on_server(e){
-    let resp = await fetch(`${URL_ASSIGNMENTS}`, {
-        method: 'POST',
-        body: JSON.stringify({
-            'action': 'delete',
-            'id': e.target.dataset.jobmod
-        }),
+    let resp = await fetch(`${URL_ASSIGNMENTS}?id=${e.target.dataset.jobmod}`, {
+        method: 'DELETE',
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })

@@ -618,7 +618,7 @@ def items(request):
         new_qty = 0
         if not ji.quantity_is_ok_for_modular_as_child(new_qty):
             return JsonResponse({
-                'message': f"Delete failed: conflicts with modular item assignments."
+                'message': "Delete failed: conflicts with modular item assignments."
             }, status=400)
 
         ji.job.price_changed()
@@ -805,6 +805,7 @@ def module_assignments(request):
     """
         Process Module Assignments
     """
+
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
@@ -862,6 +863,29 @@ def module_assignments(request):
         }, status=200)
 
 
+    elif request.method == 'DELETE':
+
+        if 'id' in request.GET:
+            my_id = request.GET.get('id')
+
+        else:
+            return JsonResponse({
+                'message': 'Invalid request.'
+            }, status=400)
+
+        try:
+            jm = JobModule.objects.get(id=my_id)
+        except:
+            return JsonResponse({
+                'message': 'Invalid request.'
+            }, status=400)
+
+        parent = jm.parent
+        slot = jm.slot
+        jm.delete()
+
+        return JsonResponse(parent.get_slot_status_dictionary(slot), status=200)
+
 
     elif request.method == 'POST': 
         posted_data = json.loads(request.body)
@@ -893,22 +917,6 @@ def module_assignments(request):
                     'message': 'POST data was invalid.'
                 }, status=400)
 
-
-        elif posted_data['action'] == 'delete':
-            try:
-                jm = JobModule.objects.get(id=posted_data['id'])
-    
-            except:
-                return JsonResponse({
-                    'message': 'POST data was invalid.'
-                }, status=400)
-
-            parent = jm.parent
-            slot = jm.slot
-            jm.delete()
-
-            return JsonResponse(parent.get_slot_status_dictionary(slot), status=200)
-        
 
         elif posted_data['action'] == 'edit_qty':
 
