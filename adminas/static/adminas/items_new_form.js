@@ -66,12 +66,12 @@ function clone_item_form(original_ele, prefix){
     document.querySelector(`#id_${prefix}-TOTAL_FORMS`).value = num_forms + 1;
 
     // Make the new row an individual: give it its own IDs and wipe the copied inputs, if any
-    update_form_row_ids(new_item, prefix, (num_forms - 1));
+    update_form_row_ids(new_item, prefix, num_forms);
     wipe_data_from_form(new_item);
     
     // Add a delete event listener to the new delete button and the product dropdown; clear old auto_desc
     add_delete_event(new_item.querySelector('.' + CLASS_REMOVE_ITEM_FORM_BTN));
-    auto_item_desc_listener(new_item.querySelector('#id_form-' + (num_forms - 1) + '-product'));
+    auto_item_desc_listener(new_item.querySelector('#id_form-' + num_forms + '-product'));
     new_item.querySelector('.' + AUTO_DESC_CLASS).innerHTML = '';
 
     // Add new item to the DOM
