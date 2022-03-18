@@ -147,8 +147,11 @@ function delete_po(e){
 
 // Delete PO: do the deletey deed
 function delete_po_from_server(po_id){
-    fetch(`${URL_PO}?id=${po_id}&delete=true`, {
-        method: 'POST',
+    fetch(`${URL_PO}`, {
+        method: 'DELETE',
+        body: JSON.stringify({
+            'id': po_id
+        }),
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })

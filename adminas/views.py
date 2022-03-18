@@ -338,14 +338,13 @@ def job_comments(request, job_id):
                     'message': "You are not the owner of this comment."
                 }, status=403) 
 
-
+    # User wants to delete a job comment
     if request.method == 'DELETE':
-        # If the user wants to delete comment, we have all the info we need, so delete it and done.
         comment.delete()
         return HttpResponse(status=204)   
 
 
-    # User wants to create OR update or delete a JobComment
+    # User wants to create or update a JobComment
     elif request.method == 'POST':
         posted_data = json.loads(request.body)
 
@@ -544,56 +543,63 @@ def purchase_order(request):
 
     if not request.user.is_authenticated:
         return anonymous_user(request)
-    
-    if request.method == 'POST':
 
-        # Handle Delete case
-        if request.GET.get('delete'):
-            po_to_delete = PurchaseOrder.objects.get(id=request.GET.get('id'))
-            # Deactivate POs rather than deleting them, in case someone needs it as an audit trail
-            po_to_delete.active = False
-            po_to_delete.save()
-            job = po_to_delete.job
-            job.price_changed()
-            return HttpResponseRedirect(reverse('job', kwargs={'job_id': job.pk }))
+    if request.method == 'DELETE':
+        data = json.loads(request.body)
+
+        if 'id' in data:
+            try:
+                po_to_delete = PurchaseOrder.objects.get(id=data['id'])
+
+                # Deactivate POs rather than deleting them, in case someone needs it as an audit trail
+                po_to_delete.active = False
+                po_to_delete.save()
+                job = po_to_delete.job
+                job.price_changed()
+                return HttpResponseRedirect(reverse('job', kwargs={'job_id': job.pk }))
+
+            except PurchaseOrder.DoesNotExist:
+                return error_page(request, "Can't find PO.", 400)
+        else:
+            return error_page(request, "Invalid request", 400)
+
+    elif request.method == 'POST':
+        # Create and Update should both submit a JSONed POForm, so handle/check that
+        posted_form = POForm(request.POST)
+        if posted_form.is_valid():
+
+            # Update PO
+            if request.GET.get('id'):
+                po_to_update = PurchaseOrder.objects.get(id=request.GET.get('id'))
+                po_to_update.reference = posted_form.cleaned_data['reference']
+                po_to_update.date_on_po = posted_form.cleaned_data['date_on_po']
+                po_to_update.date_received = posted_form.cleaned_data['date_received']
+                po_to_update.currency = posted_form.cleaned_data['currency']
+                po_to_update.value = posted_form.cleaned_data['value']
+                po_to_update.save()
+
+                # Price change means previous price confirmation is no longer valid
+                job = po_to_update.job
+                job.price_changed()
+
+            # Create PO
+            else:
+                new_po = PurchaseOrder(
+                    created_by = request.user,
+                    job = posted_form.cleaned_data['job'],
+                    reference = posted_form.cleaned_data['reference'],
+                    date_on_po = posted_form.cleaned_data['date_on_po'],
+                    date_received = posted_form.cleaned_data['date_received'],
+                    currency = posted_form.cleaned_data['currency'],
+                    value = posted_form.cleaned_data['value']
+                )
+                new_po.save()
+
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
 
         else:
-            # Create and Update should both submit a JSONed POForm, so handle/check that
-            posted_form = POForm(request.POST)
-            if posted_form.is_valid():
-
-                # Update PO
-                if request.GET.get('id'):
-                    po_to_update = PurchaseOrder.objects.get(id=request.GET.get('id'))
-                    po_to_update.reference = posted_form.cleaned_data['reference']
-                    po_to_update.date_on_po = posted_form.cleaned_data['date_on_po']
-                    po_to_update.date_received = posted_form.cleaned_data['date_received']
-                    po_to_update.currency = posted_form.cleaned_data['currency']
-                    po_to_update.value = posted_form.cleaned_data['value']
-                    po_to_update.save()
-
-                    # Price change means previous price confirmation is no longer valid
-                    job = po_to_update.job
-                    job.price_changed()
-
-                # Create PO
-                else:
-                    new_po = PurchaseOrder(
-                        created_by = request.user,
-                        job = posted_form.cleaned_data['job'],
-                        reference = posted_form.cleaned_data['reference'],
-                        date_on_po = posted_form.cleaned_data['date_on_po'],
-                        date_received = posted_form.cleaned_data['date_received'],
-                        currency = posted_form.cleaned_data['currency'],
-                        value = posted_form.cleaned_data['value']
-                    )
-                    new_po.save()
-
-                return HttpResponseRedirect(reverse('job', kwargs={'job_id': posted_form.cleaned_data['job'].id }))
-
-            else:
-                debug(posted_form.errors)
-                return error_page(request, 'PO form was invalid', 400)
+            debug(posted_form.errors)
+            return error_page(request, 'PO form was invalid', 400)
 
 
 def items(request):

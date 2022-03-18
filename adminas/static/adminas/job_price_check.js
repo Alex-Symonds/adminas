@@ -12,18 +12,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let price_check_table_ele = document.getElementById('price_check_table');
-    price_check_table_ele.querySelectorAll('.details-toggle').forEach(span => {
-        span.addEventListener('click', (e) => {
-            toggle_part_desc(e);
-        });
-    });
-    price_check_table_ele.querySelectorAll('.details').forEach(span => {
-        span.addEventListener('click', (e) => {
-            toggle_part_desc(e);
-        });
-    });
-
+    if (price_check_table_ele != null){
+        add_toggle_part_desc_event_listener(price_check_table_ele, '.details-toggle');
+        add_toggle_part_desc_event_listener(price_check_table_ele, '.details');
+    }
 });
+
+function add_toggle_part_desc_event_listener(parent, identifier_str){
+    let ele_list = parent.querySelectorAll(identifier_str);
+    if (ele_list.length > 0){
+        ele_list.forEach(ele => {
+            ele.addEventListener('click', (e) => {
+                toggle_part_desc(e);
+            })
+        });
+    }
+}
 
 
 // Backend
