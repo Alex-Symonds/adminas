@@ -12,7 +12,7 @@ const CSS_GENERIC_FORM_LIKE = 'form-like';
 
 // When deleting something, check for 204 before attempting to JSON anything.
 async function jsonOr204(response){
-    if(response.status === 204) return '204';
+    if(response.status === 204) return 204;
     return await response.json();
 }
 

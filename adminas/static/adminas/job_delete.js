@@ -18,14 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function delete_job(){
     fetch(URL_DELETE_JOB, {
         method: 'DELETE',
-        body: {},
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
-    //.then(response => response.json().then(data => ({status: response.status, body: data})))
     .then(response => jsonOr204(response))
     .then(data => {
-        if(data === '204'){
+        if(data === 204){
             window.location.href = '/';
         }
         else{

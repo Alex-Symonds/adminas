@@ -342,6 +342,7 @@ def job_comments(request, job_id):
                     'message': "You are not the owner of this comment."
                 }, status=403) 
 
+
     if request.method == 'DELETE':
         # If the user wants to delete comment, we have all the info we need, so delete it and done.
         comment.delete()
