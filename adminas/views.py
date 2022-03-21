@@ -3,12 +3,12 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.db import IntegrityError
 from django.urls import reverse
-import json
 from django.db.models import Sum, Count
 from django.core.paginator import Paginator
-
-import datetime
 from django.utils import formats
+
+import json
+import datetime
 
 # PDF stuff ----------------------------------------------
 from wkhtmltopdf.views import PDFTemplateResponse
@@ -118,21 +118,20 @@ def todo_list_management(request):
             'message': "You must be logged in to update the to-do list."
         },status=400)   
 
-
     posted_data = json.loads(request.body)
     if 'job_id' in posted_data:
         try:
             user = User.objects.get(username=request.user.username)
         except User.DoesNotExist:
             return JsonResponse({
-                'message': "Failed to update to-do list: can't find user."
+                'message': "Failed to update to-do list."
             }, status=400)
 
         try:
             job = Job.objects.get(id=posted_data['job_id'])
         except Job.DoesNotExist:
             return JsonResponse({
-                'message': "Failed to update to-do list: can't find job."
+                'message': "Failed to update to-do list."
             }, status=400)
 
 
@@ -154,7 +153,7 @@ def todo_list_management(request):
 
         else:
             return JsonResponse({
-                'message': "Failed to update to-do list: invalid task."
+                'message': "Failed to update to-do list."
             }, status=400)
 
 
@@ -169,10 +168,10 @@ def edit_job(request):
 
     # Open the edit job page, either blank (creating a new job) or with preset inputs (updating an existing job)
     if request.method == 'GET':
-        default_get = '-'
-        job_id = request.GET.get('job', default_get)
+        fallback_get = '-'
+        job_id = request.GET.get('job', fallback_get)
 
-        if job_id == default_get:
+        if job_id == fallback_get:
             task_name = 'Create New'
             job_form = JobForm()
             job_id = 0
@@ -181,7 +180,7 @@ def edit_job(request):
             try:
                 job = Job.objects.get(id=job_id)
             except:
-                return error_page(request, 'Invalid Job ID.', 400)
+                return error_page(request, 'Invalid Job.', 400)
 
             task_name = 'Edit'
             job_form = JobForm(instance=job)
@@ -319,24 +318,21 @@ def job_comments(request, job_id):
     if not request.user.is_authenticated:
         return anonymous_user(request)
     
-    # If the request involves modifying an existing comment, check for non-existence and lack of permission.
-    # Note: comment_id == '0' indicates creation of a new comment. All authenticated users have permission
-    # to create a comment and it's not /supposed/ to exist yet, so skip the checks in tht case.
-    if request.method == 'POST' or request.method == 'DELETE':
+    # If the request involves modifying an existing comment, check for existence and permission.
+    if request.method == 'PUT' or request.method == 'DELETE':
         comment_id = request.GET.get('id')
-        if comment_id != '0':
+        try:
+            comment = JobComment.objects.get(id=comment_id)
+        except JobComment.DoesNotExist:
+            return JsonResponse({
+                'message': "Can't find comment."
+            }, status=400)
 
-            try:
-                comment = JobComment.objects.get(id=comment_id)
-            except JobComment.DoesNotExist:
-                return JsonResponse({
-                    'message': "Can't find comment."
-                }, status=400)
+        if(comment.created_by != request.user):
+            return JsonResponse({
+                'message': "You are not the owner of this comment."
+            }, status=403) 
 
-            if(comment.created_by != request.user):
-                return JsonResponse({
-                    'message': "You are not the owner of this comment."
-                }, status=403) 
 
     # User wants to delete a job comment
     if request.method == 'DELETE':
@@ -344,11 +340,11 @@ def job_comments(request, job_id):
         return HttpResponse(status=204)   
 
 
-    # User wants to create or update a JobComment
-    elif request.method == 'POST':
-        posted_data = json.loads(request.body)
+    # User wants the create or update a comment
+    elif request.method == 'POST' or request.method == 'PUT':
 
         # Stick the data into the form for cleaning and check it's all ok.
+        posted_data = json.loads(request.body)
         comment_form = JobCommentFullForm({
             'private': posted_data['private'],
             'contents': posted_data['contents'],
@@ -362,68 +358,70 @@ def job_comments(request, job_id):
                 'error': "Invalid form data."
             }, status=400)   
 
-        else:
-            # Add new comment
-            if comment_id == '0':
-                try:
-                    job = Job.objects.get(id=job_id)
-                except Job.DoesNotExist:
-                    return JsonResponse({
-                        'error': "Can't find Job."
-                    }, status=400)
 
-                # Create comment here because we couldn't assign it via the ID earlier.
-                comment = JobComment(
-                    created_by = request.user,
-                    job = job,
-                    contents = comment_form.cleaned_data['contents'],
-                    private = comment_form.cleaned_data['private']
-                )
-                comment.save()
-
-                want_pinned = comment_form.cleaned_data['pinned']
-                if want_pinned:
-                    comment.pinned_by.add(request.user)
-                    comment.save()
-
-                want_highlighted = comment_form.cleaned_data['highlighted']
-                if want_highlighted:
-                    comment.highlighted_by.add(request.user)
-                    comment.save()
-
-            # Edit the existing comment.
-            # Note: comment was assigned during the initial "is it ok to proceed?" checks.
-            else:
-                comment.contents = comment_form.cleaned_data['contents']
-                comment.private = comment_form.cleaned_data['private']
-                user = User.objects.get(username=request.user.username)
-
-                # Handle pinned status
-                want_pinned = comment_form.cleaned_data['pinned']
-                have_pinned = comment.is_pinned_by(user)
-
-                if want_pinned and not have_pinned:
-                    comment.pinned_by.add(request.user)
-                elif not want_pinned and have_pinned:
-                    comment.pinned_by.remove(request.user)
-
-                # Handle highlighted status
-                want_highlighted = comment_form.cleaned_data['highlighted']
-                have_highlighted = comment.is_highlighted_by(user)
-
-                if want_highlighted and not have_highlighted:
-                    comment.highlighted_by.add(request.user)
-                elif not want_highlighted and have_highlighted:
-                    comment.highlighted_by.remove(request.user)                
-
-                comment.save()
+        # Edit the existing comment.
+        if request.method == 'PUT':
             
-            # Respond with the current data.
-            data = comment.get_display_dict(request.user)
-            data['job_id'] = job_id
-            data['created_on'] = formats.date_format(comment.created_on, "DATETIME_FORMAT")
+            # Note: comment was assigned during the initial "is it ok to proceed?" checks.
+            comment.contents = comment_form.cleaned_data['contents']
+            comment.private = comment_form.cleaned_data['private']
+            user = User.objects.get(username=request.user.username)
 
-            return JsonResponse(data, status=200)
+            # Handle pinned status
+            want_pinned = comment_form.cleaned_data['pinned']
+            have_pinned = comment.is_pinned_by(user)
+
+            if want_pinned and not have_pinned:
+                comment.pinned_by.add(request.user)
+            elif not want_pinned and have_pinned:
+                comment.pinned_by.remove(request.user)
+
+            # Handle highlighted status
+            want_highlighted = comment_form.cleaned_data['highlighted']
+            have_highlighted = comment.is_highlighted_by(user)
+
+            if want_highlighted and not have_highlighted:
+                comment.highlighted_by.add(request.user)
+            elif not want_highlighted and have_highlighted:
+                comment.highlighted_by.remove(request.user)                
+
+            comment.save()
+
+        # Create new comment
+        elif request.method == 'POST':
+            try:
+                job = Job.objects.get(id=job_id)
+            except Job.DoesNotExist:
+                return JsonResponse({
+                    'error': "Can't find Job."
+                }, status=400)
+
+            # Create comment
+            comment = JobComment(
+                created_by = request.user,
+                job = job,
+                contents = comment_form.cleaned_data['contents'],
+                private = comment_form.cleaned_data['private']
+            )
+            comment.save()
+
+            want_pinned = comment_form.cleaned_data['pinned']
+            if want_pinned:
+                comment.pinned_by.add(request.user)
+
+            want_highlighted = comment_form.cleaned_data['highlighted']
+            if want_highlighted:
+                comment.highlighted_by.add(request.user)
+
+            if want_pinned or want_highlighted:
+                comment.save()
+
+        # Whether POST or PUT, respond with the current data.
+        data = comment.get_display_dict(request.user)
+        data['job_id'] = job_id
+        data['created_on'] = formats.date_format(comment.created_on, "DATETIME_FORMAT")
+
+        return JsonResponse(data, status=200)
 
     # User wants to see the page. Begin by getting the general purpose info for the heading and subheading.
     my_job = Job.objects.get(id=job_id)
@@ -440,7 +438,6 @@ def job_comments(request, job_id):
     # Paginate "all comments"
     # (Assumption: users will only pin/highlight a few comments, so pagination won't be needed there)
     # (Assertion: if they pin/highlight a bajillion comments, it's their own fault if they have to scroll a lot)
-    # (Amended quotation: When everything is highlighted, NOTHING WILL BE)
     setting_for_order_by = '-created_on'
 
     requested_page_num = request.GET.get('page')

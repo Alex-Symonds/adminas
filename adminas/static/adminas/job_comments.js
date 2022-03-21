@@ -6,12 +6,15 @@
 
     This handles:
         > Edit and delete a comment from any of the three pages
-        > Create a comment from to-do and job_comments
+        > Create a comment (from to-do and job_comments)
         > Two types of create/edit form (one with checkboxes, one without)
         > Two ways of displaying a comment (the bigger ones on the job_comments page vs. the streamlined ones on job and to-do list)
         > Toggle the status of pinned and highlight via clicking a button
 */
 
+const TASK_CREATE_COMMENT = 'create';
+const TASK_UPDATE_COMMENT = 'update';
+const CLASS_SAVE_BTN = 'save';
 
 const CLASS_ADD_BUTTON = 'add-button';
 const CLASS_ADD_COMMENT = 'comment';
@@ -115,14 +118,13 @@ function open_jobcomment_editor_for_create(btn){
     // so if the user has somehow managed to open one copy and ask for a second, close the old before opening the new.
     close_jobcomment_editor();
 
-    // Check what type of "form-like" this button is supposed to open, then create an appropriate element
-    if(btn.dataset.form_type === VALUE_FORM_TYPE_CONTENT_ONLY){
-        var job_comment_form = create_ele_jobcomment_editor(DEFAULT_COMMENT_ID, false);
-    }
-    else{
-        var job_comment_form = create_ele_jobcomment_editor(DEFAULT_COMMENT_ID, true);
-    }
+    // Create the form-like for editing a job comment
+    var job_comment_form = create_ele_jobcomment_editor(DEFAULT_COMMENT_ID, btn.dataset.form_type !== VALUE_FORM_TYPE_CONTENT_ONLY, TASK_CREATE_COMMENT);
     btn.after(job_comment_form);
+
+    job_comment_form.querySelector(`.${CLASS_SAVE_BTN}`).addEventListener('click', (e) => {
+        create_new_comment(e.target);
+    });
 
     // Hide the buttons that call this function in the (vain?) hope of preventing the user from somehow opening multiple copies of the element.
     visibility_add_comment_btn(false);
@@ -131,21 +133,37 @@ function open_jobcomment_editor_for_create(btn){
 
 
 // Open Create Mode (also used for Update): function to create input elements for creating a Job comment.
-// This simplified version only allows editing/creation of the content of the comment. All other settings
-// are chosen by the server.
-function create_ele_jobcomment_editor(comment_id, want_settings){
+function create_ele_jobcomment_editor(comment_id, want_checkboxes, task_name){
+
+    if (task_name === TASK_CREATE_COMMENT){
+        var heading_str = 'Add Comment';
+        var save_funct = save_new_job_comment;
+    }
+    else {
+        var heading_str = 'Edit Comment';
+        var save_funct = save_updated_job_comment;
+    }
+
     let container = create_ele_jobcomment_main_container();
     container.append(create_ele_jobcomment_btn_close());
-    container.append(create_ele_jobcomment_heading(comment_id));
+    container.append(create_ele_jobcomment_heading(heading_str));
     container.append(create_ele_jobcomment_input_contents());
     
-    if(want_settings){
+    // Add checkboxes, if wanted
+    if(want_checkboxes){
         container.append(create_ele_jobcomment_checkbox_container());
         container.append(create_ele_jobcomment_controls_container(comment_id, VALUE_FORM_TYPE_FULL));        
     }
     else {
         container.append(create_ele_jobcomment_controls_container(comment_id, VALUE_FORM_TYPE_CONTENT_ONLY));        
     }
+
+    // Add event listener to save button
+    let save_btn = container.querySelector(`.${CLASS_SAVE_BTN}`);
+    save_btn.addEventListener('click', (e) => {
+        save_funct(e.target);
+    });   
+
     return container;
 }
 
@@ -199,13 +217,9 @@ function create_ele_jobcomment_main_container(){
     container.classList.add(CSS_GENERIC_FORM_LIKE);
     return container;
 }
-function create_ele_jobcomment_heading(comment_id){
+function create_ele_jobcomment_heading(heading_str){
     let h = document.createElement('h4');
-    if(comment_id == DEFAULT_COMMENT_ID){
-        h.innerHTML = 'Add Comment';
-    } else {
-        h.innerHTML = 'Edit Comment';
-    }
+    h.innerHTML = heading_str;
     return h; 
 }
 function create_ele_jobcomment_input_contents(){
@@ -222,9 +236,9 @@ function create_ele_jobcomment_controls_container(comment_id, form_type){
 
     container.append(create_ele_jobcomment_btn_save(comment_id, form_type));
 
-    // Delete button is only relevant when editing an existing comment, so check if it's null before trying to append it.
-    let delete_btn = create_ele_jobcomment_btn_delete(comment_id);
-    if(delete_btn != null){
+    // Delete button only works with an ID of an existing comment, so only add it if there's a valid ID
+    if(comment_id != DEFAULT_COMMENT_ID){
+        let delete_btn = create_ele_jobcomment_btn_delete();
         container.append(delete_btn);
     }
 
@@ -232,11 +246,10 @@ function create_ele_jobcomment_controls_container(comment_id, form_type){
 }
 function create_ele_jobcomment_btn_save(comment_id, form_type){
     let save_btn = create_generic_ele_submit_button();
+    save_btn.classList.add(CLASS_SAVE_BTN);
     save_btn.setAttribute('data-comment_id', comment_id);
-    save_btn.setAttribute('data-form_type', form_type);
-    save_btn.addEventListener('click', (e) => {
-        save_job_comment(e.target);
-    });
+    save_btn.setAttribute(ATTR_LABEL_FORM_TYPE, form_type);
+    // Event listener depends on whether it's create or update, so handle that elsewhere.
     return save_btn;
 }
 function create_ele_jobcomment_btn_close(){
@@ -248,17 +261,13 @@ function create_ele_jobcomment_btn_close(){
 
     return close_btn;
 }
-function create_ele_jobcomment_btn_delete(comment_id){
-    // Create and Update forms are the same except there's no need for a delete button on the create form.
-    // Check if we're making an edit form (via the comment_id) then return a button or null.
-    if(comment_id != DEFAULT_COMMENT_ID){
-        let delete_btn = create_generic_ele_delete_button();
-        delete_btn.addEventListener('click', (e) => {
-            delete_job_comment(e.target);
-        });
-        return delete_btn;
-    }
-    return null;
+function create_ele_jobcomment_btn_delete(){
+    let delete_btn = create_generic_ele_delete_button();
+    delete_btn.addEventListener('click', (e) => {
+        delete_job_comment(e.target);
+    });
+    return delete_btn;
+
 }
 
 
@@ -292,13 +301,15 @@ function close_jobcomment_editor(){
 
 // Open Edit Mode: called onclick of an edit button
 function open_jobcomment_editor_for_update(btn){
+    close_jobcomment_editor();
+
     let comment_ele = btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_ELE);
     let section_ele = comment_ele.closest('.' + CLASS_COMMENTS_CONTAINER);
 
     // If this comment is in the "pinned" section, we don't want settings; otherwise we do.
     let want_settings = !(section_ele != null && section_ele.classList.contains(CLASS_PINNED_COMMENTS_CONTAINER));
 
-    let edit_mode_ele = create_ele_jobcomment_editor(comment_ele.dataset.comment_id, want_settings);
+    let edit_mode_ele = create_ele_jobcomment_editor(comment_ele.dataset.comment_id, want_settings, TASK_UPDATE_COMMENT);
     edit_mode_ele = populate_ele_jobcomment_editor_with_existing(edit_mode_ele, comment_ele, want_settings);
 
     comment_ele.prepend(edit_mode_ele);
@@ -379,37 +390,36 @@ function visibility_add_comment_btn(want_visibility){
 // --------------------------------------------------------------------------------------------
 // Backend (Create, Update)
 // --------------------------------------------------------------------------------------------
-// Backend (Create, Update): called onclick of the "save" button on the JobComment "form"
-// Sends data to the backend then calls the appropriate page update function.
+// Backend (Create): called onclick of the "save" button on the JobComment "form"
+async function save_new_job_comment(btn){
+    let data = make_jobcomment_dict(btn);
+    let response = await backend_create_job_comment(btn, data);
+    update_job_page_comments_after_create(response);
+}
+// Backend (Update): called onclick of the "save" button on the JobComment "form"
+async function save_updated_job_comment(btn){
+    let data = make_jobcomment_dict(btn);
+    let response = await backend_update_job_comment(btn, data);
 
-async function save_job_comment(btn){
-
-    // Prepare a dict with data to send to the server, then send it and wait for the response.
-    if(btn.dataset.form_type == VALUE_FORM_TYPE_CONTENT_ONLY){
-        data = make_jobcomment_dict_simplified(btn);   
+    if('message' in response){
+        update_job_page_comments_after_denied(response['message'], btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_ELE));
     }
-    else {
-        data = make_jobcomment_dict_with_settings();
-    }
-    let response = await backend_save_job_comment(btn, data);
-
-    // Case: "new comment". Add a new comment div to the list
-    let comment_id = btn.dataset.comment_id;
-    if(comment_id == '0'){
-        update_job_page_comments_after_create(response); 
-    }
-
-    // Case: "smart-arse tried to edit someone else's comment". Add a chastising message to the page
-    else if('denied' in response){
-        update_job_page_comments_after_denied(response['denied'], btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_ELE));
-    }
-
-    // Case: "update comment". Adjust the existing div
     else {
         update_job_page_comments_after_update(response);
     }    
 }
 
+// Backend (Create&Update): Get a dict of comment info from the appropriate comment type
+function make_jobcomment_dict(btn){
+    if(btn.dataset.form_type == VALUE_FORM_TYPE_CONTENT_ONLY){
+        return make_jobcomment_dict_simplified(btn);   
+    }
+    else {
+        return make_jobcomment_dict_with_settings();
+    }    
+}
+
+// Backend (Create&Update): Creates a dict with job comment info, based on a comment with checkbox settings
 function make_jobcomment_dict_with_settings(){
     let result = {};
 
@@ -439,20 +449,19 @@ function make_jobcomment_dict_with_settings(){
     return result;
 }
 
+// Backend (Create&Update): Creates a dict with job comment info, based on a comment lacking checkboxes
 function make_jobcomment_dict_simplified(btn){
-    // The simplified form only has a textarea, with no way to set status toggles, so we must decide on the status toggles on the user's behalf.
+    // The Plan:
+    //      On a new comment, set default status toggles.
+    //      On an existing comment, preserve the existing status toggles.
 
-    // Assumption/decision:
-    // Existing comment: the status toggles should not change (it'd be weird to fix a typo and suddenly private=true).
-
-    // This bit is the same for create and edit.
     let result = {};
     result['contents'] = document.getElementById(ID_COMMENT_TEXTAREA).value;
 
     // Set the "default statuses" for use on new comments.
-    //  >> Presently the simplified form is only in use on the todo list, which only displays pinned comments. As such, "pinned = true" is a reasonable assumption.
-    //  >> "private = true" is a safer default than the alternative.
-    //  >> "highlight = false" because highlighting is really intended for picking out the wheat from the chaff on the Job Comments page.
+    //  >>  "pinned = true" because presently the simplified form is only used to create new comments on the todo list, where only pinned comments are displayed.
+    //  >>  "private = true" is a safer default than the alternative.
+    //  >>  "highlight = false" because the entire purpose of highlighting is to give users a way to flag which comments are important to them.
     result['private'] = true;
     result['pinned'] = true;
     result['highlighted'] = false;
@@ -473,14 +482,14 @@ function make_jobcomment_dict_simplified(btn){
 
 // Backend (all): determine the URL for Job Comments
 function get_jobcomments_url(ele_inside_comment_div){
-    // The URL for POSTing data contains the job ID number, which needs to be handled slightly differently on different pages.
+    // Note: the URL for POSTing data contains the job ID number, which needs to be handled slightly differently on different pages.
+
     // If the page covers a single job, all comments on the page will use the same URL, which will be declared as a const in the script tags.
     if(typeof URL_JOB_COMMENTS !== 'undefined'){
         return URL_JOB_COMMENTS;
     }
     else {
-        // If the page covers multiple jobs, each will need a different URL. Each job will have its own container for pinned comments,
-        // so the URL is added there as a dataset attribute.
+        // If the page covers multiple jobs, each will need a different URL. Each job has its own container, so the URL is added there as a dataset attribute.
         let container_div = ele_inside_comment_div.closest(`.${CLASS_COMMENT_SECTION}`);
         return container_div.dataset.url_comments;
     }
@@ -488,10 +497,10 @@ function get_jobcomments_url(ele_inside_comment_div){
 
 
 
-// Backend (Create, Update): prepare the data and send it off to the server
-async function backend_save_job_comment(btn, data){
+// Backend (Create): prepare the data and send it off to the server
+async function backend_create_job_comment(btn, data){
     let url = get_jobcomments_url(btn);
-    let response = await fetch(`${url}?id=${btn.dataset.comment_id}`, {
+    let response = await fetch(`${url}`, {
         method: 'POST',
         body: JSON.stringify({
             'contents': data['contents'],
@@ -508,6 +517,31 @@ async function backend_save_job_comment(btn, data){
 
     return await response.json();
 }
+
+// Backend (Update): prepare the data and send it off to the server
+async function backend_update_job_comment(btn, data){
+    let url = get_jobcomments_url(btn);
+    let response = await fetch(`${url}?id=${btn.dataset.comment_id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            'contents': data['contents'],
+            'private': data['private'],
+            'pinned': data['pinned'],
+            'highlighted': data['highlighted']
+        }),
+        headers: getDjangoCsrfHeaders(),
+        credentials: 'include'
+    })
+    .catch(error => {
+        console.log('Error: ', error);
+    });
+
+    return await response.json();
+}
+
+
+
+
 
 // --------------------------------------------------------------------------------------------
 // Backend (Delete)
