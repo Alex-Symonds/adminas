@@ -638,50 +638,55 @@ def items(request):
         }, status=200)
 
 
+    # Adding a new item.
+    # This can come form two places: the Job page or the ModuleManagement page.
     elif request.method == 'POST':
-        if not request.GET.get('id'):
-            # Try processing the formset with a flexible number of items added at once (i.e. from the multi-item form on the Job page)
-            formset = JobItemFormSet(request.POST)
-            if formset.is_valid():
-                for form in formset:
-                    add_jobitem(request.user, form)
-                return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
 
-            # Try processing as a non-formset (i.e. from the Module Management page)
-            else:
-                try:
-                    incoming_data = json.loads(request.body)
+        # Try processing as a formset with a flexible number of items added at once (i.e. from the multi-item form on the Job page)
+        # (Job page is expecting an HTTP response)
+        formset = JobItemFormSet(request.POST)
+        if formset.is_valid():
+            for form in formset:
+                add_jobitem(request.user, form)
+            return HttpResponseRedirect(reverse('job', kwargs={'job_id': form.cleaned_data['job'].id}))
+
+        # If that fails, try processing as a non-formset (i.e. from the Module Management page)
+        # (ModuleManagement expects a JSON response)
+        else:
+            try:
+                incoming_data = json.loads(request.body)
+            
+            # If this fails too then idk, the incoming data just ain't right. Try to redirect to the error page while hoping JSON wasn't expected.
+            except:
+                return error_page(request, 'Invalid data.', 400)
+            
+            # Add a JobItem based on modular info, then return the JobItem ID
+            if incoming_data['source_page'] == 'module_management':
+                parent = JobItem.objects.get(id=incoming_data['parent'])
+                my_product = Product.objects.get(id=incoming_data['product'])
+                form = JobItemForm({
+                    'job': parent.job,
+                    'quantity': incoming_data['quantity'],
+                    'product': my_product.id,
+                    'price_list': parent.price_list,
+                    'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
+                })
+
+                if not form.is_valid():
+                    return JsonResponse({
+                        'message': 'Item form was invalid.'
+                    }, status=400)
+
+                ji = add_jobitem(request.user, form)
+                parent.job.price_changed()
                 
-                    if incoming_data['source_page'] == 'module_management':
-                        # Add a JobItem based on modular info, then return the JobItem ID
-                        parent = JobItem.objects.get(id=incoming_data['parent'])
-                        my_product = Product.objects.get(id=incoming_data['product'])
-                        form = JobItemForm({
-                            'job': parent.job,
-                            'quantity': incoming_data['quantity'],
-                            'product': my_product.id,
-                            'price_list': parent.price_list,
-                            'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
-                        })
-                        if form.is_valid():
-                            ji = add_jobitem(request.user, form)
-                            parent.job.price_changed()
-                            
-                            return JsonResponse({
-                                'id': ji.product.id
-                            }, status=200)
-                        else:
-                            # There's a problem with the item form dictionary
-                            return error_page(request, 'Item form was invalid.', 400)
+                return JsonResponse({
+                    'id': ji.product.id
+                }, status=200)
 
-                # There's something wrong with the data sent over
-                except:
-                    return error_page(request, 'Invalid data.', 400)
-      
+
 
     elif request.method == 'PUT':
-
-        # if not request.GET.get('edit') or not request.GET.get('id'):
         if not request.GET.get('id'):
             return JsonResponse({
                 'message': f"Update failed"
