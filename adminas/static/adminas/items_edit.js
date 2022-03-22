@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function(e) {
 -------------------------------------------------------------------------------------------------------------- */
 // Delete a job item from the server, then call functions to update DOM
 function delete_job_item(e){
-    fetch(`/items?id=${e.target.dataset.jiid}`, {
+    fetch(`${URL_ITEMS}?id=${e.target.dataset.jiid}`, {
         method: 'DELETE',
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
@@ -299,7 +299,7 @@ function update_job_item(e){
     let prl_sel = edit_ele.querySelector(prefix + 'price_list')
 
     // PUT it into the database and call functions to handle the DOM
-    fetch(`/items?id=${e.target.dataset.jiid}&edit=all`, {
+    fetch(`${URL_ITEMS}?id=${e.target.dataset.jiid}&edit=all`, {
         method: 'POST',
         body: JSON.stringify({
             'quantity': parseInt(edit_ele.querySelector(prefix + 'quantity').value.trim()),
@@ -539,7 +539,7 @@ function edit_price(btn, new_price){
 
 // Price check edit (action): POSTs the data to the server and calls for the page update
 function edit_price_on_server(jiid, new_price){
-    fetch(`/items?id=${jiid}&edit=price_only`, {
+    fetch(`${URL_ITEMS}?id=${jiid}&edit=price_only`, {
         method: 'POST',
         body: JSON.stringify({
             'selling_price': new_price
