@@ -507,7 +507,9 @@ def comment_status_toggle(request):
                 elif not want_membership and have_membership:
                     comment.highlighted_by.remove(user)                
 
-            return HttpResponse(status=200)
+            return JsonResponse({
+                'message': "Invalid task."
+            }, status=200) 
 
         else:
             return JsonResponse({

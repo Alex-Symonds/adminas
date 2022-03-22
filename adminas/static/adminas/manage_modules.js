@@ -473,7 +473,6 @@ async function create_jobmodule_on_server(child_id, parent_id, slot_id, quantity
     let response = await fetch(`${URL_ASSIGNMENTS}`, {
         method: 'POST',
         body: JSON.stringify({
-            // 'action': 'create',
             'parent': parent_id,
             'child': child_id,
             'slot': slot_id,
