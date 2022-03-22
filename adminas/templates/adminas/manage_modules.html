@@ -12,6 +12,7 @@
 
 {% block javascript %}
     <script>
+        const URL_ITEMS = '{% url "items" %}';
         const URL_ASSIGNMENTS = "{% url 'module_assignments' %}";
     </script>
     <script src="{% static 'adminas/manage_modules.js' %}" type="text/javascript"></script>

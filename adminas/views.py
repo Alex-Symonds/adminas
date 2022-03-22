@@ -857,6 +857,7 @@ def module_assignments(request):
         }, status=200)
 
 
+    # user is deleting a module assignment
     elif request.method == 'DELETE':
 
         if 'id' in request.GET:
@@ -880,86 +881,89 @@ def module_assignments(request):
 
         return JsonResponse(parent.get_slot_status_dictionary(slot), status=200)
 
-
-    elif request.method == 'POST': 
+    # User has edited a module (which effectively means they changed the quantity, since any other changes are handled via delete, recreate)
+    elif request.method == 'PUT':
         posted_data = json.loads(request.body)
 
-        if posted_data['action'] == 'create':
-            posted_form = JobModuleForm(posted_data)
+        # Maybe the user solely entered symbols permitted by 'type=number', but which don't actually result in a number
+        # (e.g. e, +, -)
+        if posted_data['qty'] == '':
+            return JsonResponse({
+                'error': 'Invalid quantity.'
+            }, status=400)
 
-            if posted_form.is_valid():
-                jm = JobModule(
-                    parent = posted_form.cleaned_data['parent'],
-                    child = posted_form.cleaned_data['child'],
-                    slot = posted_form.cleaned_data['slot'],
-                    quantity = posted_form.cleaned_data['quantity']
-                )
+        # Maybe the new qty is the same as the old qty, so there's nothing to be done
+        new_qty = int(posted_data['qty'].strip())
+        if int(posted_data['prev_qty']) == new_qty:
+            return JsonResponse({
+                'message': 'No changes required.'
+            }, status=200)
 
-                if jm.parent.job.num_unassigned_to_slot(jm.child) >= jm.parent.quantity * jm.quantity:
-                    jm.save()
-                    data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
-                    data_dict['id'] = jm.id
-                    return JsonResponse(data_dict, status=201)
+        # Maybe the user entered a new qty of 0 or a negative number
+        if new_qty <= 0:
+            return JsonResponse({
+                'error': 'Edit failed. Quantity must be 1 or more.'
+            }, status=400)
 
-                else:
-                    return JsonResponse({
-                        'message': 'Not enough items are available.'
-                    }, status=400)
-            
-            else:
-                return JsonResponse({
-                    'message': 'POST data was invalid.'
-                }, status=400)
+        # Ensure valid JobModule ID
+        try:
+            jm = JobModule.objects.get(id=posted_data['id'])
 
+        except:
+            return JsonResponse({
+                'error': 'Invalid ID.'
+            }, status=400)            
 
-        elif posted_data['action'] == 'edit_qty':
+        # Maybe the user entered a qty which exceeds the number of unassigned job items on the order
+        num_unassigned = jm.parent.job.num_unassigned_to_slot(jm.child)
+        old_qty_total = jm.quantity * jm.parent.quantity
+        new_qty_total = new_qty * jm.parent.quantity
 
-            # Maybe the user solely entered symbols permitted by 'type=number', but which don't actually result in a number
-            # (e.g. e, +, -)
-            if posted_data['qty'] == '':
-                return JsonResponse({
-                    'error': 'Invalid quantity.'
-                }, status=400)
+        if num_unassigned + old_qty_total < new_qty_total:
+            return JsonResponse({
+                'message': 'Insufficient unassigned items.',
+                'max_qty': num_unassigned
+            }, status=400)          
 
-            new_qty = int(posted_data['qty'].strip())
+        # Or maybe, just maybe, they entered an actual valid quantity which we can use
+        jm.quantity = new_qty
+        jm.save()
+        return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
 
-            # Maybe the new qty is the same as the old qty, so there's nothing to be done
-            if int(posted_data['prev_qty']) == new_qty:
-                
-                return JsonResponse({
-                    'message': 'No changes required.'
-                }, status=200)
+    # User created a new assignment
+    elif request.method == 'POST': 
+        posted_data = json.loads(request.body)
+        posted_form = JobModuleForm(posted_data)
 
-            # Maybe the user entered a new qty of 0 or a negative number
-            if new_qty <= 0:
-                return JsonResponse({
-                    'error': 'Edit failed. Quantity must be 1 or more.'
-                }, status=400)
+        if not posted_form.is_valid():
+            return JsonResponse({
+                'message': 'POST data was invalid.'
+            }, status=400)
 
-            # Ensure valid JobModule ID
-            try:
-                jm = JobModule.objects.get(id=posted_data['id'])
-    
-            except:
-                return JsonResponse({
-                    'error': 'POST data was invalid.'
-                }, status=400)            
+        jm = JobModule(
+            parent = posted_form.cleaned_data['parent'],
+            child = posted_form.cleaned_data['child'],
+            slot = posted_form.cleaned_data['slot'],
+            quantity = posted_form.cleaned_data['quantity']
+        )
 
-            # Maybe the user entered a qty which exceeds the number of unassigned job items on the order
-            num_unassigned = jm.parent.job.num_unassigned_to_slot(jm.child)
-            old_qty_total = jm.quantity * jm.parent.quantity
-            new_qty_total = new_qty * jm.parent.quantity
-
-            if num_unassigned + old_qty_total < new_qty_total:
-                return JsonResponse({
-                    'message': 'Insufficient unassigned items.',
-                    'max_qty': num_unassigned
-                }, status=400)          
-
-            # Edit the quantity
-            jm.quantity = new_qty
+        if jm.parent.job.num_unassigned_to_slot(jm.child) >= jm.parent.quantity * jm.quantity:
             jm.save()
-            return JsonResponse(jm.parent.get_slot_status_dictionary(jm.slot), status=200)
+            data_dict = jm.parent.get_slot_status_dictionary(jm.slot)
+            data_dict['id'] = jm.id
+            return JsonResponse(data_dict, status=201)
+
+        else:
+            return JsonResponse({
+                'message': 'Not enough items are available.'
+            }, status=400)
+        
+
+
+
+
+
+
 
 
 def get_data(request):

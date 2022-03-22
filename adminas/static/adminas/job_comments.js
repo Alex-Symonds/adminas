@@ -931,9 +931,10 @@ async function toggle_status(btn, toggled_attribute){
     }
 
     var previous = previous_attr.toLowerCase() === 'true';
-    let response_json = await update_backend_for_comment_toggle(comment_ele.dataset.comment_id, !previous, toggled_attribute);
-    if ('message' in response_json){
-        console.log(response_json['message']);
+    let response = await update_backend_for_comment_toggle(comment_ele.dataset.comment_id, !previous, toggled_attribute);
+    if (response.status != 200){
+        resp_dict = await response.json();
+        console.log(resp_dict['message']);
     }
     else {
         update_frontend_for_comment_toggle(comment_ele, !previous, toggled_attribute);
@@ -941,7 +942,7 @@ async function toggle_status(btn, toggled_attribute){
 }
 
 async function update_backend_for_comment_toggle(comment_id, new_status, toggled_attribute){
-    let response = await fetch(`${URL_COMMENT_STATUS}?id=${comment_id}`, {
+    return await fetch(`${URL_COMMENT_STATUS}?id=${comment_id}`, {
         method: 'POST',
         body: JSON.stringify({
             'task': 'toggle',
@@ -954,8 +955,6 @@ async function update_backend_for_comment_toggle(comment_id, new_status, toggled
     .catch(error => {
         console.log('Error: ', error);
     });
-
-    return await response.json()
 }
 
 function update_frontend_for_comment_toggle(comment_ele, new_status, toggled_attribute){

@@ -399,7 +399,7 @@ function get_product_desc_from_select_desc(select_ele){
 
 // New JI Form Action: POST new JI info to the server
 async function create_new_jobitem_for_module(parent_id, qty, product){
-    let response = await fetch('/items', {
+    let response = await fetch(`${URL_ITEMS}`, {
         method: 'POST',
         body: JSON.stringify({
             'source_page': 'module_management',
@@ -473,7 +473,7 @@ async function create_jobmodule_on_server(child_id, parent_id, slot_id, quantity
     let response = await fetch(`${URL_ASSIGNMENTS}`, {
         method: 'POST',
         body: JSON.stringify({
-            'action': 'create',
+            // 'action': 'create',
             'parent': parent_id,
             'child': child_id,
             'slot': slot_id,
@@ -734,9 +734,8 @@ function close_edit_mode(ele, new_qty){
 // Edit Mode Action: called onclick of the submit button
 function update_module_qty(qty_field){
     fetch(`${URL_ASSIGNMENTS}`, {
-        method: 'POST',
+        method: 'PUT',
         body: JSON.stringify({
-            'action': 'edit_qty',
             'qty': qty_field.value,
             'prev_qty': qty_field.dataset.prev_qty,
             'id': qty_field.dataset.id
