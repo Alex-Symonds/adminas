@@ -114,7 +114,7 @@ function populate_po_edit_form(edit_form){
     });
 }
 
-// Edit PO: Convert "01 Feb 2021" to "01/02/2021" (Django's form validation doesn't recognise the former as a valid date, even though Django output it that way)
+// Edit PO: Convert "01 Feb 2021" to "01/02/2021" (Django's form validation doesn't recognise the former as a valid date, even though Django outputs it that way)
 function convert_display_date_to_input_date(dd_mmm_yyyy){
     var months = {
         'Jan' : '01',

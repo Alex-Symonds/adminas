@@ -1,6 +1,6 @@
-// Job page, "selling price is {NOT }CONFIRMED" indicator-button thing
+// Job page: implementation of "selling price is {NOT }CONFIRMED" indicator-button 
 // (which toggles the price confirmation status on the server, then updates the page)
-// and the "tap a part number to see the description" thing.
+// and "tap a part number to see the description" .
 
 document.addEventListener('DOMContentLoaded', () => {
 

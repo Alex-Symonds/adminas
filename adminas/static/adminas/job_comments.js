@@ -168,7 +168,7 @@ function create_ele_jobcomment_editor(comment_id, want_checkboxes, task_name){
 }
 
 // Open Create Mode (also used for Update): component.
-// Container for private, pinned and highlighted checkboxes, used only in the "full" version of the form-like.
+// Container for checkboxes for private, pinned and highlighted. Used only in the "full" version of the form-like.
 function create_ele_jobcomment_checkbox_container(){
     let container = document.createElement('div');
     container.classList.add(CLASS_COMMENT_INPUT_CHECKBOX_CONTAINER);
@@ -236,7 +236,7 @@ function create_ele_jobcomment_controls_container(comment_id, form_type){
 
     container.append(create_ele_jobcomment_btn_save(comment_id, form_type));
 
-    // Delete button only works with an ID of an existing comment, so only add it if there's a valid ID
+    // Deleting requires an ID of an existing comment, so only add the button when there's a valid ID
     if(comment_id != DEFAULT_COMMENT_ID){
         let delete_btn = create_ele_jobcomment_btn_delete();
         container.append(delete_btn);
@@ -304,9 +304,9 @@ function open_jobcomment_editor_for_update(btn){
     close_jobcomment_editor();
 
     let comment_ele = btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_ELE);
-    let section_ele = comment_ele.closest('.' + CLASS_COMMENTS_CONTAINER);
-
+    
     // If this comment is in the "pinned" section, we don't want settings; otherwise we do.
+    let section_ele = comment_ele.closest('.' + CLASS_COMMENTS_CONTAINER);
     let want_settings = !(section_ele != null && section_ele.classList.contains(CLASS_PINNED_COMMENTS_CONTAINER));
 
     let edit_mode_ele = create_ele_jobcomment_editor(comment_ele.dataset.comment_id, want_settings, TASK_UPDATE_COMMENT);
@@ -316,7 +316,7 @@ function open_jobcomment_editor_for_update(btn){
     visibility_comment_content(comment_ele, false);
 }
 
-// Populate the "form" with the existing information for this comment
+// Populate the form-like with the existing information for this comment
 function populate_ele_jobcomment_editor_with_existing(editor_ele, comment_ele, want_settings){
 
     // Contents default = empty, so fill it with the old comment
@@ -346,7 +346,7 @@ function populate_ele_jobcomment_editor_with_existing(editor_ele, comment_ele, w
     return editor_ele;
 }
 
-// Open Edit Mode: hide/show the "read" portions of the comments as required
+// Open Edit Mode: hide/show the "read" portions of the comments
 function visibility_comment_content(comment_ele, want_visibility){
     let details_ele = comment_ele.querySelector('details');
     if(details_ele == null) return;
@@ -390,13 +390,14 @@ function visibility_add_comment_btn(want_visibility){
 // --------------------------------------------------------------------------------------------
 // Backend (Create, Update)
 // --------------------------------------------------------------------------------------------
-// Backend (Create): called onclick of the "save" button on the JobComment "form"
+// Backend (Create): called onclick of the "save" button on the JobComment form-like
 async function save_new_job_comment(btn){
     let data = make_jobcomment_dict(btn);
     let response = await backend_create_job_comment(btn, data);
     update_job_page_comments_after_create(response);
 }
-// Backend (Update): called onclick of the "save" button on the JobComment "form"
+
+// Backend (Update): called onclick of the "save" button on the JobComment form-like
 async function save_updated_job_comment(btn){
     let data = make_jobcomment_dict(btn);
     let response = await backend_update_job_comment(btn, data);
@@ -451,7 +452,7 @@ function make_jobcomment_dict_with_settings(){
 
 // Backend (Create&Update): Creates a dict with job comment info, based on a comment lacking checkboxes
 function make_jobcomment_dict_simplified(btn){
-    // The Plan:
+    // The Plan for the variables which are set by checkboxes in the "full" version:
     //      On a new comment, set default status toggles.
     //      On an existing comment, preserve the existing status toggles.
 
@@ -461,7 +462,7 @@ function make_jobcomment_dict_simplified(btn){
     // Set the "default statuses" for use on new comments.
     //  >>  "pinned = true" because presently the simplified form is only used to create new comments on the todo list, where only pinned comments are displayed.
     //  >>  "private = true" is a safer default than the alternative.
-    //  >>  "highlight = false" because the entire purpose of highlighting is to give users a way to flag which comments are important to them.
+    //  >>  "highlight = false" because only the user should be allowed to set highlighted to "true"
     result['private'] = true;
     result['pinned'] = true;
     result['highlighted'] = false;
@@ -476,23 +477,6 @@ function make_jobcomment_dict_simplified(btn){
     }
 
     return result;
-}
-
-
-
-// Backend (all): determine the URL for Job Comments
-function get_jobcomments_url(ele_inside_comment_div){
-    // Note: the URL for POSTing data contains the job ID number, which needs to be handled slightly differently on different pages.
-
-    // If the page covers a single job, all comments on the page will use the same URL, which will be declared as a const in the script tags.
-    if(typeof URL_JOB_COMMENTS !== 'undefined'){
-        return URL_JOB_COMMENTS;
-    }
-    else {
-        // If the page covers multiple jobs, each will need a different URL. Each job has its own container, so the URL is added there as a dataset attribute.
-        let container_div = ele_inside_comment_div.closest(`.${CLASS_COMMENT_SECTION}`);
-        return container_div.dataset.url_comments;
-    }
 }
 
 
@@ -539,7 +523,20 @@ async function backend_update_job_comment(btn, data){
     return await response.json();
 }
 
+// Backend (all): determine the URL for Job Comments
+function get_jobcomments_url(ele_inside_comment_div){
+    // The URL contains the job ID number, which needs to be handled slightly differently on different pages.
 
+    // If the page covers a single job, the single URL is declared as a const in the script tags.
+    if(typeof URL_JOB_COMMENTS !== 'undefined'){
+        return URL_JOB_COMMENTS;
+    }
+    // That won't work on pages covering multiple jobs, so instead the URL is added as a dataset attribute to the comment section container.
+    else {
+        let container_div = ele_inside_comment_div.closest(`.${CLASS_COMMENT_SECTION}`);
+        return container_div.dataset.url_comments;
+    }
+}
 
 
 
@@ -612,13 +609,12 @@ function update_job_page_comments_after_create(response){
 }
 
 
-// DOM (Create Comment Ele): Make a new comment element. Broken up into multiple functions.
+// DOM (Create Comment Ele): Make a new comment element.
 function create_ele_new_comment(response, want_streamlined_comment){
     let container_ele = document.createElement('article');
 
     container_ele.classList.add(CLASS_INDIVIDUAL_COMMENT_ELE);
     container_ele.classList.add(`${CLASS_PREFIX_FOR_COMMENT_ID}${response['id']}`);
-
     if(response['highlighted']){
         container_ele.classList.add(CLASS_HIGHLIGHTED_CSS);
     }
@@ -750,16 +746,6 @@ function apply_event_listeners_to_comment(comment_div){
     });
 
 }
-
-function add_event_listener_if_element_exists(element, called_function){
-    if(element !== null){
-        element.addEventListener('click', called_function);
-    }
-}
-
-
-
-
 
 
 // --------------------------------------------------------------------------------------------
@@ -926,17 +912,17 @@ function visibility_element(element, want_visibility){
 // Toggle Status
 // --------------------------------------------------------------------------------------------
 
-function toggle_status(btn, toggled_attribute){
+async function toggle_status(btn, toggled_attribute){
 
     let comment_ele = btn.closest('.' + CLASS_INDIVIDUAL_COMMENT_ELE);
     if(comment_ele == null){
         return;
     }
 
-    if('pinned' == toggled_attribute){
+    if('pinned' === toggled_attribute){
         var previous_attr = comment_ele.dataset.is_pinned;
     }
-    else if('highlighted' == toggled_attribute){
+    else if('highlighted' === toggled_attribute){
         var previous_attr = comment_ele.dataset.is_highlighted;
     }
     else {
@@ -944,14 +930,18 @@ function toggle_status(btn, toggled_attribute){
         return;
     }
 
-    var previous = previous_attr.toLowerCase() == 'true';
-    
-    update_backend_for_comment_toggle(comment_ele.dataset.comment_id, !previous, toggled_attribute);
-    update_frontend_for_comment_toggle(comment_ele, !previous, toggled_attribute);
+    var previous = previous_attr.toLowerCase() === 'true';
+    let response_json = await update_backend_for_comment_toggle(comment_ele.dataset.comment_id, !previous, toggled_attribute);
+    if ('message' in response_json){
+        console.log(response_json['message']);
+    }
+    else {
+        update_frontend_for_comment_toggle(comment_ele, !previous, toggled_attribute);
+    }
 }
 
-function update_backend_for_comment_toggle(comment_id, new_status, toggled_attribute){
-    fetch(`${URL_COMMENT_STATUS}?id=${comment_id}`, {
+async function update_backend_for_comment_toggle(comment_id, new_status, toggled_attribute){
+    let response = await fetch(`${URL_COMMENT_STATUS}?id=${comment_id}`, {
         method: 'POST',
         body: JSON.stringify({
             'task': 'toggle',
@@ -961,6 +951,11 @@ function update_backend_for_comment_toggle(comment_id, new_status, toggled_attri
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'
     })
+    .catch(error => {
+        console.log('Error: ', error);
+    });
+
+    return await response.json()
 }
 
 function update_frontend_for_comment_toggle(comment_ele, new_status, toggled_attribute){
@@ -971,8 +966,8 @@ function update_frontend_for_comment_toggle(comment_ele, new_status, toggled_att
     let class_to_find_comment = get_class_to_find_comment(comment_ele.dataset.comment_id);
 
     // Some pages display comments in sections based on a particular status being true (e.g. highlighted comments).
-    // If a section-y status is toggled to false, the comment should be removed from that section.
-    // Handle that first to avoid wasting time updating that comment.
+    // If a section-relevant status was just toggled to false, the comment should be removed from that section.
+    // Handle the removal first to avoid wasting time on unnecessary updates.
     if(!new_status){
         remove_comment_from_section(class_to_find_comment, toggled_attribute);
     }
@@ -987,8 +982,8 @@ function update_frontend_for_comment_toggle(comment_ele, new_status, toggled_att
         }
     });
 
-    // If a section-y status is toggled to true, a copy of the comment should be added to the section.
-    // We'll aim to do that by copying a now-updated comment to that section.
+    // If a section-relevant status was toggled to true, a copy of the comment should be added to the section.
+    // We'll aim to do that by copying an updated comment to that section now.
     if(new_status){
         add_comment_to_section(class_to_find_comment, toggled_attribute);
     }
@@ -1131,17 +1126,24 @@ function remove_comment_from_section(class_to_find_comment, section_name){
 
 
 function handle_section_emptiness(comment_section_ele, section_name=STR_FALLBACK){
+    /*
+        Since users can delete and add comments, there's a possibility they 
+        will either empty a previously filled comment section or add the 
+        first post to a previously empty section.
 
-    let section_is_empty = comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length == 0;
+        There are two types of desirable behaviour:
+            >   Comment section "disappears" when empty and reappears 
+                when comments are added
+            >   Comment section persists but displays a special message 
+                when empty
+        
+        This function identifies which behaviour is needed in this case, 
+        then removes/adds DOM elements to make it happen.
+    */
 
-    // Assumption: sometimes there'll be a conditional comment section that appears when there are comments and disappears when there aren't, which means
-    // using JS to add the stuff around the comments (i.e. an <h5> above them) when the first comment is added; sometimes there'll be a persistent comment section, 
-    // where the headings and such are always there, but when the last comment is removed we'd like to use JS to add a <p> to explain the emptiness is intentional.
-    //
-    // Presumably these are mutually exclusive behaviours: either the section is persistent (in which case it should already have a persistent <h#> tag, so why
-    // would anyone want to use JS to add another?) or it's not (in which case, why would we add a comment explaining emptiness when we're removing the
-    // entire section?)... she wrote, tempting fate, wondering exactly how this would come back to haunt her later.
+    let section_is_empty = comment_section_ele.querySelectorAll(`.${CLASS_INDIVIDUAL_COMMENT_ELE}`).length === 0;
 
+    // Set variables for "disappearing" comment sections
     if(comment_section_ele.classList.contains(CLASS_WANT_TOGGLE_H5)){
         // <h5> is there to label the comments which suddenly appeared, so it should appear when there are comments and disappear when there aren't.
         var existing = comment_section_ele.parentElement.querySelector('h5');
@@ -1149,6 +1151,7 @@ function handle_section_emptiness(comment_section_ele, section_name=STR_FALLBACK
         var want_remove = section_is_empty;
         var class_indicating_task = CLASS_WANT_TOGGLE_H5;
     }
+    // Set variables for persistent comment sections
     else if(comment_section_ele.classList.contains(CLASS_WANT_EMPTY_P)){
         // <p> is there to explain the intentional emptiness of a section with a persistent heading, so it should appear when the section 
         // is empty and disappear otherwise.
@@ -1169,9 +1172,13 @@ function handle_section_emptiness(comment_section_ele, section_name=STR_FALLBACK
 }
 
 
+
+
+
 function add_new_comment_emptiness_element(comment_section_ele, section_name, class_indicating_task){
 
-    // Some "paths" to this function don't need to work out section_name for their own purposes, so the argument will be missing. Handle that first.
+    // Some "paths" to this function don't need to work out section_name for their own purposes, so the argument will be missing.
+    // Try to work out the section name here. If you can't, no big deal: the two functions later are designed to handle STR_FALLBACK.
     if(section_name === STR_FALLBACK){
         let attempted_section_name = pick_out_comment_section_name(comment_section_ele);
         if(attempted_section_name !== null){
@@ -1212,7 +1219,7 @@ function create_ele_p_empty_comment_section(section_name){
         p.innerHTML = `No comments have been ${section_name}.`;
     }
     else {
-        p.innerHTML = 'No comments have been added.';
+        p.innerHTML = 'No comments yet.';
     }
     return p;
 }

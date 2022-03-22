@@ -16,6 +16,13 @@ async function jsonOr204(response){
     return await response.json();
 }
 
+// Avoid JS errors on conditionally displayed elements
+function add_event_listener_if_element_exists(element, called_function){
+    if(element !== null){
+        element.addEventListener('click', called_function);
+    }
+}
+
 // Add comma for thousands separator
 function numberWithCommas(num) {
     // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript

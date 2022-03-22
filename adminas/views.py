@@ -523,10 +523,21 @@ def price_check(request, job_id):
         return anonymous_user(request)
 
     if request.method == 'POST':
-        my_job = Job.objects.get(id=job_id)
-        posted_data = json.loads(request.body)
-        my_job.price_is_ok = posted_data['new_status']
-        my_job.save()
+        try:
+            my_job = Job.objects.get(id=job_id)
+        except Job.DoesNotExist:
+            return JsonResponse({
+                'message': 'Job not found'
+            }, status=404)
+
+        try:         
+            posted_data = json.loads(request.body)
+            my_job.price_is_ok = posted_data['new_status']
+            my_job.save()
+        except:
+            return JsonResponse({
+                'message': 'Update failed.'
+            }, status=400)     
 
         return JsonResponse({
             'current_status': my_job.price_is_ok
@@ -670,20 +681,6 @@ def items(request):
             # The presence of ID in the GET params means it's an update or delete
             ji_id = request.GET.get('id')
             ji = JobItem.objects.get(id=ji_id)
-
-            # if request.GET.get('delete'):
-            #     # Deleting an item can mess up JobModule assignments. Check for child-related problems
-            #     new_qty = 0
-            #     if not ji.quantity_is_ok_for_modular_as_child(new_qty):
-            #         return JsonResponse({
-            #             'message': f"Delete failed: conflicts with modular item assignments."
-            #         }, status=400)
-
-            #     ji.job.price_changed()
-            #     ji.delete()
-            #     return JsonResponse({
-            #         'reload': 'true'
-            #     }, status=200)
 
             if request.GET.get('edit'):
                 posted_data = json.loads(request.body)

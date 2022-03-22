@@ -314,7 +314,7 @@ function update_job_item(e){
     .then(data => {
         let result_ele = edit_ele.previousElementSibling;
         // If the edit caused big enough changes to require a reload, reload the page
-        if (data['reload'] == 'true'){
+        if (data['reload'] === 'true'){
             location.reload();
         }
         else{
