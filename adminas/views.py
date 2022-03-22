@@ -650,15 +650,15 @@ def items(request):
             # Try processing as a non-formset (i.e. from the Module Management page)
             else:
                 try:
-                    posted_data = json.loads(request.body)
+                    incoming_data = json.loads(request.body)
                 
-                    if posted_data['source_page'] == 'module_management':
+                    if incoming_data['source_page'] == 'module_management':
                         # Add a JobItem based on modular info, then return the JobItem ID
-                        parent = JobItem.objects.get(id=posted_data['parent'])
-                        my_product = Product.objects.get(id=posted_data['product'])
+                        parent = JobItem.objects.get(id=incoming_data['parent'])
+                        my_product = Product.objects.get(id=incoming_data['product'])
                         form = JobItemForm({
                             'job': parent.job,
-                            'quantity': posted_data['quantity'],
+                            'quantity': incoming_data['quantity'],
                             'product': my_product.id,
                             'price_list': parent.price_list,
                             'selling_price': my_product.get_price(parent.job.currency, parent.price_list)
@@ -679,86 +679,95 @@ def items(request):
                     return error_page(request, 'Invalid data.', 400)
       
 
-        else:
-            # The presence of ID in the GET params means it's an update or delete
-            ji_id = request.GET.get('id')
+    elif request.method == 'PUT':
+
+        # if not request.GET.get('edit') or not request.GET.get('id'):
+        if not request.GET.get('id'):
+            return JsonResponse({
+                'message': f"Update failed"
+            }, status=400)
+
+        ji_id = request.GET.get('id')
+        try:
             ji = JobItem.objects.get(id=ji_id)
+        except Job.DoesNotExist:
+            return JsonResponse({
+                'message': f"Job not found."
+            }, status=404)                
 
-            if request.GET.get('edit'):
-                posted_data = json.loads(request.body)
-
-                if request.GET.get('edit') == 'all':
-                    form = JobItemEditForm(posted_data)
-                    if form.is_valid():
-                        # Store the original values for the product and quantity so that we can check if they've changed
-                        previous_product = ji.product
-                        previous_qty = ji.quantity
-
-                        # Prepare the updated JobItem in accordance with the proposed edit, but don't save it yet
-                        ji.quantity = form.cleaned_data['quantity']
-                        ji.product = form.cleaned_data['product']
-                        ji.selling_price = form.cleaned_data['selling_price']
-                        ji.price_list = form.cleaned_data['price_list']
-
-                        # Identify if the proposed edit touches on anything that requires a special response
-                        product_has_changed = previous_product != ji.product
-                        quantity_has_changed = previous_qty != ji.quantity
-
-                        # Check that the proposed edit wouldn't leave any other items with empty slots
-                        if product_has_changed:
-                            proposed_new_qty_for_previous_product = 0
-                        else:
-                            proposed_new_qty_for_previous_product = form.cleaned_data['quantity']
-                        
-                        if not ji.quantity_is_ok_for_modular_as_child(proposed_new_qty_for_previous_product):
-                            return JsonResponse({
-                                'message': f"Update failed: conflicts with modular item assignments."
-                            }, status=400)                             
-
-
-                        # Check that the proposed edit wouldn't leave itself with empty slots
-                        if ji.product.is_modular() and not product_has_changed and ji.quantity > previous_qty:
-                            if not ji.quantity_is_ok_for_modular_as_parent(ji.quantity):
-                                return JsonResponse({
-                                    'message': f"Update failed: insufficient items to fill specification."
-                                }, status=400)
-
-                        # The modules are happy (from a backend perspective), so save the changes and perform knock-on updates
-                        ji.save()
-
-                        if product_has_changed:
-                            ji.reset_standard_accessories()
-
-                        elif quantity_has_changed:
-                            ji.update_standard_accessories_quantities()
-
-                        ji.job.price_changed()
-
-                        return JsonResponse({
-                            'reload': 'true'
-                        }, status=200)                        
-                
-
-                elif request.GET.get('edit') == 'price_only':
-                    put_data = json.loads(request.body)
-                    form = JobItemPriceForm(put_data)
-
-                    if form.is_valid():
-                        ji.selling_price = form.cleaned_data['selling_price']
-                        ji.save()
-                        ji.job.price_changed()
-                        return JsonResponse({
-                            'reload': 'true'
-                        }, status=200)  
-                    else:
-                        return JsonResponse({
-                            'message': f"Update failed"
-                        }, status=400)
-
-            else:
+        # Updates can be called from two places:
+        #   > JobItem panel (quantity, product, price_list and selling_price)
+        #   > Price checker table (selling_price only)
+        # Check for the presence of something other than selling_price to see which this is.
+        incoming_data = json.loads(request.body)
+        if 'product' in incoming_data:
+            form = JobItemEditForm(incoming_data)
+            if not form.is_valid():
                 return JsonResponse({
                     'message': f"Update failed"
                 }, status=400)
+        
+            # Store the original values for the product and quantity so that we can check if they've changed
+            previous_product = ji.product
+            previous_qty = ji.quantity
+
+            # Prepare the updated JobItem in accordance with the proposed edit, but don't save it yet
+            ji.quantity = form.cleaned_data['quantity']
+            ji.product = form.cleaned_data['product']
+            ji.selling_price = form.cleaned_data['selling_price']
+            ji.price_list = form.cleaned_data['price_list']
+
+            # Identify if the proposed edit touches on anything that requires a special response
+            product_has_changed = previous_product != ji.product
+            quantity_has_changed = previous_qty != ji.quantity
+
+            # Check that the proposed edit wouldn't leave any other items with empty slots
+            if product_has_changed:
+                proposed_new_qty_for_previous_product = 0
+            else:
+                proposed_new_qty_for_previous_product = form.cleaned_data['quantity']
+            
+            if not ji.quantity_is_ok_for_modular_as_child(proposed_new_qty_for_previous_product):
+                return JsonResponse({
+                    'message': f"Update failed: conflicts with modular item assignments."
+                }, status=400)                             
+
+            # Check that the proposed edit wouldn't leave itself with empty slots
+            if ji.product.is_modular() and not product_has_changed and ji.quantity > previous_qty:
+                if not ji.quantity_is_ok_for_modular_as_parent(ji.quantity):
+                    return JsonResponse({
+                        'message': f"Update failed: insufficient items to fill specification."
+                    }, status=400)
+
+            # The modules are happy (from a backend perspective), so save the changes and perform knock-on updates
+            ji.save()
+
+            if product_has_changed:
+                ji.reset_standard_accessories()
+
+            elif quantity_has_changed:
+                ji.update_standard_accessories_quantities()
+
+            ji.job.price_changed()
+
+            return JsonResponse({
+                'reload': 'true'
+            }, status=200)                        
+        
+        else:
+            form = JobItemPriceForm(incoming_data)
+            if not form.is_valid():
+                return JsonResponse({
+                    'message': f"Update failed"
+                }, status=400)
+
+            ji.selling_price = form.cleaned_data['selling_price']
+            ji.save()
+            ji.job.price_changed()
+
+            return JsonResponse({
+                'reload': 'true'
+            }, status=200)  
 
 
     elif request.method == 'GET':

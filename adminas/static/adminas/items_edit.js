@@ -299,8 +299,8 @@ function update_job_item(e){
     let prl_sel = edit_ele.querySelector(prefix + 'price_list')
 
     // PUT it into the database and call functions to handle the DOM
-    fetch(`${URL_ITEMS}?id=${e.target.dataset.jiid}&edit=all`, {
-        method: 'POST',
+    fetch(`${URL_ITEMS}?id=${e.target.dataset.jiid}`, {
+        method: 'PUT',
         body: JSON.stringify({
             'quantity': parseInt(edit_ele.querySelector(prefix + 'quantity').value.trim()),
             'product': edit_ele.querySelector(prefix + 'product').value.trim(),
@@ -319,7 +319,7 @@ function update_job_item(e){
         }
         else{
             if('message' in data){
-                display_error_message_in_job_item(result_div, data['message']);
+                display_error_message_in_job_item(result_ele, data['message']);
             }
             read_mode_job_item(result_ele, edit_ele);
         }
@@ -539,8 +539,8 @@ function edit_price(btn, new_price){
 
 // Price check edit (action): POSTs the data to the server and calls for the page update
 function edit_price_on_server(jiid, new_price){
-    fetch(`${URL_ITEMS}?id=${jiid}&edit=price_only`, {
-        method: 'POST',
+    fetch(`${URL_ITEMS}?id=${jiid}`, {
+        method: 'PUT',
         body: JSON.stringify({
             'selling_price': new_price
         }),
