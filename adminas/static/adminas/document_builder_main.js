@@ -153,14 +153,16 @@ function update_document_on_server(issue_date){
     // DOC_ID 0 = creating a new document, so the server needs to know the Job ID and doc type
     if(DOC_ID == '0'){
         var URL = `${URL_DOCBUILDER}?job=${JOB_ID}&type=${DOC_CODE}`;
+        var method = 'POST';
 
     // DOC_ID not 0 = updating an existing document, so the ID alone is sufficient
     } else {
-        var URL = `${URL_DOCBUILDER}?id=${DOC_ID}`
+        var URL = `${URL_DOCBUILDER}?id=${DOC_ID}`;
+        var method = 'PUT';
     }
 
     fetch(URL, {
-        method: 'POST',
+        method: method,
         body: JSON.stringify(dict),
         headers: getDjangoCsrfHeaders(),
         credentials: 'include'

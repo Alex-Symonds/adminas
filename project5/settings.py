@@ -129,7 +129,7 @@ STATIC_ROOT = '/adminas/static/'
 MEDIA_ROOT = '/adminas/media/'
 
 if DEBUG == True:
-    STATIC_ROOT = 'Z:/Documents/Programming/CS50w/Project 5, Unknown/project5/adminas/static/'
+    STATIC_ROOT = 'Z:/Documents/Programming/CS50w/Project 5, Adminas/project5/adminas/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field

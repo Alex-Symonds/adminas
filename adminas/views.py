@@ -14,15 +14,14 @@ import datetime
 from wkhtmltopdf.views import PDFTemplateResponse
 # --------------------------------------------------------
 
-from adminas.models import  SpecialInstruction, User, Job, Address, PurchaseOrder, JobItem, Product, Slot, Price, \
-                            JobModule, DocumentData, DocAssignment, ProductionData, DocumentVersion, JobComment, Company
+from adminas.models import  User, Job, Address, PurchaseOrder, JobItem, Product, Slot, Price, \
+                            JobModule, DocumentData, ProductionData, DocumentVersion, JobComment, Company
 from adminas.forms import   DocumentDataForm, JobForm, POForm, JobItemForm, JobItemFormSet, JobItemEditForm, \
                             JobModuleForm, JobItemPriceForm, ProductionReqForm, DocumentVersionForm, JobCommentFullForm
-from adminas.constants import DOCUMENT_TYPES, CSS_FORMATTING_FILENAME, HTML_HEADER_FILENAME, HTML_FOOTER_FILENAME
-from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money
+from adminas.constants import DOCUMENT_TYPES, CSS_FORMATTING_FILENAME, HTML_HEADER_FILENAME, HTML_FOOTER_FILENAME, WO_CARD_CODE
+from adminas.util import anonymous_user, error_page, add_jobitem, debug, format_money, get_dict_document_builder, create_document_assignments, create_document_instructions
 
 
-# Create your views here.
 def login_view(request):
     if request.method == 'POST':
 
@@ -685,8 +684,11 @@ def items(request):
                 }, status=200)
 
 
-
+    # Updates can be called from two places:
+    #   > JobItem panel (quantity, product, price_list and selling_price)
+    #   > Price checker table (selling_price only)
     elif request.method == 'PUT':
+
         if not request.GET.get('id'):
             return JsonResponse({
                 'message': f"Update failed"
@@ -700,10 +702,8 @@ def items(request):
                 'message': f"Job not found."
             }, status=404)                
 
-        # Updates can be called from two places:
-        #   > JobItem panel (quantity, product, price_list and selling_price)
-        #   > Price checker table (selling_price only)
-        # Check for the presence of something other than selling_price to see which this is.
+        # Check for the presence of something other than selling_price to see how much to update.
+        # Presence of a field that isn't selling_price means it's a "full" update
         incoming_data = json.loads(request.body)
         if 'product' in incoming_data:
             form = JobItemEditForm(incoming_data)
@@ -759,6 +759,7 @@ def items(request):
                 'reload': 'true'
             }, status=200)                        
         
+        # If the none selling_price field isn't there, assume we're only updating the price
         else:
             form = JobItemPriceForm(incoming_data)
             if not form.is_valid():
@@ -775,6 +776,8 @@ def items(request):
             }, status=200)  
 
 
+    # User is fiddling with the product dropdown, so send them the description of the current item
+    # in the language chosen for this job.
     elif request.method == 'GET':
         product_id = request.GET.get('product_id')
         job_id = request.GET.get('job_id')
@@ -897,7 +900,7 @@ def module_assignments(request):
 
         return JsonResponse(parent.get_slot_status_dictionary(slot), status=200)
 
-    # User has edited a module (which effectively means they changed the quantity, since any other changes are handled via delete, recreate)
+    # User has edited a module (= they changed the quantity, since any other changes are handled via delete-then-recreate)
     elif request.method == 'PUT':
         posted_data = json.loads(request.body)
 
@@ -1077,6 +1080,7 @@ def records(request):
     })
 
 
+
 def doc_builder(request):
     """
         Document Builder page.
@@ -1084,176 +1088,151 @@ def doc_builder(request):
     if not request.user.is_authenticated:
         return anonymous_user(request)
 
-    # Note about GET parameters:
-    #   CREATE and READ NEW will pass "job" and "type", since there is no DocumentData record yet.
-    #   UPDATE and READ EXISTING will pass "id" (= the DocumentData PK).
-    #   DELETE will pass "id" and "delete=true"
+    # Check GET params and prepare variables relating to the document we want to build
+    if request.GET.get('id') != None:
+        # Prepare doc variables based on an existing doc_id (used by POST+UPDATE and GET+EXISTING)
+        doc_dict = get_dict_document_builder(doc_id=request.GET.get('id'))
+
+    elif request.GET.get('job') != None and request.GET.get('type') != None:
+        # Prepare doc variables based on job ID and doc type (used by POST+CREATE and GET+BLANK)
+        doc_dict = get_dict_document_builder(job_id=request.GET.get('job'), doc_code=request.GET.get('type'))
+
+    else:
+        doc_dict = {}
+        doc_dict['error_msg'] = "Invalid GET parameters: can't find document."
+        doc_dict['http_code'] = 404
+
+    if 'error_msg' in doc_dict:
+        if request.method == 'GET':
+            return error_page(request, doc_dict['error_msg'], doc_dict['http_code'])
+        else:
+            return JsonResponse({
+                'message': doc_dict['error_msg']
+            }, status=doc_dict['http_code'])
+
+    # Stick doc_obj into a separate variable because it's used a lot
+    doc_obj = doc_dict['doc_obj']
 
     if request.method == 'DELETE':
-        doc_obj = DocumentVersion.objects.get(id=int(request.GET.get('id')))
-
-        if doc_obj.issue_date == None:
-            # Deactivate rather than delete so that accidental deletion can be reversed easily
-            doc_obj.deactivate()
-            doc_obj.save()
-            return JsonResponse({
-                'redirect': reverse('job', kwargs={'job_id': doc_obj.document.job.id})
-            })
-
-        else:
+        if doc_obj.issue_date != None:
             return JsonResponse({
                 'message': "Forbidden: documents which have been issued cannot be deleted, only replaced with a newer version."
             }, status=400)
 
-    elif request.GET.get('id') != None:
-        # Prepare variables for existing documents
-        doc_obj = DocumentVersion.objects.get(id=int(request.GET.get('id')))
+        # Deactivate rather than delete so that accidental deletion can be reversed easily
+        doc_obj.deactivate()
+        doc_obj.save()
+        return JsonResponse({
+            'redirect': reverse('job', kwargs={'job_id': doc_obj.document.job.id})
+        })
 
-        if doc_obj.issue_date != None:
-            return error_page(request, "Forbidden: documents which have been issued cannot be updated.", 403)
+    # PUT and POST need to do very similar things, so let's share
+    elif request.method == 'PUT' or request.method == 'POST':
+        # Forms common to all doc types.
+        incoming_data = json.loads(request.body)
+        form = DocumentDataForm({
+            'reference': incoming_data['reference']
+        })
+        version_form = DocumentVersionForm({
+            'issue_date': incoming_data['issue_date']
+        })
 
-        this_job = doc_obj.document.job
-        job_id = this_job.id
-        doc_code = doc_obj.document.doc_type
-        doc_ref = doc_obj.document.reference
-        doc_title = dict(DOCUMENT_TYPES).get(doc_code)
+        # Form specific to a certain document type.
+        doctype_specific_fields_exist = False
+        doctype_specific_fields_are_ok = True
+        if 'req_prod_date' in incoming_data:
+            doctype_specific_fields_exist = True
+            prod_data_form = ProductionReqForm({
+                'date_requested': incoming_data['req_prod_date'],
+                'date_scheduled': incoming_data['sched_prod_date']
+            })
+            doctype_specific_fields_are_ok = prod_data_form.is_valid()
 
-    elif request.GET.get('job') != None:
-        # Prepare variables for new documents
-        doc_obj = None
-        job_id = int(request.GET.get('job'))
-        this_job = Job.objects.get(id=job_id)
-        doc_code = request.GET.get('type')
-        doc_ref = ''
-        doc_title = f'Create New {dict(DOCUMENT_TYPES).get(doc_code)}'
-
-    else:
-        return error_page(request, "Can't find document.", 400)
-
-
-    # Handle adjustments to the database in the event of a POST
-    if request.method == 'POST':
-
-        if doc_obj != None and doc_obj.issue_date != None:
-            # This condition can only be True if the user fiddled about in the browser's inspector, presumably in an 
-            # attempt to circumvent rules preventing updating of issued documents.
+        # If the forms aren't valid, stop here
+        if not (form.is_valid() and version_form.is_valid() and (not doctype_specific_fields_exist or doctype_specific_fields_are_ok)):
+            debug(form.errors)
+            debug(version_form.errors)
+            debug(prod_data_form.errors)
             return JsonResponse({
-                'message': "Can't update a document that has already been issued (nice try though)"
-            }, status=403)
+                'message': 'Invalid data.'
+            }, status=500)  
+
+        # Handle steps specific to POST or PUT
+        response = {}
+        if(request.method == 'POST'):
+            # Create a new document
+            parent_doc = DocumentData(
+                reference = form.cleaned_data['reference'],
+                doc_type = doc_dict['doc_code'],
+                job = doc_dict['job_obj']
+            )
+            parent_doc.save()
+
+            # Create a new version of a document
+            doc_obj = DocumentVersion(
+                created_by = request.user,
+                document = parent_doc,
+                version_number = 1,
+                issue_date = version_form.cleaned_data['issue_date'] if 'issue_date' in version_form.cleaned_data else None,
+                invoice_to = doc_dict['job_obj'].invoice_to,
+                delivery_to = doc_dict['job_obj'].delivery_to
+            )
+            doc_obj.save()
+
+            # Since it's a new document, all the assigned_items and special_instructions must also be new and therefore require creation.
+            new_assignments = incoming_data['assigned_items']
+            new_special_instructions = incoming_data['special_instructions']
+
+            # Redirect the user to a page with the doc ID in the GET params so any further work will update the document we just created
+            response['redirect'] = f"{reverse('doc_builder')}?id={doc_obj.id}"
 
         else:
-            # Get the POST data into forms and check it's ok before proceeding
-            # Form common to all doc types.
-            posted_data = json.loads(request.body)
-            doc_dict = {}
-            doc_dict['reference'] = posted_data['reference']
-            form = DocumentDataForm(doc_dict)
-
-            version_dict = {}
-            version_dict['issue_date'] = posted_data['issue_date']
-            version_form = DocumentVersionForm(version_dict)
-
-            # Form specific to a certain document type.
-            doctype_specific_fields_exist = False
-            doctype_specific_fields_are_ok = True
-            if 'req_prod_date' in posted_data:
-                doctype_specific_fields_exist = True
-                prod_data_form = ProductionReqForm({
-                    'date_requested': posted_data['req_prod_date'],
-                    'date_scheduled': posted_data['sched_prod_date']
-                })
-                doctype_specific_fields_are_ok = prod_data_form.is_valid()
-
-            # If the inputs are ok, proceed with the database updates.
-            if form.is_valid() and version_form.is_valid() and (not doctype_specific_fields_exist or doctype_specific_fields_are_ok):
-                response = {}
-
-                if(doc_obj == None):
-                    # POST and doc_obj == None means the user is creating a new document. Create it now and save it.
-                    parent_doc = DocumentData(
-                        reference = form.cleaned_data['reference'],
-                        doc_type = doc_code,
-                        job = this_job
-                    )
-                    parent_doc.save()
-
-                    doc_obj = DocumentVersion(
-                        created_by = request.user,
-                        document = parent_doc,
-                        version_number = 1,
-                        issue_date = version_form.cleaned_data['issue_date'] if 'issue_date' in version_form.cleaned_data else None,
-                        invoice_to = this_job.invoice_to,
-                        delivery_to = this_job.delivery_to
-                    )
-                    doc_obj.save()
-
-                    # If it's a new document, all the assigned_items and special_instructions must also be new and therefore require creation.
-                    new_assignments = posted_data['assigned_items']
-                    new_special_instructions = posted_data['special_instructions']
-                    response['redirect'] = f"{reverse('doc_builder')}?id={doc_obj.id}"
-
-                else:
-                    # POST and doc_id != None means the user is updating an existing document.
-                    parent = doc_obj.document
-                    parent.reference = form.cleaned_data['reference']
-                    parent.doc_type = doc_code
-                    parent.job = this_job
-                    parent.save()
-
-                    doc_obj.issue_date = version_form.cleaned_data['issue_date']
-                    doc_obj.invoice_to = this_job.invoice_to
-                    doc_obj.delivery_to = this_job.delivery_to
-                    doc_obj.save()
-
-                    # If it's an existing document, assigned_items and special_instructions will need a mixture of creation, updating and/or deletion.
-                    # Handle update and delete here. Create is also needed for new documents, so we'll handle that outside this if statement.
-                    new_assignments = doc_obj.update_item_assignments_and_get_create_list(posted_data['assigned_items'])
-                    new_special_instructions = doc_obj.update_special_instructions_and_get_create_list(posted_data['special_instructions'])
-                    response['message'] = 'Document saved'
-
-                # Create new JobItem assignments and special instructions.
-                for jobitem in new_assignments:
-                    assignment = DocAssignment(
-                        version = doc_obj,
-                        item = JobItem.objects.get(id=jobitem['id']),
-                        quantity = int(jobitem['quantity'])
-                    )
-                    assignment.quantity = min(assignment.quantity, assignment.max_quantity_excl_self())
-                    assignment.save()
-
-                for spec_instr in new_special_instructions:
-                    instr = SpecialInstruction(
-                        version = doc_obj,
-                        instruction = spec_instr['contents'],
-                        created_by = request.user
-                    )
-                    instr.save()
-
-                # Update/delete document-specific fields. For now, that's only the WO requested date.
-                if 'req_prod_date' in posted_data:
-                    doc_obj.update_production_dates(prod_data_form)
-
-
-                if doc_obj.issue_date != None:
-                    # The document has been issued, so no more working is permitted. Save and exit to doc main.
-                    doc_obj.save_issued_state()
-                    return JsonResponse({
-                        'redirect': reverse('doc_main', kwargs={'doc_id': doc_obj.id})
-                    })
-
-                else:
-                    # Draft document has been saved, so continue working.
-                    return JsonResponse(response, status=200)
-
-            else:
-                debug(form.errors)
-                debug(version_form.errors)
-                debug(prod_data_form.errors)
+            # Check the document is unissued, just in case the user messed about with the client-side stuff
+            if doc_obj.issue_date != None:
                 return JsonResponse({
-                    'message': 'Invalid data.'
-                }, status=500)   
-    
-    # doc_obj will only == None at this stage if this is a GET request for a "blank" new document, since POST>CREATE will have created a doc_obj by now.
+                    'message': "Can't update a document that has already been issued (nice try though)"
+                }, status=403)
+
+            # Update the document
+            parent = doc_obj.document
+            parent.reference = form.cleaned_data['reference']
+            parent.doc_type = doc_dict['doc_code']
+            parent.job = doc_dict['job_obj']
+            parent.save()
+
+            # Update the version
+            doc_obj.issue_date = version_form.cleaned_data['issue_date']
+            doc_obj.invoice_to = doc_dict['job_obj'].invoice_to
+            doc_obj.delivery_to = doc_dict['job_obj'].delivery_to
+            doc_obj.save()
+
+            # Since it's an existing document, updating assigned_items and special_instructions could mean a mixture of creation, 
+            # updating and/or deletion.
+            # Handle update and delete here. Create is also needed for new documents, so we'll handle that outside of this if statement.
+            new_assignments = doc_obj.update_item_assignments_and_get_create_list(incoming_data['assigned_items'])
+            new_special_instructions = doc_obj.update_special_instructions_and_get_create_list(incoming_data['special_instructions'])
+            response['message'] = 'Document saved'
+
+        # Create new assignments and instructions as necessary
+        create_document_assignments(new_assignments, doc_obj)
+        create_document_instructions(new_special_instructions, doc_obj, request.user)
+
+        # Update/delete document-specific fields. For now, that's only the WO requested date.
+        if 'req_prod_date' in incoming_data:
+            doc_obj.update_production_dates(prod_data_form)
+
+        # If the document has now been issued, no more "building" is permitted. Save, then exit to doc main.
+        if doc_obj.issue_date != None:
+            doc_obj.save_issued_state()
+            return JsonResponse({
+                'redirect': reverse('doc_main', kwargs={'doc_id': doc_obj.id})
+            })
+        # Otherwise, return "response" dict
+        else:
+            return JsonResponse(response, status=200)
+
+ 
+    # doc_obj will == None at this stage if this is a GET request for a "blank" new document
     doc_specific_obj = None
     if doc_obj != None:
         included_list = doc_obj.get_included_items()
@@ -1262,31 +1241,32 @@ def doc_builder(request):
         version_num = doc_obj.version_number
 
         # Check for doc_specific fields.
-        if doc_obj.document.doc_type == 'WO':
+        if doc_obj.document.doc_type == WO_CARD_CODE:
             try:
                 doc_specific_obj = ProductionData.objects.filter(version=doc_obj)[0]
             except:
                 pass
 
     else:
-        included_list = this_job.get_items_unassigned_to_doc(doc_code)
-        excluded_list = this_job.get_items_assigned_to_doc(doc_code)
+        included_list = doc_dict['job_obj'].get_items_unassigned_to_doc(doc_dict['doc_code'])
+        excluded_list = doc_dict['job_obj'].get_items_assigned_to_doc(doc_dict['doc_code'])
         special_instructions = None
         version_num = 1
 
     return render(request, 'adminas/document_builder.html', {
-        'doc_title': doc_title,
+        'doc_title': doc_dict['doc_title'],
         'doc_id': doc_obj.id if doc_obj != None else 0,
         'doc': doc_obj,
         'version_number': version_num,
-        'doc_type': doc_code,
-        'reference': doc_ref,
-        'job_id': job_id,
+        'doc_type': doc_dict['doc_code'],
+        'reference': doc_dict['doc_ref'],
+        'job_id': doc_dict['job_id'],
         'doc_specific': doc_specific_obj,
         'included_items': included_list,
         'excluded_items': excluded_list,
         'special_instructions': special_instructions
     })
+
 
 
 def document_pdf(request, doc_id):
@@ -1394,7 +1374,7 @@ def document_main(request, doc_id):
     doc_title = dict(DOCUMENT_TYPES).get(doc_obj.document.doc_type)
 
     doc_specific_obj = None
-    if doc_obj.document.doc_type == 'WO':
+    if doc_obj.document.doc_type == WO_CARD_CODE:
         try:
             doc_specific_obj = ProductionData.objects.filter(version=doc_obj)[0]
         except:

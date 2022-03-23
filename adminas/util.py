@@ -1,7 +1,7 @@
 from django.shortcuts import render
 import adminas.models
 from adminas.constants import ERROR_NO_DATA
-
+from adminas.constants import DOCUMENT_TYPES
 
 
 def format_money(value):
@@ -102,3 +102,63 @@ def copy_relations_to_new_document_version(existing_relations, new_version):
     return
 
 
+
+
+def get_dict_document_builder(**kwargs):
+    result = {}
+    if 'doc_id' in kwargs:
+        try:
+            doc_obj = adminas.models.DocumentVersion.objects.get(id=kwargs.get('doc_id', 0))
+        except adminas.models.DocumentVersion.DoesNotExist:
+            result['error_msg'] = "Can't find document version."
+            result['http_code'] = 404
+            return result
+        
+        if doc_obj.issue_date != None:
+            result['error_msg'] = "Forbidden: documents which have been issued cannot be updated."
+            result['http_code'] = 403
+            return result
+
+        result['doc_obj'] = doc_obj
+        result['job_obj'] = doc_obj.document.job
+        result['job_id'] = doc_obj.document.job.id
+        result['doc_code'] = doc_obj.document.doc_type
+        result['doc_ref'] = doc_obj.document.reference
+        result['doc_title'] = dict(DOCUMENT_TYPES).get(result['doc_code'])
+        return result
+
+    elif 'job_id' in kwargs and 'doc_code' in kwargs:
+        # Prepare variables for new documents (used by POST+CREATE and GET+NEW)
+        try:
+            this_job = adminas.models.Job.objects.get(id=kwargs.get('job_id', "?"))
+        except adminas.models.Job.DoesNotExist:
+            result['error_msg'] = "Can't find job."
+            result['http_code'] = 404
+            return result
+
+        result['doc_obj'] = None
+        result['job_obj'] = this_job
+        result['job_id'] = this_job.id
+        result['doc_code'] = kwargs.get('doc_code', "?")
+        result['doc_ref'] = ''
+        result['doc_title'] = f"Create New {dict(DOCUMENT_TYPES).get(result['doc_code'])}"
+        return result
+
+def create_document_assignments(jobitems, doc_obj):
+    for jobitem in jobitems:
+        assignment = adminas.models.DocAssignment(
+            version = doc_obj,
+            item = adminas.models.JobItem.objects.get(id=jobitem['id']),
+            quantity = int(jobitem['quantity'])
+        )
+        assignment.quantity = min(assignment.quantity, assignment.max_quantity_excl_self())
+        assignment.save()
+
+def create_document_instructions(new_special_instructions, doc_obj, user):
+    for spec_instr in new_special_instructions:
+        instr = adminas.models.SpecialInstruction(
+            version = doc_obj,
+            instruction = spec_instr['contents'],
+            created_by = user
+        )
+        instr.save()
